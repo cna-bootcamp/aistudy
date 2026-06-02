@@ -26,7 +26,7 @@ from pathlib import Path
 # launcher가 URL에서 `/hands-on/` 구간을 찾으므로, 서버 루트는 hands-on/의 상위로 둠
 HANDS_ON_DIR = Path(__file__).resolve().parent
 ROOT = HANDS_ON_DIR.parent
-DEFAULT_PORT = 8000
+DEFAULT_PORT = 8123
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
