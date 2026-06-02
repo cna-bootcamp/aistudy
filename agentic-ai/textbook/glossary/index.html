@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 부트캠프 초보자 용어집</title>
+<meta name="description" content="AI Boot Camp 교재 기반 초보자용 용어집 — 비유와 예시로 쉽게 이해하는 AI 용어 사전" />
+<style>
+  :root {
+    --bg: #f6f7fb;
+    --bg-elev: #ffffff;
+    --bg-soft: #eef1f8;
+    --text: #1f2430;
+    --text-soft: #5b6472;
+    --text-faint: #8a93a3;
+    --border: #e3e7ef;
+    --accent: #4f6ef7;
+    --accent-soft: #e8ecfe;
+    --accent-text: #3a52d6;
+    --analogy-bg: #fff7e6;
+    --analogy-border: #ffd97a;
+    --analogy-text: #8a5a00;
+    --example-bg: #eafaf1;
+    --example-border: #9ee0bd;
+    --example-text: #1c6b45;
+    --shadow: 0 1px 3px rgba(20,30,60,.06), 0 6px 24px rgba(20,30,60,.06);
+    --chip-bg: #eef1f8;
+  }
+  html[data-theme="dark"] {
+    --bg: #0f1218;
+    --bg-elev: #171b24;
+    --bg-soft: #1d222d;
+    --text: #e6e9f0;
+    --text-soft: #aab2c2;
+    --text-faint: #768093;
+    --border: #2a313d;
+    --accent: #7d93ff;
+    --accent-soft: #232a3d;
+    --accent-text: #aab8ff;
+    --analogy-bg: #2a2410;
+    --analogy-border: #5e4f1c;
+    --analogy-text: #e6c768;
+    --example-bg: #112a1d;
+    --example-border: #245c40;
+    --example-text: #7fd3a6;
+    --shadow: 0 1px 3px rgba(0,0,0,.3), 0 6px 24px rgba(0,0,0,.35);
+    --chip-bg: #1d222d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Header ── */
+  header.hero {
+    background: linear-gradient(135deg, #4f6ef7 0%, #7d5cf7 55%, #b65cf7 100%);
+    color: #fff;
+    padding: 38px 20px 30px;
+    text-align: center;
+    position: relative;
+  }
+  header.hero h1 { margin: 0 0 6px; font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; }
+  header.hero p { margin: 0; opacity: .92; font-size: .98rem; }
+  .theme-toggle {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(255,255,255,.18); color: #fff; border: 1px solid rgba(255,255,255,.3);
+    border-radius: 999px; padding: 7px 14px; cursor: pointer; font-size: .85rem; font-weight: 600;
+    backdrop-filter: blur(4px); transition: background .15s;
+  }
+  .theme-toggle:hover { background: rgba(255,255,255,.3); }
+
+  /* ── Sticky control bar ── */
+  .controls {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 14px 16px 12px;
+  }
+  .controls-inner { max-width: 1100px; margin: 0 auto; }
+  .search-row { display: flex; gap: 10px; align-items: center; }
+  .search-box {
+    position: relative; flex: 1;
+  }
+  .search-box svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--text-faint); }
+  #search {
+    width: 100%; padding: 13px 44px 13px 42px;
+    font-size: 1rem; border: 2px solid var(--border); border-radius: 12px;
+    background: var(--bg); color: var(--text); outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  #clearBtn {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    border: none; background: var(--bg-soft); color: var(--text-soft); cursor: pointer;
+    width: 26px; height: 26px; border-radius: 50%; font-size: 1rem; line-height: 1; display: none;
+  }
+  #search:not(:placeholder-shown) ~ #clearBtn { display: block; }
+
+  .hint { font-size: .8rem; color: var(--text-faint); margin: 8px 2px 2px; }
+  .hint code { background: var(--chip-bg); padding: 1px 6px; border-radius: 5px; font-size: .92em; }
+
+  .cats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .cat-chip {
+    border: 1px solid var(--border); background: var(--bg); color: var(--text-soft);
+    padding: 6px 13px; border-radius: 999px; cursor: pointer; font-size: .85rem; font-weight: 600;
+    transition: all .13s; white-space: nowrap;
+  }
+  .cat-chip:hover { border-color: var(--accent); color: var(--accent-text); }
+  .cat-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .cat-chip .n { opacity: .7; font-weight: 500; margin-left: 4px; }
+
+  /* ── Main ── */
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 80px; }
+  .meta-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin: 6px 2px 16px; color: var(--text-soft); font-size: .9rem; }
+  .meta-row select { padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-elev); color: var(--text); font-size: .85rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
+
+  .card {
+    background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 18px 16px; box-shadow: var(--shadow); display: flex; flex-direction: column;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(20,30,60,.1), 0 12px 32px rgba(20,30,60,.1); }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .term-name { font-size: 1.22rem; font-weight: 800; color: var(--text); letter-spacing: -.01em; }
+  .term-full { font-size: .82rem; color: var(--text-faint); margin: 2px 0 0; font-weight: 500; }
+  .cat-badge { font-size: .72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); white-space: nowrap; }
+
+  .definition { margin: 12px 0 0; font-size: .94rem; color: var(--text); }
+
+  .note { margin-top: 11px; padding: 9px 12px; border-radius: 10px; font-size: .86rem; border: 1px solid; }
+  .note .lab { font-weight: 700; margin-right: 6px; }
+  .note.analogy { background: var(--analogy-bg); border-color: var(--analogy-border); color: var(--analogy-text); }
+  .note.example { background: var(--example-bg); border-color: var(--example-border); color: var(--example-text); }
+
+  .card-foot { margin-top: 13px; padding-top: 12px; border-top: 1px dashed var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .chapters { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chapter-tag { font-size: .73rem; color: var(--text-soft); background: var(--chip-bg); padding: 3px 8px; border-radius: 6px; }
+  .related { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .related .lab { font-size: .76rem; color: var(--text-faint); }
+  .rel-link { font-size: .78rem; color: var(--accent-text); background: var(--accent-soft); padding: 3px 9px; border-radius: 999px; cursor: pointer; border: none; transition: background .13s; }
+  .rel-link:hover { background: var(--accent); color: #fff; }
+
+  mark { background: #ffe680; color: inherit; padding: 0 2px; border-radius: 3px; }
+  html[data-theme="dark"] mark { background: #6b5a1a; color: #ffe680; }
+
+  .empty { text-align: center; padding: 70px 20px; color: var(--text-faint); }
+  .empty .big { font-size: 3rem; margin-bottom: 10px; }
+  .loading { text-align: center; padding: 80px 20px; color: var(--text-faint); }
+  .spinner { width: 38px; height: 38px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; margin: 0 auto 16px; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .errbox { max-width: 620px; margin: 40px auto; background: var(--bg-elev); border: 1px solid var(--border); border-radius: 14px; padding: 26px; box-shadow: var(--shadow); }
+  .errbox h2 { margin-top: 0; }
+  .errbox pre { background: var(--bg-soft); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: .85rem; }
+
+  footer { text-align: center; padding: 30px 16px; color: var(--text-faint); font-size: .82rem; border-top: 1px solid var(--border); }
+
+  @media (max-width: 560px) {
+    header.hero h1 { font-size: 1.5rem; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <button class="theme-toggle" id="themeToggle">🌙 다크모드</button>
+  <h1>📘 AI 부트캠프 초보자 용어집</h1>
+  <p>AI Boot Camp 교재 17종을 기반으로 — 비유와 예시로 쉽게 이해하는 AI 용어 사전</p>
+</header>
+
+<div class="controls">
+  <div class="controls-inner">
+    <div class="search-row">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="search" type="text" placeholder="용어 검색…  (예: RAG, 임베딩, ㅍㄹㅍㅌ)" autocomplete="off" />
+        <button id="clearBtn" title="지우기">×</button>
+      </div>
+    </div>
+    <div class="hint">💡 한글 <b>초성 검색</b> 지원 — <code>ㅍㄹㅍㅌ</code> → 프롬프트, <code>ㅇㅂㄷ</code> → 임베딩. 용어·영문명·설명·연관어를 함께 검색합니다.</div>
+    <div class="cats" id="cats"></div>
+  </div>
+</div>
+
+<main>
+  <div class="meta-row">
+    <div id="count"></div>
+    <label>정렬:
+      <select id="sort">
+        <option value="az">가나다 / A–Z</option>
+        <option value="cat">카테고리별</option>
+      </select>
+    </label>
+  </div>
+  <div id="results"></div>
+</main>
+
+<footer>
+  AI Boot Camp 교재 기반 용어집 · 초보자용 · 검색·필터·초성검색 지원
+</footer>
+
+<script>
+/* ───────── 한글 초성 추출 ───────── */
+const CHO = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ","ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+function toCho(str) {
+  let out = "";
+  for (const ch of str) {
+    const code = ch.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      out += CHO[Math.floor((code - 0xAC00) / 588)];
+    } else {
+      out += ch;
+    }
+  }
+  return out;
+}
+const isAllCho = s => s.length > 0 && [...s].every(c => CHO.includes(c));
+
+/* ───────── 상태 ───────── */
+let TERMS = [];
+let activeCat = "전체";
+let query = "";
+
+const el = {
+  search: document.getElementById("search"),
+  clear: document.getElementById("clearBtn"),
+  cats: document.getElementById("cats"),
+  results: document.getElementById("results"),
+  count: document.getElementById("count"),
+  sort: document.getElementById("sort"),
+};
+
+/* ───────── 테마 ───────── */
+const themeBtn = document.getElementById("themeToggle");
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  themeBtn.textContent = t === "dark" ? "☀️ 라이트모드" : "🌙 다크모드";
+  try { localStorage.setItem("glossary-theme", t); } catch(e){}
+}
+themeBtn.addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  applyTheme(cur === "dark" ? "light" : "dark");
+});
+(function(){
+  let saved = null;
+  try { saved = localStorage.getItem("glossary-theme"); } catch(e){}
+  if (!saved) saved = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  applyTheme(saved);
+})();
+
+/* ───────── 데이터 로드 ───────── */
+fetch("glossary.json")
+  .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(data => { TERMS = data; init(); })
+  .catch(err => showLoadError(err));
+
+function showLoadError(err) {
+  el.results.innerHTML = `
+    <div class="errbox">
+      <h2>⚠️ 용어 데이터를 불러오지 못했습니다</h2>
+      <p>브라우저 보안 정책상 <code>file://</code> 로 직접 열면 <code>glossary.json</code>을 읽지 못할 수 있습니다.
+      아래처럼 간단한 로컬 서버를 띄운 뒤 접속해 주세요.</p>
+      <pre>cd agentic-ai/textbook/glossary
+python -m http.server 8000
+# 브라우저에서 http://localhost:8000 접속</pre>
+      <p style="color:var(--text-faint);font-size:.85rem">오류: ${err.message}</p>
+    </div>`;
+  el.count.textContent = "";
+}
+
+/* ───────── 초기화 ───────── */
+function init() {
+  // 카테고리 칩
+  const counts = {};
+  TERMS.forEach(t => { counts[t.category] = (counts[t.category] || 0) + 1; });
+  const cats = ["전체", ...Object.keys(counts).sort((a,b)=>counts[b]-counts[a])];
+  el.cats.innerHTML = cats.map(c => {
+    const n = c === "전체" ? TERMS.length : counts[c];
+    return `<button class="cat-chip${c==="전체"?" active":""}" data-cat="${escapeAttr(c)}">${escapeHtml(c)}<span class="n">${n}</span></button>`;
+  }).join("");
+  el.cats.querySelectorAll(".cat-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      activeCat = chip.dataset.cat;
+      el.cats.querySelectorAll(".cat-chip").forEach(c => c.classList.toggle("active", c === chip));
+      render();
+    });
+  });
+
+  // 검색 입력
+  el.search.addEventListener("input", () => { query = el.search.value.trim(); render(); });
+  el.clear.addEventListener("click", () => { el.search.value = ""; query = ""; el.search.focus(); render(); });
+  el.sort.addEventListener("change", render);
+
+  // 미리 초성 인덱스 생성
+  TERMS.forEach(t => {
+    const hay = [t.term, t.fullName, t.definition, t.analogy, t.example, (t.related||[]).join(" ")].join(" ");
+    t._hay = hay.toLowerCase();
+    t._cho = toCho(hay).toLowerCase();
+  });
+
+  render();
+}
+
+/* ───────── 필터/검색 ───────── */
+function matches(t, q) {
+  if (!q) return true;
+  const ql = q.toLowerCase();
+  if (isAllCho(q)) return t._cho.includes(ql);   // 초성만 입력 시 초성 매칭
+  return t._hay.includes(ql) || t._cho.includes(toCho(ql));
+}
+
+function render() {
+  let list = TERMS.filter(t => (activeCat === "전체" || t.category === activeCat) && matches(t, query));
+
+  if (el.sort.value === "az") {
+    list.sort((a,b) => a.term.localeCompare(b.term, "ko"));
+  } else {
+    list.sort((a,b) => a.category.localeCompare(b.category, "ko") || a.term.localeCompare(b.term, "ko"));
+  }
+
+  el.count.innerHTML = `<b style="color:var(--text)">${list.length}</b>개 용어` +
+    (query ? ` · 검색어 “${escapeHtml(query)}”` : "") +
+    (activeCat !== "전체" ? ` · ${escapeHtml(activeCat)}` : "");
+
+  if (list.length === 0) {
+    el.results.innerHTML = `<div class="empty"><div class="big">🔍</div>검색 결과가 없습니다.<br>다른 키워드나 초성으로 다시 시도해 보세요.</div>`;
+    return;
+  }
+
+  el.results.innerHTML = `<div class="grid">${list.map(card).join("")}</div>`;
+  el.results.querySelectorAll(".rel-link").forEach(b => {
+    b.addEventListener("click", () => {
+      el.search.value = b.dataset.term; query = b.dataset.term;
+      activeCat = "전체";
+      el.cats.querySelectorAll(".cat-chip").forEach(c => c.classList.toggle("active", c.dataset.cat === "전체"));
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+}
+
+function card(t) {
+  const hl = s => highlight(s, query);
+  let html = `<div class="card">
+    <div class="card-head">
+      <div>
+        <div class="term-name">${hl(t.term)}</div>
+        ${t.fullName ? `<div class="term-full">${hl(t.fullName)}</div>` : ""}
+      </div>
+      <span class="cat-badge">${escapeHtml(t.category)}</span>
+    </div>
+    <div class="definition">${hl(t.definition)}</div>`;
+  if (t.analogy) html += `<div class="note analogy"><span class="lab">🔗 비유</span>${hl(t.analogy)}</div>`;
+  if (t.example) html += `<div class="note example"><span class="lab">💬 예시</span>${hl(t.example)}</div>`;
+  html += `<div class="card-foot">`;
+  if (t.chapters && t.chapters.length)
+    html += `<div class="chapters">${t.chapters.map(c => `<span class="chapter-tag">📖 ${escapeHtml(c)}</span>`).join("")}</div>`;
+  if (t.related && t.related.length)
+    html += `<div class="related"><span class="lab">연관:</span>${t.related.map(r => `<button class="rel-link" data-term="${escapeAttr(r)}">${escapeHtml(r)}</button>`).join("")}</div>`;
+  html += `</div></div>`;
+  return html;
+}
+
+/* ───────── 유틸 ───────── */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function escapeAttr(s){ return escapeHtml(s); }
+function highlight(s, q) {
+  const safe = escapeHtml(s);
+  if (!q || isAllCho(q)) return safe;
+  try {
+    const re = new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi");
+    return safe.replace(re, "<mark>$1</mark>");
+  } catch(e){ return safe; }
+}
+</script>
+</body>
+</html>
