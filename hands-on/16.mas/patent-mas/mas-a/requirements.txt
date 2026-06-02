@@ -1,0 +1,35 @@
+# ── patent-mas / mas-a (Patent Law Knowledge MAS) dependencies ──
+# All comments in English (project rule). Local AI models are NOT used:
+# both the LLM (Groq LPU) and the embeddings (OpenAI) are cloud APIs.
+
+# MCP SDK (FastMCP + CLI helpers, Streamable HTTP transport)
+mcp[cli]>=1.2.0
+
+# LangGraph StateGraph — Scheduler / Agent / Supervisor (SAS) orchestration
+langgraph>=0.2.0
+
+# LangChain core + Groq chat model (with_structured_output(method="json_schema"))
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-groq>=0.2.0
+
+# OpenAI embeddings for the article-level vector RAG query path (text-embedding-3-small, 1536d)
+langchain-openai>=0.3.0
+
+# ChromaDB vector store wrapper (collection "patent_law", read-only reuse of pre-built index)
+langchain-chroma>=0.1.4
+chromadb>=0.5.0
+
+# Microsoft GraphRAG query API (local / global / drift search over the pre-built KG)
+graphrag>=3.0,<4.0
+
+# LanceDB backs the GraphRAG vector store (entity_description / text_unit_text / community_full_content)
+lancedb>=0.13.0
+
+# Parquet / dataframe handling for GraphRAG context frames
+pandas>=2.0.0
+pyarrow>=15.0.0
+
+# .env loading and settings.yaml parsing
+python-dotenv>=1.0.0
+pyyaml>=6.0

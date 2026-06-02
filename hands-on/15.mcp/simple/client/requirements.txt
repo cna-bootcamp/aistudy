@@ -1,0 +1,3 @@
+# 단일 가상환경에서 서버(server/)와 클라이언트(client/)를 모두 실행함
+mcp[cli]>=1.0.0   # MCP Python SDK + CLI (FastMCP, ClientSession, mcp dev 포함)
+httpx>=0.27.0     # weather_server.py의 Open-Meteo API 비동기 호출용

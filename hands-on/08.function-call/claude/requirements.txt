@@ -1,0 +1,14 @@
+# Claude Messages API Tool Use travel planner
+# Python 3.10+ is recommended
+
+# Anthropic Claude Messages API client
+anthropic>=0.40.0
+
+# Streamlit web chat UI
+streamlit>=1.35.0
+
+# Environment variable loading from hands-on/.env
+python-dotenv>=1.0.1
+
+# HTTP requests used by the shared external API tools
+requests>=2.31.0

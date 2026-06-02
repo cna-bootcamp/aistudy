@@ -1,0 +1,39 @@
+# NOTE: torch is intentionally omitted. Install a CUDA build globally and create the
+# venv with `--system-site-packages` so the GPU-enabled torch is inherited.
+# See: https://github.com/cna-bootcamp/aistudy/blob/main/agentic-ai/reference/install-pytorch.md
+
+# Transformers pinned to the version the KaLM model was published with. transformers 5.x
+# misroutes the gemma3_text backbone through the multimodal AutoProcessor (image-processor
+# load error), so the tested 4.55.0 is required.
+transformers==4.55.0
+
+# SentenceTransformer pinned to the published version (config_sentence_transformers.json).
+# 4.1.0 loads the model via AutoModel/AutoTokenizer (avoids the 5.x processor path).
+sentence-transformers==4.1.0
+
+# 4-bit quantization backend (Windows CUDA wheels; loads the 12B embedder in ~6-7GB VRAM)
+bitsandbytes>=0.43.0
+
+# Required by bitsandbytes/transformers for quantized model loading & device placement
+accelerate>=0.30.0
+
+# Gemma tokenizer backend (SentencePiece) used by the KaLM-Embedding-Gemma3 model
+sentencepiece>=0.2.0
+
+# ChromaDB vector database (local persistence backend)
+chromadb>=0.5.0
+
+# LangChain ChromaDB integration (Chroma.from_documents persistence helper)
+langchain-chroma>=0.1.4
+
+# LangChain core (Embeddings base class for the custom KaLM wrapper)
+langchain-core>=0.3.0
+
+# LangChain community document loaders (PyPDFLoader)
+langchain-community>=0.3.0
+
+# Recursive character text splitter for law-structure-aware chunking
+langchain-text-splitters>=0.3.0
+
+# PDF parsing backend used by PyPDFLoader
+pypdf>=4.0.0

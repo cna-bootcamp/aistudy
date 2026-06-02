@@ -1,0 +1,22 @@
+# Streamlit 채팅 UI
+streamlit>=1.36.0
+pandas>=2.2.0
+
+# LightRAG GraphRAG 검색 (KG + nano-vectordb + KV Store)
+# 동기 구조화 검색 API query_llm()이 필요하므로 1.4.16 이상 고정 (검증 기준 버전)
+lightrag-hku>=1.4.16
+nano-vectordb>=0.0.4.3
+
+# Groq LPU OpenAI 호환 API
+openai>=1.50.0
+
+# Ollama qwen3-embedding 호출
+ollama>=0.3.0
+httpx>=0.27.0
+
+# LightRAG 내부 토큰 처리 및 벡터 연산
+tiktoken>=0.7.0
+numpy>=1.26.0
+
+# hands-on/.env 로드
+python-dotenv>=1.0.0

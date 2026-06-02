@@ -1,0 +1,18 @@
+# LLM TTS - OpenAI Text-to-Speech
+# Requires Python 3.9+
+
+# OpenAI API client (translation via GPT-4o-mini + TTS via tts-1)
+openai>=1.0.0
+
+# Environment variable management (.env file loading)
+python-dotenv>=1.0.0
+
+# Data processing (CSV dialog file handling)
+pandas>=2.0.0
+
+# Audio processing (WAV file read/write)
+scipy>=1.10.0
+numpy>=1.24.0
+
+# Progress bar (translation and TTS loop feedback)
+tqdm>=4.65.0

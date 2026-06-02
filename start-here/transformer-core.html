@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>트랜스포머 핵심 아이디어</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .slide {
+            width: 960px;
+            height: 420px;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 25px 35px;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+        
+        .title {
+            color: #222;
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .flow-container {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-between;
+            height: 310px;
+        }
+        
+        /* 입력 섹션 */
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+        }
+        
+        .input-box {
+            background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+            color: #fff;
+            padding: 15px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            width: 65px;
+            box-shadow: 0 4px 12px rgba(0,184,148,0.3);
+        }
+        
+        .arrow-right {
+            color: #666;
+            font-size: 28px;
+            margin: 0 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        /* 인코더 섹션 */
+        .encoder-section {
+            flex: 1;
+            max-width: 330px;
+            border: 3px solid #3498db;
+            border-radius: 14px;
+            padding: 14px;
+            margin: 0 8px;
+            position: relative;
+            background: #f8fbfe;
+        }
+        
+        .section-title {
+            position: absolute;
+            top: -14px;
+            left: 18px;
+            background: #3498db;
+            color: #fff;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 6px;
+        }
+        
+        .encoder-flow {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+        
+        .idea-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            color: #fff;
+            font-weight: 500;
+        }
+        
+        .idea-box.parallel {
+            background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .idea-box.self-attention {
+            background: linear-gradient(90deg, #f39c12 0%, #d68910 100%);
+        }
+        
+        .idea-box.multi-head {
+            background: linear-gradient(90deg, #27ae60 0%, #1e8449 100%);
+        }
+        
+        .idea-box.residual {
+            background: linear-gradient(90deg, #8e44ad 0%, #7d3c98 100%);
+        }
+        
+        .idea-box.ffn {
+            background: linear-gradient(90deg, #2980b9 0%, #1a5276 100%);
+        }
+        
+        .idea-box.masked {
+            background: linear-gradient(90deg, #c0392b 0%, #922b21 100%);
+        }
+        
+        .idea-box.cross {
+            background: linear-gradient(90deg, #16a085 0%, #117a65 100%);
+        }
+        
+        .idea-num {
+            background: rgba(255,255,255,0.25);
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        
+        .idea-text {
+            flex: 1;
+            line-height: 1.3;
+        }
+        
+        .idea-text strong {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+        
+        .idea-text span {
+            font-size: 9px;
+            opacity: 0.9;
+        }
+        
+        /* 디코더 섹션 */
+        .decoder-section {
+            flex: 1;
+            max-width: 330px;
+            border: 3px solid #9b59b6;
+            border-radius: 14px;
+            padding: 14px;
+            margin: 0 8px;
+            position: relative;
+            background: #fdf8fe;
+        }
+        
+        .decoder-section .section-title {
+            background: #9b59b6;
+        }
+        
+        /* 출력 섹션 */
+        .output-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+        }
+        
+        .output-box {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: #fff;
+            padding: 15px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
+            width: 65px;
+            box-shadow: 0 4px 12px rgba(231,76,60,0.3);
+        }
+        
+        /* xN 표시 */
+        .repeat-badge {
+            position: absolute;
+            bottom: 8px;
+            right: 10px;
+            background: #555;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+        
+        /* 범례 */
+        .legend {
+            position: absolute;
+            bottom: 10px;
+            left: 35px;
+            display: flex;
+            gap: 12px;
+            font-size: 9px;
+            color: #555;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="slide">
+        <div class="title">🤖 트랜스포머 핵심 아이디어 - 처리 흐름</div>
+        
+        <div class="flow-container">
+            <!-- 입력 -->
+            <div class="input-section">
+                <div class="input-box">📝<br>입력<br>문장</div>
+            </div>
+            
+            <div class="arrow-right">➜</div>
+            
+            <!-- 인코더 -->
+            <div class="encoder-section">
+                <div class="section-title">ENCODER</div>
+                <div class="encoder-flow">
+                    <div class="idea-box parallel">
+                        <div class="idea-num">1</div>
+                        <div class="idea-text">
+                            <strong>병렬 처리</strong>
+                            <span>모든 단어 동시 처리 → 속도 극대화</span>
+                        </div>
+                    </div>
+                    <div class="idea-box self-attention">
+                        <div class="idea-num">2</div>
+                        <div class="idea-text">
+                            <strong>Self-Attention</strong>
+                            <span>모든 단어 쌍의 관계 파악 → 문맥 이해</span>
+                        </div>
+                    </div>
+                    <div class="idea-box multi-head">
+                        <div class="idea-num">3</div>
+                        <div class="idea-text">
+                            <strong>Multi-Head Attention</strong>
+                            <span>여러 관점으로 동시 분석</span>
+                        </div>
+                    </div>
+                    <div class="idea-box residual">
+                        <div class="idea-num">4</div>
+                        <div class="idea-text">
+                            <strong>잔차 연결 + Add&Norm</strong>
+                            <span>원본 보존 + 새 정보 누적</span>
+                        </div>
+                    </div>
+                    <div class="idea-box ffn">
+                        <div class="idea-num">7</div>
+                        <div class="idea-text">
+                            <strong>Feed Forward Network</strong>
+                            <span>비선형 변환 → 표현력 증가</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="repeat-badge">×N 반복</div>
+            </div>
+            
+            <div class="arrow-right">➜</div>
+            
+            <!-- 디코더 -->
+            <div class="decoder-section">
+                <div class="section-title">DECODER</div>
+                <div class="encoder-flow">
+                    <div class="idea-box masked">
+                        <div class="idea-num">6</div>
+                        <div class="idea-text">
+                            <strong>Masked Self-Attention</strong>
+                            <span>미래 단어 참조 금지 (순차 생성)</span>
+                        </div>
+                    </div>
+                    <div class="idea-box cross">
+                        <div class="idea-num">5</div>
+                        <div class="idea-text">
+                            <strong>Cross-Attention</strong>
+                            <span>인코더 출력 지속 참조 → 정확한 생성</span>
+                        </div>
+                    </div>
+                    <div class="idea-box multi-head">
+                        <div class="idea-num">3</div>
+                        <div class="idea-text">
+                            <strong>Multi-Head Attention</strong>
+                            <span>다양한 관점 유지</span>
+                        </div>
+                    </div>
+                    <div class="idea-box residual">
+                        <div class="idea-num">4</div>
+                        <div class="idea-text">
+                            <strong>잔차 연결 + Add&Norm</strong>
+                            <span>정보 흐름 유지</span>
+                        </div>
+                    </div>
+                    <div class="idea-box ffn">
+                        <div class="idea-num">7</div>
+                        <div class="idea-text">
+                            <strong>Feed Forward Network</strong>
+                            <span>비선형 변환 → 표현력 증가</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="repeat-badge">×N 반복</div>
+            </div>
+            
+            <div class="arrow-right">➜</div>
+            
+            <!-- 출력 -->
+            <div class="output-section">
+                <div class="output-box">✨<br>출력<br>문장</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>병렬/마스크</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>Self-Attn</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Multi-Head</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#8e44ad"></div>잔차연결</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#16a085"></div>Cross-Attn</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#2980b9"></div>FFN</div>
+        </div>
+    </div>
+</body>
+</html>

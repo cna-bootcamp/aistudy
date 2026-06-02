@@ -1,0 +1,11 @@
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Local env overrides
+.env
+
+# Test scratch output
+_check.txt
+logs/

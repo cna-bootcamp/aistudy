@@ -1,0 +1,21 @@
+# Kakao VITS TTS Requirements
+# Install PyTorch separately before running pip install -r requirements.txt
+# See: https://github.com/cna-bootcamp/aistudy/blob/main/agentic-ai/reference/install-pytorch.md
+
+# Hugging Face Transformers (VITS model support added in 4.33)
+transformers>=4.33.0
+
+# Phonemizer for VITS text-to-phoneme conversion (requires espeak-ng system package)
+phonemizer>=3.2.0
+
+# Translation using Google Translate (avoids httpx version conflicts of googletrans)
+deep-translator>=1.11.0
+
+# Audio file I/O
+scipy>=1.10.0
+
+# Data processing
+pandas>=2.0.0
+
+# Progress bar
+tqdm>=4.65.0

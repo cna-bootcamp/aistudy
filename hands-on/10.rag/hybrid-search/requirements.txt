@@ -1,0 +1,29 @@
+# LangChain core primitives (ChatPromptTemplate, StrOutputParser, Runnable pipe)
+langchain-core>=0.3.0
+
+# LangChain community retrievers (BM25Retriever for sparse keyword search)
+langchain-community>=0.3.0
+
+# LangChain classic retrievers (EnsembleRetriever for hybrid Dense+Sparse fusion)
+langchain-classic>=1.0.0
+
+# Chroma vector store integration (load the shared persisted DB, no re-indexing)
+langchain-chroma>=0.1.4
+
+# OpenAI integration (query embedding only: text-embedding-3-small)
+langchain-openai>=0.2.0
+
+# Groq LPU chat model integration (LLM: openai/gpt-oss-120b)
+langchain-groq>=0.2.0
+
+# BM25 ranking backend (Okapi BM25 algorithm used by BM25Retriever)
+rank-bm25>=0.2.2
+
+# Korean morphological tokenizer (improves BM25 quality on Korean legal text)
+kiwipiepy>=0.18.0
+
+# Chroma vector database engine (local persistence backend)
+chromadb>=0.5.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

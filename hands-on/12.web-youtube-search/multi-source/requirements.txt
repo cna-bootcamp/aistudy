@@ -1,0 +1,32 @@
+# LangChain core primitives (ChatPromptTemplate, StrOutputParser, structured output)
+langchain-core>=0.3.0
+
+# Chroma vector store integration (load the shared patent-law DB, no re-indexing)
+langchain-chroma>=0.1.4
+
+# OpenAI integration (query embedding only: text-embedding-3-small)
+langchain-openai>=0.2.0
+
+# Groq LPU chat model integration (LLM: openai/gpt-oss-120b, query router + synthesis)
+langchain-groq>=0.2.0
+
+# LangChain community utilities (DuckDuckGoSearchAPIWrapper for web search)
+langchain-community>=0.3.0
+
+# Chroma vector database engine (local persistence backend)
+chromadb>=0.5.0
+
+# DuckDuckGo web search backend (legacy package name, kept for compatibility)
+duckduckgo-search>=6.0.0
+
+# DuckDuckGo web search backend (new package name, required by recent langchain-community)
+ddgs>=0.1.0
+
+# YouTube Data API v3 client (official API, supports recent-1-year date filtering)
+google-api-python-client>=2.100.0
+
+# Pydantic schema definition for the Query Router structured output
+pydantic>=2.0.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

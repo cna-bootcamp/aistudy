@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>hands-on 예제 설명 페이지 목록</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --line: #e5e8ec; --grid: #aeb6c2; --ink: #1f2430;
+    --muted: #6b7280; --accent: #2563eb; --accent-bg: #eff4ff; --head: #111827;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: system-ui, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+  header h1 { font-size: 1.92rem; margin: 0 0 6px; }
+  header p { margin: 0; color: var(--muted); font-size: 1.1rem; }
+  .stats { margin: 14px 0 22px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+    padding: 8px 14px; font-size: 1.06rem; color: var(--muted);
+  }
+  .stat b { color: var(--ink); font-size: 1.26rem; margin-right: 4px; }
+  .note {
+    background: var(--accent-bg); border: 1px solid #d6e2ff; color: #1e40af;
+    border-radius: 10px; padding: 10px 14px; font-size: 1.02rem; margin-bottom: 18px;
+  }
+  table {
+    width: 100%; border-collapse: collapse; background: var(--card);
+    border: 1.5px solid var(--grid); border-radius: 12px; overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  }
+  thead th {
+    background: var(--head); color: #fff; text-align: left; font-weight: 600;
+    font-size: 1.08rem; padding: 12px 14px; border: 1px solid var(--grid);
+  }
+  td { padding: 11px 14px; border: 1px solid var(--grid); vertical-align: top; font-size: 1.08rem; }
+  td.ch {
+    background: #fafbfc; border-left: 4px solid var(--accent);
+    white-space: nowrap; vertical-align: middle; font-weight: 600;
+  }
+  td.prog strong { color: var(--head); }
+  td.prog code, td.desc code {
+    display: inline-block; margin-top: 3px; background: #f1f3f5; color: #374151;
+    border-radius: 6px; padding: 1px 6px; font-size: 0.96rem;
+    font-family: "Cascadia Code", Consolas, monospace;
+  }
+  td.desc { color: #374151; }
+  td.lnk { white-space: nowrap; }
+  td.lnk a {
+    color: var(--accent); text-decoration: none; font-weight: 600;
+    border: 1px solid #cfe0ff; background: var(--accent-bg);
+    padding: 6px 10px; border-radius: 8px; display: inline-block;
+  }
+  td.lnk a:hover { background: #e0eaff; }
+  tbody tr:hover td { background: #fbfcfe; }
+  tbody tr:hover td.ch { background: #f3f6fc; }
+  footer { margin-top: 22px; color: var(--muted); font-size: 0.98rem; }
+  footer code { background: #eceff3; padding: 1px 6px; border-radius: 5px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>hands-on 예제 설명 페이지</h1>
+      <p>AI Boot Camp 실습 예제별 "코드 설명 페이지(explain)" 목록임. 파이썬을 몰라도 예제 코드 흐름을 쉽게 따라갈 수 있음.</p>
+    </header>
+    <div class="stats">
+      <span class="stat"><b>74</b>개 예제</span>
+      <span class="stat"><b>15</b>개 챕터</span>
+    </div>
+    <div class="note">📖 <b>설명 보기</b>를 클릭하면 새 탭에서 해당 예제의 코드 설명 페이지가 열림. (공용 셸 <code>explain-exam</code> 기반)</div>
+    <table>
+      <thead>
+        <tr><th>챕터</th><th>예제 프로그램명</th><th>설명</th><th>링크</th></tr>
+      </thead>
+      <tbody>
+    <tr>
+      <td class="ch" rowspan="6"><span class="ch-badge">02. 멀티턴 대화</span></td>
+      <td class="prog"><strong>chatbot</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">멀티턴 여행 플래너 (Gemini + Streamlit)</td>
+      <td class="lnk"><a href="02.multiturn/chatbot/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>full-history</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">멀티턴 여행 플래너 (전체 히스토리 방식)</td>
+      <td class="lnk"><a href="02.multiturn/full-history/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>server-side/claude</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">멀티턴 여행 플래너 (Claude Anthropic API)</td>
+      <td class="lnk"><a href="02.multiturn/server-side/claude/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>server-side/gemini</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">멀티턴 여행 플래너 (Gemini Chat Session)</td>
+      <td class="lnk"><a href="02.multiturn/server-side/gemini/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>server-side/openai</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">멀티턴 여행 플래너 (OpenAI Responses API — 서버 측 상태 관리)</td>
+      <td class="lnk"><a href="02.multiturn/server-side/openai/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>summary</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">멀티턴 여행 플래너 (슬라이딩 윈도우 + 요약)</td>
+      <td class="lnk"><a href="02.multiturn/summary/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="3"><span class="ch-badge">03. 문서 요약</span></td>
+      <td class="prog"><strong>exaone</strong><br><code>summary.py</code></td>
+      <td class="desc">EXAONE 로컬 LLM 텍스트 요약</td>
+      <td class="lnk"><a href="03.summary/exaone/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>groq</strong><br><code>summary.py</code></td>
+      <td class="desc">Groq LPU 텍스트 요약</td>
+      <td class="lnk"><a href="03.summary/groq/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>kobart</strong><br><code>summary.py</code></td>
+      <td class="desc">KoBART 뉴스 요약</td>
+      <td class="lnk"><a href="03.summary/kobart/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="3"><span class="ch-badge">04. PDF 처리</span></td>
+      <td class="prog"><strong>PyMuPDF</strong><br><code>pdf2md.py</code></td>
+      <td class="desc">PDF → 마크다운 변환 (PyMuPDF)</td>
+      <td class="lnk"><a href="04.pdf/PyMuPDF/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>docling</strong><br><code>pdf2md.py</code></td>
+      <td class="desc">Docling PDF → 마크다운 변환</td>
+      <td class="lnk"><a href="04.pdf/docling/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>pdfplumber</strong><br><code>pdf2md.py</code></td>
+      <td class="desc">PDF → 마크다운 변환 (pdfplumber)</td>
+      <td class="lnk"><a href="04.pdf/pdfplumber/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="7"><span class="ch-badge">05. 음성 인식 (STT)</span></td>
+      <td class="prog"><strong>diarization</strong><br><code>diarization.py</code></td>
+      <td class="desc">Whisper + pyannote 화자 분리</td>
+      <td class="lnk"><a href="05.stt/diarization/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>llm-diarization/claude</strong><br><code>diarization.py</code></td>
+      <td class="desc">Whisper + Claude 화자 분리</td>
+      <td class="lnk"><a href="05.stt/llm-diarization/claude/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>llm-diarization/gemini</strong><br><code>diarization.py</code></td>
+      <td class="desc">Gemini 화자 분리 음성 인식</td>
+      <td class="lnk"><a href="05.stt/llm-diarization/gemini/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>llm-diarization/openai</strong><br><code>diarization.py</code></td>
+      <td class="desc">OpenAI LLM 화자 분리(Diarization)</td>
+      <td class="lnk"><a href="05.stt/llm-diarization/openai/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>simple</strong><br><code>whisper.py</code></td>
+      <td class="desc">OpenAI Whisper STT</td>
+      <td class="lnk"><a href="05.stt/simple/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>whisper</strong><br><code>whisper-large-v3-turbo.py</code></td>
+      <td class="desc">Whisper 로컬 모델 STT (whisper-large-v3-turbo)</td>
+      <td class="lnk"><a href="05.stt/whisper/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>whisperx</strong><br><code>whisperx-diarization.py</code></td>
+      <td class="desc">WhisperX STT + 화자 분리</td>
+      <td class="lnk"><a href="05.stt/whisperx/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="7"><span class="ch-badge">06. 음성 합성 (TTS)</span></td>
+      <td class="prog"><strong>bark</strong><br><code>tts.py</code></td>
+      <td class="desc">Bark TTS — GPT-4o-mini 번역 + Bark 음성 합성</td>
+      <td class="lnk"><a href="06.tts/bark/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>chatterbox</strong><br><code>tts.py</code></td>
+      <td class="desc">Chatterbox TTS 음성 복제</td>
+      <td class="lnk"><a href="06.tts/chatterbox/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>chatterbox-single</strong><br><code>tts.py</code></td>
+      <td class="desc">Chatterbox 한국어 음성 복제 TTS</td>
+      <td class="lnk"><a href="06.tts/chatterbox-single/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>coqui-xtts</strong><br><code>tts.py</code></td>
+      <td class="desc">Coqui XTTS v2 음성 복제 TTS</td>
+      <td class="lnk"><a href="06.tts/coqui-xtts/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>kakao-vits</strong><br><code>tts.py</code></td>
+      <td class="desc">Kakao VITS TTS — 다화자 텍스트 음성 합성</td>
+      <td class="lnk"><a href="06.tts/kakao-vits/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>llm</strong><br><code>tts.py</code></td>
+      <td class="desc">LLM TTS — OpenAI 번역·음성 합성</td>
+      <td class="lnk"><a href="06.tts/llm/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>openvoice</strong><br><code>tts.py</code></td>
+      <td class="desc">OpenVoice V2 음성 복제(Voice Cloning) TTS</td>
+      <td class="lnk"><a href="06.tts/openvoice/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="2"><span class="ch-badge">07. 비전 언어 모델 (VLM)</span></td>
+      <td class="prog"><strong>gemini</strong><br><code>vlm.py</code></td>
+      <td class="desc">Gemini Vision 이미지 분석 (VLM)</td>
+      <td class="lnk"><a href="07.vlm/gemini/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>qwen3-vl</strong><br><code>vlm.py</code></td>
+      <td class="desc">Qwen3-VL 이미지 분석</td>
+      <td class="lnk"><a href="07.vlm/qwen3-vl/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="6"><span class="ch-badge">08. Function Calling</span></td>
+      <td class="prog"><strong>claude</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (Claude Messages API Tool Use)</td>
+      <td class="lnk"><a href="08.function-call/claude/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>claude/streaming</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (Claude Streaming)</td>
+      <td class="lnk"><a href="08.function-call/claude/streaming/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>gemini</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (Gemini Function Calling)</td>
+      <td class="lnk"><a href="08.function-call/gemini/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>gemini/streaming</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (Gemini + Streaming)</td>
+      <td class="lnk"><a href="08.function-call/gemini/streaming/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>openai</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (OpenAI Tool Calling)</td>
+      <td class="lnk"><a href="08.function-call/openai/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>openai/streaming</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (OpenAI Streaming)</td>
+      <td class="lnk"><a href="08.function-call/openai/streaming/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="6"><span class="ch-badge">09. LangChain</span></td>
+      <td class="prog"><strong>claude</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (LangChain + Claude)</td>
+      <td class="lnk"><a href="09.langchain/claude/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>claude/streaming</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (LangChain + Claude Streaming)</td>
+      <td class="lnk"><a href="09.langchain/claude/streaming/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>gemini</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (LangChain + Gemini)</td>
+      <td class="lnk"><a href="09.langchain/gemini/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>gemini/streaming</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (LangChain + Gemini + Streaming)</td>
+      <td class="lnk"><a href="09.langchain/gemini/streaming/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>openai</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (LangChain + OpenAI)</td>
+      <td class="lnk"><a href="09.langchain/openai/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>openai/streaming</strong><br><code>travel_planner.py</code></td>
+      <td class="desc">여행 플래너 (LangChain + OpenAI Streaming)</td>
+      <td class="lnk"><a href="09.langchain/openai/streaming/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="9"><span class="ch-badge">10. RAG</span></td>
+      <td class="prog"><strong>hybrid-search</strong><br><code>app.py</code></td>
+      <td class="desc">Hybrid Search — 키워드+의미 검색 결합</td>
+      <td class="lnk"><a href="10.rag/hybrid-search/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>indexing</strong><br><code>indexing.py</code></td>
+      <td class="desc">인덱싱(Indexing) — 공용 벡터 DB 구축</td>
+      <td class="lnk"><a href="10.rag/indexing/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>naive</strong><br><code>naive_rag.py</code></td>
+      <td class="desc">Naive RAG — 가장 기본적인 검색·생성 파이프라인</td>
+      <td class="lnk"><a href="10.rag/naive/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>query-transformation/hyde</strong><br><code>app.py</code></td>
+      <td class="desc">HyDE — 가상 답변 임베딩 검색</td>
+      <td class="lnk"><a href="10.rag/query-transformation/hyde/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>query-transformation/multi-query</strong><br><code>app.py</code></td>
+      <td class="desc">Multi-Query — 여러 질문 변형 검색</td>
+      <td class="lnk"><a href="10.rag/query-transformation/multi-query/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>query-transformation/query-rewriting</strong><br><code>app.py</code></td>
+      <td class="desc">Query Rewriting — 질의 재작성</td>
+      <td class="lnk"><a href="10.rag/query-transformation/query-rewriting/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>query-transformation/step-back</strong><br><code>app.py</code></td>
+      <td class="desc">Step-Back Prompting — 한 걸음 물러난 상위 질문으로 폭넓게 검색하는 RAG</td>
+      <td class="lnk"><a href="10.rag/query-transformation/step-back/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>re-ranking</strong><br><code>app.py</code></td>
+      <td class="desc">Re-ranking — 검색 결과 재정렬</td>
+      <td class="lnk"><a href="10.rag/re-ranking/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>self-rag</strong><br><code>app.py</code></td>
+      <td class="desc">Self-RAG — 스스로 점검·교정하는 RAG</td>
+      <td class="lnk"><a href="10.rag/self-rag/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="1"><span class="ch-badge">11. RAG 품질 튜닝</span></td>
+      <td class="prog"><strong>ragas</strong><br><code>evaluate_ragas.py</code></td>
+      <td class="desc">RAGAS — 청킹 사이즈를 바꿔가며 RAG 품질을 측정·비교하는 평가 예제</td>
+      <td class="lnk"><a href="11.rag-tuning/ragas/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="4"><span class="ch-badge">12. 웹 검색 + YouTube</span></td>
+      <td class="prog"><strong>agentic-rag</strong><br><code>app.py</code></td>
+      <td class="desc">Agentic RAG — LangGraph로 검색 소스를 스스로 고르고 답을 자가검증하는 챗봇</td>
+      <td class="lnk"><a href="12.web-youtube-search/agentic-rag/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>multi-source</strong><br><code>app.py</code></td>
+      <td class="desc">멀티소스 RAG — 질문 라우팅으로 벡터DB·웹·YouTube를 골라 종합</td>
+      <td class="lnk"><a href="12.web-youtube-search/multi-source/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>web-rag</strong><br><code>app.py</code></td>
+      <td class="desc">질문 라우팅 RAG — 특허법은 벡터DB로, 최신 트렌드는 웹검색으로</td>
+      <td class="lnk"><a href="12.web-youtube-search/web-rag/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>youtube-rag</strong><br><code>app.py</code></td>
+      <td class="desc">YouTube 자막 RAG — Data API로 영상 찾고, 자막을 시점별로 잘라 답하기</td>
+      <td class="lnk"><a href="12.web-youtube-search/youtube-rag/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="2"><span class="ch-badge">13. RAG + Local LLM</span></td>
+      <td class="prog"><strong>agentic-rag</strong><br><code>app.py</code></td>
+      <td class="desc">특허 Agentic RAG — 로컬 LLM gemma3:12b</td>
+      <td class="lnk"><a href="13.local-llm/agentic-rag/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>agentic-rag-chat</strong><br><code>retrieve/app.py</code></td>
+      <td class="desc">특허 Agentic RAG 챗봇 — 2-Stage Retrieval + Streamlit</td>
+      <td class="lnk"><a href="13.local-llm/agentic-rag-chat/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="6"><span class="ch-badge">14. GraphRAG</span></td>
+      <td class="prog"><strong>lightrag/indexing</strong><br><code>index_documents.py</code></td>
+      <td class="desc">LightRAG 인덱싱 파이프라인</td>
+      <td class="lnk"><a href="14.graphrag/lightrag/indexing/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>lightrag/retrieve</strong><br><code>app.py</code></td>
+      <td class="desc">LightRAG GraphRAG 검색 파이프라인</td>
+      <td class="lnk"><a href="14.graphrag/lightrag/retrieve/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>ms-graphrag/indexing</strong><br><code>index_documents.py</code></td>
+      <td class="desc">Microsoft GraphRAG 인덱싱 — 교재 KG+Vector / 예제코드 Vector</td>
+      <td class="lnk"><a href="14.graphrag/ms-graphrag/indexing/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>ms-graphrag/retrieve</strong><br><code>app.py</code></td>
+      <td class="desc">MS GraphRAG 검색 파이프라인 — Auto Router + 4가지 검색 모드 + 코드 벡터</td>
+      <td class="lnk"><a href="14.graphrag/ms-graphrag/retrieve/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>neo4j/indexing</strong><br><code>index_documents.py</code></td>
+      <td class="desc">LangChain + Neo4j GraphRAG 인덱싱 파이프라인</td>
+      <td class="lnk"><a href="14.graphrag/neo4j/indexing/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>neo4j/retrieve</strong><br><code>app.py</code></td>
+      <td class="desc">LangChain + Neo4j GraphRAG 검색 파이프라인</td>
+      <td class="lnk"><a href="14.graphrag/neo4j/retrieve/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="5"><span class="ch-badge">15. MCP</span></td>
+      <td class="prog"><strong>elicitation</strong><br><code>client.py</code></td>
+      <td class="desc">MCP Elicitation — 서버가 사용자에게 역요청</td>
+      <td class="lnk"><a href="15.mcp/elicitation/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>graphrag</strong><br><code>server.py</code></td>
+      <td class="desc">MCP GraphRAG 서버 — 사내 교재 Knowledge Graph 검색</td>
+      <td class="lnk"><a href="15.mcp/graphrag/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>roots</strong><br><code>client.py</code></td>
+      <td class="desc">MCP Roots — 디렉토리 접근 통제</td>
+      <td class="lnk"><a href="15.mcp/roots/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>sampling</strong><br><code>client.py</code></td>
+      <td class="desc">MCP Sampling — 서버가 클라이언트의 LLM을 빌려 추론</td>
+      <td class="lnk"><a href="15.mcp/sampling/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>simple</strong><br><code>client.py</code></td>
+      <td class="desc">MCP 기본 예제 — 계산기 + 날씨 서버</td>
+      <td class="lnk"><a href="15.mcp/simple/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="ch" rowspan="7"><span class="ch-badge">16. 멀티 에이전트 (MAS)</span></td>
+      <td class="prog"><strong>aistudy-chat</strong><br><code>app.py</code></td>
+      <td class="desc">Agentic AI 학습지원 MAS 챗봇 — LangGraph SAS 멀티에이전트</td>
+      <td class="lnk"><a href="16.mas/aistudy-chat/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>patent-mas/indexing/graphrag</strong><br><code>index_documents.py</code></td>
+      <td class="desc">특허법 GraphRAG 지식그래프 인덱싱 — PDF를 입력 텍스트로 만들고 GraphRAG 엔진을 호출하는 오케스트레이터</td>
+      <td class="lnk"><a href="16.mas/patent-mas/indexing/graphrag/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>patent-mas/indexing/vector</strong><br><code>indexing.py</code></td>
+      <td class="desc">특허법 조문 벡터 RAG 인덱싱 — 장/조/항 메타데이터 부여 파이프라인</td>
+      <td class="lnk"><a href="16.mas/patent-mas/indexing/vector/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>patent-mas/mas-a</strong><br><code>server.py</code></td>
+      <td class="desc">법령지식 MAS (MAS A) — 조문 벡터 RAG + MS GraphRAG 융합 검색을 FastMCP로 노출</td>
+      <td class="lnk"><a href="16.mas/patent-mas/mas-a/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>patent-mas/mas-b</strong><br><code>app.py</code></td>
+      <td class="desc">특허 선행기술·동향 리서치 MAS B — 다중 소스 Self-RAG (법령 MCP·웹·YouTube)</td>
+      <td class="lnk"><a href="16.mas/patent-mas/mas-b/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>patent-mas/mas-c</strong><br><code>app.py</code></td>
+      <td class="desc">특허 의견서 작성·검증 MAS — 인라인 검증 게이트 + HITL(사람 승인) + DLP(민감정보 마스킹)</td>
+      <td class="lnk"><a href="16.mas/patent-mas/mas-c/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+    <tr>
+      <td class="prog"><strong>patent-mas/orchestrator</strong><br><code>run_cli.py</code></td>
+      <td class="desc">특허법 분산 MAS 오케스트레이터 — 한 지휘자가 3개 AI 팀(A·B·C)을 안전하게 조율하는 2계층 SAS</td>
+      <td class="lnk"><a href="16.mas/patent-mas/orchestrator/explain/index.html" target="_blank" rel="noopener">📖 설명 보기</a></td>
+    </tr>
+      </tbody>
+    </table>
+    <footer>
+      각 링크는 예제 폴더의 <code>explain/index.html</code>(launcher)로 연결되며, 공용 셸
+      <code>hands-on/explain-exam/</code>에서 <code>data.js</code>를 읽어 렌더링함.
+    </footer>
+  </div>
+</body>
+</html>

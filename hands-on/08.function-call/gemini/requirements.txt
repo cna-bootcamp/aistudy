@@ -1,0 +1,14 @@
+# Gemini Function Calling travel planner
+# Python 3.10+ is recommended
+
+# Google Gen AI Python SDK
+google-genai>=1.33.0
+
+# Streamlit web chat UI
+streamlit>=1.30.0
+
+# Shared environment variable loader
+python-dotenv>=1.0.0
+
+# HTTP client used by shared external API tools
+requests>=2.31.0

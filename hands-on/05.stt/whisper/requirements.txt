@@ -1,0 +1,14 @@
+# PyTorch with CUDA 12.1+ support (for GPU acceleration on Windows/Linux)
+# On macOS or CPU-only machines, remove the --extra-index-url line
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch>=2.1.0
+torchaudio>=2.1.0
+
+# Hugging Face transformers (whisper-large-v3-turbo requires 4.45+)
+transformers>=4.45.0
+
+# Accelerate for optimized model loading and device placement
+accelerate>=0.30.0
+
+# Data processing for CSV output
+pandas>=2.2.0

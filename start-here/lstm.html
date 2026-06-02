@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSTM 셀 구조</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background: #f0f0f0;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 950px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .diagram-area {
+            background: #fafafa;
+            border-radius: 15px;
+            padding: 10px;
+        }
+
+        .info-box {
+            background: #e8f4fd;
+            border-left: 4px solid #2196F3;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-top: 15px;
+        }
+
+        .info-box h4 {
+            color: #1976D2;
+            margin-bottom: 5px;
+        }
+
+        .info-box p {
+            color: #444;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8em;
+            color: #555;
+        }
+
+        .legend-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.75em;
+        }
+
+        .legend-line {
+            width: 25px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .clickable {
+            cursor: pointer;
+            transition: filter 0.2s, transform 0.2s;
+        }
+
+        .clickable:hover {
+            filter: brightness(1.1);
+            transform: scale(1.03);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 LSTM 셀 구조</h1>
+            <p>Long Short-Term Memory - 4개의 게이트 구성</p>
+        </div>
+
+        <div class="diagram-area">
+            <svg viewBox="0 0 900 520" style="width:100%; height:auto;">
+                <defs>
+                    <marker id="arrow-black" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+                    </marker>
+                    <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#4CAF50"/>
+                    </marker>
+                    <marker id="arrow-pink" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#E91E63"/>
+                    </marker>
+                </defs>
+
+                <!-- ========== 셀 상태 경로 (상단 - 녹색 점선) ========== -->
+                <text x="450" y="25" text-anchor="middle" font-size="12" fill="#666">다음 타임스텝: C(t) → C(t-1)</text>
+                
+                <!-- 기억 업데이트 라벨 -->
+                <text x="500" y="58" text-anchor="middle" font-size="13" fill="#4CAF50" font-weight="bold">기억 업데이트</text>
+                
+                <!-- C(t-1) -->
+                <g class="clickable" onclick="showInfo('c_prev')">
+                    <circle cx="60" cy="90" r="35" fill="#4CAF50"/>
+                    <text x="60" y="85" text-anchor="middle" fill="white" font-size="15" font-weight="bold">C</text>
+                    <text x="60" y="102" text-anchor="middle" fill="white" font-size="11">(t-1)</text>
+                </g>
+                <text x="60" y="140" text-anchor="middle" font-size="11" fill="#4CAF50">장기기억</text>
+
+                <!-- C(t-1) → 망각곱셈 (녹색 점선) -->
+                <path d="M 95 90 L 220 90" stroke="#4CAF50" stroke-width="3" stroke-dasharray="8,4" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- 망각 곱셈 × -->
+                <g class="clickable" onclick="showInfo('forget_mult')">
+                    <circle cx="250" cy="90" r="18" fill="white" stroke="#E57373" stroke-width="3"/>
+                    <text x="250" y="96" text-anchor="middle" font-size="18" fill="#E57373" font-weight="bold">×</text>
+                </g>
+
+                <!-- 망각곱셈 → 덧셈 -->
+                <path d="M 268 90 L 395 90" stroke="#4CAF50" stroke-width="3" stroke-dasharray="8,4" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- 4 (노란 원) -->
+                <circle cx="395" cy="65" r="14" fill="#FFC107"/>
+                <text x="395" y="70" text-anchor="middle" font-size="12" fill="white" font-weight="bold">4</text>
+
+                <!-- 덧셈 + -->
+                <g class="clickable" onclick="showInfo('add_op')">
+                    <circle cx="430" cy="90" r="22" fill="#7E57C2"/>
+                    <text x="430" y="98" text-anchor="middle" font-size="24" fill="white" font-weight="bold">+</text>
+                </g>
+
+                <!-- 덧셈 → tanh -->
+                <path d="M 452 90 L 530 90" stroke="#4CAF50" stroke-width="3" stroke-dasharray="8,4" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- tanh (상단) -->
+                <rect x="545" y="75" width="55" height="30" rx="6" fill="#7E57C2"/>
+                <text x="572" y="95" text-anchor="middle" fill="white" font-size="13" font-weight="bold">tanh</text>
+
+                <!-- tanh → 출력곱셈 -->
+                <path d="M 600 90 L 680 90" stroke="#4CAF50" stroke-width="3" stroke-dasharray="8,4" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- 6 (하늘색 원) -->
+                <circle cx="700" cy="65" r="14" fill="#4DD0E1"/>
+                <text x="700" y="70" text-anchor="middle" font-size="12" fill="white" font-weight="bold">6</text>
+                <text x="700" y="50" text-anchor="middle" font-size="9" fill="#4DD0E1">h(t)생성</text>
+
+                <!-- 출력 곱셈 × (상단) -->
+                <g class="clickable" onclick="showInfo('output_mult')">
+                    <circle cx="720" cy="90" r="18" fill="white" stroke="#FF9800" stroke-width="3"/>
+                    <text x="720" y="96" text-anchor="middle" font-size="18" fill="#FF9800" font-weight="bold">×</text>
+                </g>
+
+                <!-- 출력곱셈 → C(t) -->
+                <path d="M 738 90 L 805 90" stroke="#4CAF50" stroke-width="3" stroke-dasharray="8,4" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- C(t) -->
+                <g class="clickable" onclick="showInfo('c_next')">
+                    <circle cx="840" cy="90" r="35" fill="#4CAF50"/>
+                    <text x="840" y="85" text-anchor="middle" fill="white" font-size="15" font-weight="bold">C</text>
+                    <text x="840" y="102" text-anchor="middle" fill="white" font-size="11">(t)</text>
+                </g>
+                <text x="840" y="140" text-anchor="middle" font-size="11" fill="#4CAF50">새 장기기억</text>
+
+                <!-- ========== LSTM 셀 내부 (타원) ========== -->
+                <ellipse cx="450" cy="320" rx="320" ry="170" fill="#f5f5f5" stroke="#bbb" stroke-width="2"/>
+
+                <!-- ========== 4개의 게이트 ========== -->
+
+                <!-- ① 망각 게이트 (Forget) -->
+                <g class="clickable" onclick="showInfo('forget')">
+                    <circle cx="200" cy="230" r="16" fill="#E57373"/>
+                    <text x="200" y="235" text-anchor="middle" font-size="12" fill="white" font-weight="bold">1</text>
+                    <rect x="225" y="215" width="45" height="32" rx="5" fill="#C62828"/>
+                    <text x="247" y="236" text-anchor="middle" fill="white" font-size="14" font-weight="bold">σ</text>
+                </g>
+                <text x="222" y="265" text-anchor="middle" font-size="10" fill="#C62828" font-weight="bold">뭘 잊을까?</text>
+                <!-- W_f -->
+                <g class="clickable" onclick="showInfo('w_f')">
+                    <circle cx="265" cy="290" r="22" fill="white" stroke="#E57373" stroke-width="2"/>
+                    <text x="265" y="295" text-anchor="middle" font-size="11" fill="#C62828" font-weight="bold">W_f</text>
+                </g>
+                <!-- 망각 → 상단 곱셈 -->
+                <path d="M 250 215 L 250 115" stroke="#E57373" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ② 셀 게이트 (Cell) - tanh -->
+                <g class="clickable" onclick="showInfo('cell')">
+                    <circle cx="340" cy="230" r="16" fill="#7E57C2"/>
+                    <text x="340" y="235" text-anchor="middle" font-size="12" fill="white" font-weight="bold">2</text>
+                    <rect x="365" y="215" width="55" height="32" rx="5" fill="#512DA8"/>
+                    <text x="392" y="236" text-anchor="middle" fill="white" font-size="13" font-weight="bold">tanh</text>
+                </g>
+                <text x="375" y="265" text-anchor="middle" font-size="10" fill="#512DA8" font-weight="bold">중요정보 추출</text>
+                <!-- W_c -->
+                <g class="clickable" onclick="showInfo('w_c')">
+                    <circle cx="392" cy="290" r="22" fill="white" stroke="#7E57C2" stroke-width="2"/>
+                    <text x="392" y="295" text-anchor="middle" font-size="11" fill="#512DA8" font-weight="bold">W_c</text>
+                </g>
+
+                <!-- 셀 → 상단 곱셈으로 (× 후 +로) -->
+                <g class="clickable" onclick="showInfo('cell_mult')">
+                    <circle cx="430" cy="170" r="15" fill="white" stroke="#7E57C2" stroke-width="2"/>
+                    <text x="430" y="175" text-anchor="middle" font-size="14" fill="#7E57C2" font-weight="bold">×</text>
+                </g>
+                <path d="M 392 215 L 392 190 L 415 175" stroke="#7E57C2" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+                <path d="M 430 155 L 430 115" stroke="#7E57C2" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ③ 입력 게이트 (Input) -->
+                <g class="clickable" onclick="showInfo('input')">
+                    <circle cx="480" cy="230" r="16" fill="#42A5F5"/>
+                    <text x="480" y="235" text-anchor="middle" font-size="12" fill="white" font-weight="bold">3</text>
+                    <rect x="505" y="215" width="45" height="32" rx="5" fill="#1565C0"/>
+                    <text x="527" y="236" text-anchor="middle" fill="white" font-size="14" font-weight="bold">σ</text>
+                </g>
+                <text x="510" y="265" text-anchor="middle" font-size="10" fill="#1565C0" font-weight="bold">얼마나 저장?</text>
+                <!-- W_i -->
+                <g class="clickable" onclick="showInfo('w_i')">
+                    <circle cx="527" cy="290" r="22" fill="white" stroke="#42A5F5" stroke-width="2"/>
+                    <text x="527" y="295" text-anchor="middle" font-size="11" fill="#1565C0" font-weight="bold">W_i</text>
+                </g>
+                <!-- 입력 → 셀 곱셈 -->
+                <path d="M 505 215 L 445 180" stroke="#42A5F5" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ⑤ 출력 게이트 (Output) -->
+                <g class="clickable" onclick="showInfo('output')">
+                    <circle cx="620" cy="230" r="16" fill="#FF9800"/>
+                    <text x="620" y="235" text-anchor="middle" font-size="12" fill="white" font-weight="bold">5</text>
+                    <rect x="645" y="215" width="45" height="32" rx="5" fill="#E65100"/>
+                    <text x="667" y="236" text-anchor="middle" fill="white" font-size="14" font-weight="bold">σ</text>
+                </g>
+                <text x="655" y="265" text-anchor="middle" font-size="9" fill="#E65100" font-weight="bold">단기기억에 반영?</text>
+                <!-- W_o -->
+                <g class="clickable" onclick="showInfo('w_o')">
+                    <circle cx="667" cy="290" r="22" fill="white" stroke="#FF9800" stroke-width="2"/>
+                    <text x="667" y="295" text-anchor="middle" font-size="11" fill="#E65100" font-weight="bold">W_o</text>
+                </g>
+                <!-- 출력 → 상단 출력곱셈 -->
+                <path d="M 690 230 L 720 130" stroke="#FF9800" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ========== 입력 결합 [h(t-1), x(t)] ========== -->
+                <g class="clickable" onclick="showInfo('concat')">
+                    <rect x="380" y="355" width="120" height="35" rx="8" fill="#607D8B"/>
+                    <text x="440" y="378" text-anchor="middle" fill="white" font-size="12" font-weight="bold">[h(t-1), x(t)]</text>
+                </g>
+
+                <!-- 결합 → 각 W로 분기 -->
+                <path d="M 380 372 L 265 315" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+                <path d="M 420 355 L 392 315" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+                <path d="M 460 355 L 527 315" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+                <path d="M 500 372 L 667 315" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ========== x(t) 현재 입력 ========== -->
+                <g class="clickable" onclick="showInfo('x_t')">
+                    <rect x="320" y="430" width="70" height="40" rx="10" fill="#26A69A"/>
+                    <text x="355" y="456" text-anchor="middle" fill="white" font-size="14" font-weight="bold">x(t)</text>
+                </g>
+                <text x="355" y="485" text-anchor="middle" font-size="11" fill="#555">현재 입력</text>
+                <path d="M 355 430 L 400 390" stroke="#26A69A" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ========== h(t-1) 이전 은닉상태 ========== -->
+                <g class="clickable" onclick="showInfo('h_prev')">
+                    <rect x="480" y="430" width="70" height="40" rx="10" fill="#FF9800"/>
+                    <text x="515" y="456" text-anchor="middle" fill="white" font-size="13" font-weight="bold">h(t-1)</text>
+                </g>
+                <text x="515" y="485" text-anchor="middle" font-size="11" fill="#555">이전 은닉상태</text>
+                <path d="M 515 430 L 480 390" stroke="#FF9800" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ========== h(t) 출력 ========== -->
+                <g class="clickable" onclick="showInfo('h_t')">
+                    <rect x="780" y="200" width="70" height="45" rx="10" fill="#E91E63"/>
+                    <text x="815" y="228" text-anchor="middle" fill="white" font-size="14" font-weight="bold">h(t)</text>
+                </g>
+                <text x="815" y="260" text-anchor="middle" font-size="11" fill="#E91E63">은닉상태</text>
+
+                <!-- 상단 출력곱셈 → h(t) -->
+                <path d="M 738 95 L 780 210" stroke="#E91E63" stroke-width="3" fill="none" marker-end="url(#arrow-pink)"/>
+
+                <!-- h(t) 피드백 -->
+                <path d="M 815 245 L 815 510 L 515 510 L 515 475" stroke="#E91E63" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-pink)"/>
+
+            </svg>
+        </div>
+
+        <div class="info-box" id="info-box">
+            <h4>💡 요소를 클릭해보세요</h4>
+            <p>각 게이트(① 망각, ② 셀, ③ 입력, ⑤ 출력)와 연산자를 클릭하면 상세 설명이 나타납니다.</p>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-num" style="background:#E57373;">1</div>
+                <span>망각</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:#7E57C2;">2</div>
+                <span>셀</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:#42A5F5;">3</div>
+                <span>입력</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:#FFC107;">4</div>
+                <span>C(t) 업데이트</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:#FF9800;">5</div>
+                <span>출력 게이트</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:#4DD0E1;">6</div>
+                <span>h(t) = o×tanh(C)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background:#4CAF50;"></div>
+                <span>C(t) 경로 (장기기억)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background:#E91E63;"></div>
+                <span>h(t) 출력 (단기기억)</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showInfo(id) {
+            const data = {
+                'c_prev': { title: '🟢 C(t-1) - 이전 셀 상태', desc: '이전 시점에서 전달된 장기 기억입니다. 망각 게이트를 거쳐 일부가 삭제됩니다.' },
+                'c_next': { title: '🟢 C(t) - 새 셀 상태', desc: '업데이트된 장기 기억입니다. 다음 타임스텝으로 전달됩니다.' },
+                'forget': { title: '① 망각 게이트 (σ)', desc: '시그모이드 함수로 0~1 값 출력. 이전 기억에서 뭘 잊을지 결정합니다. 0=완전히 잊어라, 1=전부 기억해라' },
+                'w_f': { title: 'W_f - 망각 가중치', desc: '망각 게이트의 학습 가능한 가중치 행렬입니다.' },
+                'cell': { title: '② 셀 게이트 (tanh)', desc: 'tanh 함수로 -1~1 값 출력. 현재 입력에서 중요한 정보를 추출하여 후보 셀 상태(C̃)를 생성합니다.' },
+                'w_c': { title: 'W_c - 셀 가중치', desc: '셀 게이트의 학습 가능한 가중치 행렬입니다. 후보값 생성에 사용됩니다.' },
+                'input': { title: '③ 입력 게이트 (σ)', desc: '시그모이드 함수로 0~1 값 출력. 셀 게이트에서 만든 후보값 중 얼마나 저장할지 결정합니다.' },
+                'w_i': { title: 'W_i - 입력 가중치', desc: '입력 게이트의 학습 가능한 가중치 행렬입니다.' },
+                'output': { title: '⑤ 출력 게이트 (σ)', desc: '시그모이드 함수로 0~1 값 출력. 셀 상태에서 얼마나 단기기억(h)에 반영할지 결정합니다.' },
+                'w_o': { title: 'W_o - 출력 가중치', desc: '출력 게이트의 학습 가능한 가중치 행렬입니다.' },
+                'forget_mult': { title: '× 망각 곱셈', desc: 'C(t-1) × 망각게이트 출력. 이전 기억에서 불필요한 정보를 삭제합니다.' },
+                'cell_mult': { title: '× 셀·입력 곱셈', desc: '셀게이트(후보값) × 입력게이트. 새로 저장할 정보의 양을 결정합니다.' },
+                'add_op': { title: '+ 덧셈 (C 업데이트)', desc: '(망각된 이전 기억) + (새 정보) = 새로운 셀 상태 C(t)' },
+                'output_mult': { title: '× 출력 곱셈 (h 생성)', desc: 'tanh(C(t)) × 출력게이트 = 은닉상태 h(t). 최종 출력을 생성합니다.' },
+                'concat': { title: '[h(t-1), x(t)] 결합', desc: '이전 은닉상태와 현재 입력을 연결(concatenate)하여 모든 게이트에 입력합니다.' },
+                'x_t': { title: 'x(t) - 현재 입력', desc: '현재 시점의 입력 데이터입니다.' },
+                'h_prev': { title: 'h(t-1) - 이전 은닉상태', desc: '이전 시점의 출력(단기 기억)입니다. 현재 입력과 결합되어 모든 게이트에 전달됩니다.' },
+                'h_t': { title: 'h(t) - 새 은닉상태', desc: '현재 시점의 출력입니다. 예측에 사용되고 다음 시점으로 피드백됩니다.' }
+            };
+            
+            const box = document.getElementById('info-box');
+            if (data[id]) {
+                box.innerHTML = `<h4>${data[id].title}</h4><p>${data[id].desc}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

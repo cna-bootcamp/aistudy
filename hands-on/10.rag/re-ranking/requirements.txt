@@ -1,0 +1,28 @@
+# LangChain core framework
+langchain>=0.3.0
+
+# OpenAI integration (query embedding: text-embedding-3-small, must match the indexed corpus)
+langchain-openai>=0.2.0
+
+# Groq integration (LLM: openai/gpt-oss-120b on Groq LPU)
+langchain-groq>=0.2.0
+
+# ChromaDB integration for LangChain (loads the shared vector DB)
+langchain-chroma>=0.1.4
+
+# ChromaDB vector database (local persistence backend)
+chromadb>=0.5.0
+
+# Cross-encoder re-ranking model loader (dragonkue/bge-reranker-v2-m3-ko)
+# NOTE: Do NOT add `torch` here. On Windows the global CUDA build is shared via
+#       `python -m venv venv --system-site-packages`; pinning torch would pull a
+#       CPU-only wheel and break GPU acceleration.
+FlagEmbedding>=1.2.0
+
+# Pin transformers to the 4.x line. transformers 5.x removed the internal
+# `prepare_for_model` tokenizer path that FlagEmbedding's reranker relies on,
+# causing `XLMRobertaTokenizer has no attribute prepare_for_model` at runtime.
+transformers>=4.44,<5.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

@@ -1,0 +1,67 @@
+# NOTE: torch is intentionally omitted. Install a CUDA build globally and create the
+# venv with `--system-site-packages` so the GPU-enabled torch is inherited.
+# See: https://github.com/cna-bootcamp/aistudy/blob/main/agentic-ai/reference/install-pytorch.md
+
+# --- Local embedding / reranker stack (GPU) ---
+# Transformers pinned to the version the KaLM embedder was published with. transformers 5.x
+# misroutes the gemma3_text backbone through the multimodal AutoProcessor, so 4.55.0 is required.
+transformers==4.55.0
+
+# SentenceTransformer pinned to the published version. 4.1.0 loads KaLM via AutoModel/AutoTokenizer
+# and also provides the CrossEncoder used by the BGE reranker (dragonkue/bge-reranker-v2-m3-ko).
+sentence-transformers==4.1.0
+
+# 4-bit quantization backend for the KaLM embedder (Windows CUDA wheels, ~7GB VRAM)
+bitsandbytes>=0.43.0
+
+# Required by bitsandbytes/transformers for quantized model loading & device placement
+accelerate>=0.30.0
+
+# Gemma tokenizer backend (SentencePiece) used by the KaLM-Embedding-Gemma3 model
+sentencepiece>=0.2.0
+
+# --- Vector store ---
+# ChromaDB vector database (local persistence backend)
+chromadb>=0.5.0
+
+# LangChain ChromaDB integration (Chroma similarity_search over the shared vector store)
+langchain-chroma>=0.1.4
+
+# --- LLM / agent orchestration ---
+# Groq LPU chat model wrapper (ChatGroq runs openai/gpt-oss-120b in the cloud)
+langchain-groq>=0.2.0
+
+# LangChain core framework (Runnable, prompts, output parsers, Document)
+langchain-core>=0.3.0
+
+# LangGraph StateGraph + MemorySaver checkpointer (agentic routing/evaluate/rewrite loop)
+langgraph>=0.2.0
+
+# Structured output schemas for routing / evaluation (json_schema mode)
+pydantic>=2.0.0
+
+# --- Web / YouTube search ---
+# LangChain community utilities & loaders (DuckDuckGoSearchAPIWrapper, WebBaseLoader)
+langchain-community>=0.3.0
+
+# DuckDuckGo web search backend (legacy package name, still imported by the wrapper)
+duckduckgo-search>=6.0.0
+
+# DuckDuckGo search engine (new package; required after the duckduckgo-search rename)
+ddgs>=6.0.0
+
+# HTML parsing for WebBaseLoader page extraction (script/style/nav noise removal)
+beautifulsoup4>=4.12.0
+
+# YouTube search via page scraping (no API key required)
+scrapetube>=2.5.1
+
+# YouTube transcript fetching with proxy support (Webshare / generic rotating proxy)
+youtube-transcript-api>=1.0.0
+
+# --- Web UI ---
+# Streamlit chat web app (st.chat_input / st.chat_message / st.write_stream / st.status)
+streamlit>=1.30.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

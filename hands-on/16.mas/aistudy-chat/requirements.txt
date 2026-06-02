@@ -1,0 +1,33 @@
+# LangGraph StateGraph workflow engine (SAS pattern)
+langgraph>=0.2.0
+
+# LangChain message types (HumanMessage / AIMessage used in shared state)
+langchain-core>=0.3.0
+
+# LanceDB vector search over existing MS GraphRAG store (graphrag + code tables)
+lancedb>=0.13.0
+
+# Parquet loading and id-join for text_units / entities
+pandas>=2.0.0
+pyarrow>=15.0.0
+
+# HTTP client for Ollama (LLM + embeddings) and web page fetching
+requests>=2.31.0
+
+# HTML parsing for web page body extraction (web crawling)
+beautifulsoup4>=4.12.0
+
+# DuckDuckGo web search client (no API key required)
+ddgs>=8.0.0
+
+# YouTube video search without the official Data API
+scrapetube>=2.5.0
+
+# YouTube transcript extraction (1.x instance API: .fetch() + WebshareProxyConfig)
+youtube-transcript-api>=1.0.0
+
+# Streamlit chat UI
+streamlit>=1.35.0
+
+# Load shared hands-on/.env (GROQ_API_KEY, YT_WEBSHARE_* proxy credentials)
+python-dotenv>=1.0.0

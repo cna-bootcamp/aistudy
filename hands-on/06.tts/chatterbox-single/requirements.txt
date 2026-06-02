@@ -1,0 +1,35 @@
+# Resemble AI Chatterbox single-user TTS example requirements
+#
+# IMPORTANT: Create the virtual environment with Python 3.12 and system site packages.
+# Windows:
+#   py -3.12 -m venv venv --system-site-packages
+# macOS/Linux:
+#   python3.12 -m venv venv --system-site-packages
+#
+# PyTorch and torchaudio are intentionally excluded from this file.
+# Install the CUDA build system-wide before creating or using the venv.
+# Example:
+#   py -3.12 -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+#
+# ffmpeg is a system-level tool, not a pip package.
+# Windows:
+#   winget install ffmpeg
+#
+# After activating the venv, upgrade build tooling before installing this file:
+#   python -m pip install --upgrade pip setuptools
+
+# Resemble AI Chatterbox TTS package
+chatterbox-tts>=0.1.7
+
+# Groq Python SDK for openai/gpt-oss-120b text preprocessing
+groq>=0.13.0
+
+# Audio file writing for 16-bit PCM WAV output
+scipy>=1.10.0
+
+# Facebook Research DNS speech denoiser (per-segment noise reduction)
+denoiser>=0.1.5
+
+# NumPy 2.x is required for Python 3.13 (1.x has no prebuilt wheel for 3.13)
+numpy>=2.0.0
+

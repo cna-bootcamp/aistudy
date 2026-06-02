@@ -1,0 +1,23 @@
+# LangChain core framework
+langchain>=0.3.0
+
+# LangChain community integrations (PyPDFLoader document loader)
+langchain-community>=0.3.0
+
+# OpenAI integration (embeddings: text-embedding-3-small)
+langchain-openai>=0.2.0
+
+# ChromaDB integration for LangChain (vector store)
+langchain-chroma>=0.1.4
+
+# Text splitters (RecursiveCharacterTextSplitter)
+langchain-text-splitters>=0.3.0
+
+# ChromaDB vector database (local persistence)
+chromadb>=0.5.0
+
+# PDF document loader backend
+pypdf>=4.0.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

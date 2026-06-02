@@ -1,0 +1,34 @@
+# Coqui XTTS v2 Voice Cloning TTS Requirements
+# Install PyTorch separately BEFORE running pip install -r requirements.txt
+# See: https://github.com/cna-bootcamp/aistudy/blob/main/agentic-ai/reference/install-pytorch.md
+#
+# NOTE: coqui-ai/TTS repository was archived in 2024 and is no longer maintained.
+#       pip install TTS still works but receives no further updates.
+#       Community fork available at: https://github.com/idiap/coqui-ai-TTS
+
+# Coqui TTS - community fork with Python 3.12 support (idiap/coqui-ai-TTS)
+# Original TTS package (pip install TTS) only supports Python <3.12
+# Use coqui-tts for Python 3.12+ compatibility
+coqui-tts
+
+# PyTorch - install separately with CUDA support BEFORE running this file
+# See: https://github.com/cna-bootcamp/aistudy/blob/main/agentic-ai/reference/install-pytorch.md
+# Do NOT add torch/torchaudio here -- pip will install the latest version which may be
+# incompatible with coqui-tts (PyTorch>=2.9 requires torchcodec not yet on Windows).
+# torch>=2.0.0      # install system-wide: pip install torch --index-url .../whl/cu124
+# torchaudio>=2.0.0 # must match torch version; install system-wide
+
+# ffmpeg is required for M4A reference voice conversion (system-level tool, not pip)
+# Install: https://ffmpeg.org/download.html  or  winget install ffmpeg
+
+# Audio file I/O
+scipy>=1.10.0
+
+# Numerical arrays
+numpy>=1.23.0
+
+# Data processing
+pandas>=2.0.0
+
+# Progress bar
+tqdm>=4.65.0

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>예제 설명 페이지로 이동…</title>
+  <script>
+    /*
+     * 예제 설명 페이지 launcher (모든 예제 폴더에 동일한 파일을 둠).
+     * 같은 폴더의 data.js 를 공용 셸(hands-on/explain-exam)로 열어 줌.
+     * hands-on 아래 어느 깊이의 예제든 동작하도록 경로를 동적으로 계산함(상대경로 → file:// 안전).
+     * 결과: ../../../explain-exam/index.html?data=../<예제경로>/explain/data.js 형태로 이동.
+     */
+    (function () {
+      var here = location.href.split(/[?#]/)[0];
+      var i = here.lastIndexOf("/hands-on/");
+      if (i === -1) {
+        document.addEventListener("DOMContentLoaded", function () {
+          document.body.textContent = "경로 오류: 이 파일은 hands-on/ 아래에 있어야 합니다.";
+        });
+        return;
+      }
+      var rel = here.slice(i + "/hands-on/".length);  // 예: 05.stt/simple/explain/index.html
+      var dir = rel.replace(/[^\/]*$/, "");           // 예: 05.stt/simple/explain/
+      var depth = (dir.match(/\//g) || []).length;    // 예: 3
+      var shell = "../".repeat(depth) + "explain-exam/index.html";
+      location.replace(shell + "?data=../" + dir + "data.js");
+    })();
+  </script>
+</head>
+<body style="font-family: system-ui, 'Malgun Gothic', sans-serif; padding: 28px; color: #333;">
+  설명 페이지로 이동 중입니다…
+  <noscript>
+    JavaScript가 꺼져 있어 자동 이동하지 못했습니다. 브라우저에서 JavaScript를 켜고 다시 열거나,
+    공용 셸 <code>hands-on/explain-exam/index.html</code> 에
+    <code>?data=&lt;이 폴더의 data.js 상대경로&gt;</code> 를 붙여 여세요.
+  </noscript>
+</body>
+</html>

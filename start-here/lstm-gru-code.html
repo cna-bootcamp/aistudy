@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSTM vs GRU 신경망 구조</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            background: #fff;
+            padding: 40px 20px;
+            color: #000;
+        }
+
+        h1 {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 0;
+            justify-content: center;
+        }
+
+        .stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .label-top {
+            font-size: 0.75rem;
+            text-align: center;
+            min-height: 35px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .label-bottom {
+            font-size: 0.75rem;
+            text-align: center;
+            min-height: 40px;
+            color: #c00;
+        }
+
+        .label-bottom.black {
+            color: #000;
+        }
+
+        /* Sequence input representation */
+        .sequence-input {
+            display: flex;
+            gap: 2px;
+        }
+
+        .seq-cell {
+            width: 8px;
+            height: 30px;
+            border: 1px solid #000;
+            background: #fff;
+        }
+
+        .dots-h {
+            display: flex;
+            align-items: center;
+            font-size: 0.7rem;
+            padding: 0 3px;
+        }
+
+        /* Embedding 3D */
+        .embedding-3d {
+            position: relative;
+            width: 110px;
+            height: 50px;
+        }
+
+        .emb-layer {
+            position: absolute;
+            display: grid;
+            grid-template-columns: repeat(16, 5px);
+            grid-template-rows: repeat(3, 5px);
+            border: 1px solid #000;
+            background: #fff;
+        }
+
+        .emb-layer:nth-child(1) { top: 0; left: 0; }
+        .emb-layer:nth-child(2) { top: 8px; left: 8px; }
+        .emb-layer:nth-child(3) { top: 16px; left: 16px; }
+
+        .emb-cell {
+            border: 0.5px solid #ccc;
+            background: #fff;
+        }
+
+        /* RNN cells - stacked for comparison */
+        .rnn-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .rnn-cell-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .rnn-cell {
+            width: 80px;
+            height: 45px;
+            border: 2px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.85rem;
+            position: relative;
+            background: #fff;
+        }
+
+        .rnn-cell.lstm {
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+
+        .rnn-cell.gru {
+            border-color: #dc2626;
+            color: #dc2626;
+        }
+
+        .rnn-cell::before {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 8px;
+            border: 1px solid currentColor;
+            border-bottom: none;
+            border-radius: 5px 5px 0 0;
+        }
+
+        .rnn-cell::after {
+            content: '→';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.5rem;
+        }
+
+        .rnn-label {
+            font-size: 0.65rem;
+            text-align: center;
+        }
+
+        .rnn-label.lstm { color: #2563eb; }
+        .rnn-label.gru { color: #dc2626; }
+
+        .or-divider {
+            font-size: 0.7rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Hidden state output */
+        .hidden-output {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .hidden-cell {
+            width: 25px;
+            height: 10px;
+            border: 1px solid #000;
+            background: #fff;
+        }
+
+        /* Dense layer */
+        .dense-neuron {
+            width: 35px;
+            height: 35px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+        }
+
+        /* Arrow */
+        .arrow {
+            font-size: 1.3rem;
+            color: #000;
+        }
+
+        /* Output */
+        .output-box {
+            padding: 10px 15px;
+            border: 2px solid #000;
+            font-size: 0.8rem;
+        }
+
+        /* Weight annotations */
+        .weight-box {
+            font-size: 0.65rem;
+            color: #00f;
+            border: 1px solid #00f;
+            padding: 2px 5px;
+            margin-top: 3px;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border: 2px solid;
+        }
+
+        .legend-box.lstm { border-color: #2563eb; }
+        .legend-box.gru { border-color: #dc2626; }
+    </style>
+</head>
+<body>
+
+    <h1>LSTM vs GRU 순환 신경망 구조 비교</h1>
+
+    <div class="container">
+        <!-- Input Sequence -->
+        <div class="stage">
+            <div class="label-top">시퀀스 입력<br>(100,)</div>
+            <div class="sequence-input">
+                <div class="seq-cell"></div>
+                <div class="seq-cell"></div>
+                <div class="seq-cell"></div>
+                <div class="dots-h">···</div>
+                <div class="seq-cell"></div>
+                <div class="seq-cell"></div>
+            </div>
+            <div class="label-bottom black">정수 인코딩된<br>텍스트</div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <!-- Embedding Layer -->
+        <div class="stage">
+            <div class="label-top">(100, 16)</div>
+            <div class="embedding-3d">
+                <div class="emb-layer">
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                </div>
+                <div class="emb-layer">
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                </div>
+                <div class="emb-layer">
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                    <div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div><div class="emb-cell"></div>
+                </div>
+            </div>
+            <div class="label-bottom black">Embedding<br><span class="weight-box">어휘사전=500, 벡터차원=16</span></div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <!-- RNN Layer - LSTM or GRU -->
+        <div class="stage">
+            <div class="label-top">순환 처리</div>
+            <div class="rnn-stack">
+                <div class="rnn-cell-wrapper">
+                    <div class="rnn-cell lstm">LSTM</div>
+                    <div class="rnn-label lstm">units=8, dropout=0.3</div>
+                </div>
+                <div class="or-divider">또는</div>
+                <div class="rnn-cell-wrapper">
+                    <div class="rnn-cell gru">GRU</div>
+                    <div class="rnn-label gru">units=8</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <!-- Hidden State Output -->
+        <div class="stage">
+            <div class="label-top">(8,)</div>
+            <div class="hidden-output">
+                <div class="hidden-cell"></div>
+                <div class="hidden-cell"></div>
+                <div class="hidden-cell"></div>
+                <div style="font-size:0.6rem; text-align:center;">⋮</div>
+                <div class="hidden-cell"></div>
+                <div class="hidden-cell"></div>
+            </div>
+            <div class="label-bottom black">은닉 상태<br>출력</div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <!-- Dense Connection -->
+        <svg width="50" height="80" style="overflow: visible;">
+            <line x1="0" y1="10" x2="50" y2="40" stroke="#000" stroke-width="1"/>
+            <line x1="0" y1="25" x2="50" y2="40" stroke="#000" stroke-width="1"/>
+            <line x1="0" y1="40" x2="50" y2="40" stroke="#000" stroke-width="1"/>
+            <line x1="0" y1="55" x2="50" y2="40" stroke="#000" stroke-width="1"/>
+            <line x1="0" y1="70" x2="50" y2="40" stroke="#000" stroke-width="1"/>
+        </svg>
+
+        <!-- Dense Layer -->
+        <div class="stage">
+            <div class="label-top">(1,)</div>
+            <div class="dense-neuron">σ</div>
+            <div class="label-bottom">Dense(1)<br>sigmoid</div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <!-- Output -->
+        <div class="stage">
+            <div class="label-top"></div>
+            <div class="output-box">0~1</div>
+            <div class="label-bottom black">긍정/부정<br>확률</div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-box lstm"></div>
+            <span>LSTM: 3개 게이트 (망각, 입력, 출력) + 셀 상태</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-box gru"></div>
+            <span>GRU: 2개 게이트 (리셋, 업데이트) - 더 단순</span>
+        </div>
+    </div>
+
+</body>
+</html>

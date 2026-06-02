@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSTM & GRU 쉽게 이해하기 - 책읽기 예제</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+        }
+
+        /* 탭 */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.4);
+        }
+
+        .tab-btn.gru-tab.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 5px 20px rgba(240,147,251,0.4);
+        }
+
+        .content {
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        /* 카드 */
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .card h2 {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin: 20px 0 15px 0;
+            color: #00d4ff;
+        }
+
+        .card.gru-card h3 {
+            color: #f093fb;
+        }
+
+        /* 비유 설명 박스 */
+        .analogy-box {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(123,44,191,0.1));
+            border-left: 4px solid #00d4ff;
+            padding: 20px;
+            border-radius: 0 15px 15px 0;
+            margin: 20px 0;
+        }
+
+        .analogy-box.gru {
+            border-left-color: #f093fb;
+            background: linear-gradient(135deg, rgba(240,147,251,0.1), rgba(245,87,108,0.1));
+        }
+
+        .analogy-box .icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .analogy-box h4 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .analogy-box.gru h4 {
+            color: #f093fb;
+        }
+
+        /* 문장 예제 */
+        .sentence-container {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .sentence {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .word {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .word:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .word.current {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            transform: scale(1.1);
+            box-shadow: 0 5px 20px rgba(102,126,234,0.5);
+        }
+
+        .word.current.gru {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            box-shadow: 0 5px 20px rgba(240,147,251,0.5);
+        }
+
+        .word.processed {
+            background: rgba(0,255,136,0.3);
+            border: 1px solid #00ff88;
+        }
+
+        .word-index {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 20px;
+            height: 20px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 메모리 시각화 */
+        .memory-visual {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .memory-box {
+            background: rgba(0,0,0,0.4);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .memory-box h4 {
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .memory-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 10px;
+            min-height: 30px;
+        }
+
+        .memory-item {
+            padding: 3px 10px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+
+        /* 게이트 시각화 */
+        .gate-visual {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .gate-item {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .gate-item.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .gate-item .gate-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .gate-item .gate-name {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .gate-item .gate-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .gate-item .gate-meaning {
+            font-size: 0.75rem;
+            color: #aaa;
+            margin-top: 8px;
+        }
+
+        .forget-gate { border: 2px solid #ff6b6b; }
+        .forget-gate .gate-value { color: #ff6b6b; }
+
+        .input-gate { border: 2px solid #feca57; }
+        .input-gate .gate-value { color: #feca57; }
+
+        .cell-gate { border: 2px solid #4ecdc4; }
+        .cell-gate .gate-value { color: #4ecdc4; }
+
+        .output-gate { border: 2px solid #a29bfe; }
+        .output-gate .gate-value { color: #a29bfe; }
+
+        .reset-gate { border: 2px solid #ff6b6b; }
+        .reset-gate .gate-value { color: #ff6b6b; }
+
+        .update-gate { border: 2px solid #feca57; }
+        .update-gate .gate-value { color: #feca57; }
+
+        .candidate-gate { border: 2px solid #f093fb; }
+        .candidate-gate .gate-value { color: #f093fb; }
+
+        /* 단계 설명 */
+        .step-explanation {
+            background: rgba(0,212,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .step-explanation.gru {
+            background: rgba(240,147,251,0.1);
+        }
+
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .step-number.gru {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .step-title {
+            font-weight: bold;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .step-title.gru {
+            color: #f093fb;
+        }
+
+        /* 버튼 */
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary.gru {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        /* 요약 박스 */
+        .summary-box {
+            background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2));
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .summary-box.gru {
+            background: linear-gradient(135deg, rgba(240,147,251,0.2), rgba(245,87,108,0.2));
+        }
+
+        .summary-box h4 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        .summary-box.gru h4 {
+            color: #f093fb;
+        }
+
+        .summary-box ul {
+            list-style: none;
+        }
+
+        .summary-box li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .summary-box li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #00ff88;
+        }
+
+        /* 비교 테이블 */
+        .simple-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .simple-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .comparison-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .comparison-card h4 {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid;
+        }
+
+        .comparison-card.lstm h4 {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .comparison-card.gru h4 {
+            border-color: #f093fb;
+            color: #f093fb;
+        }
+
+        .comparison-list {
+            list-style: none;
+        }
+
+        .comparison-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .comparison-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* 애니메이션 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 LSTM & GRU 쉽게 이해하기</h1>
+        <p class="subtitle">책 읽기 예제로 배우는 순환 신경망의 기억 메커니즘</p>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="showTab('lstm')">📦 LSTM으로 읽기</button>
+            <button class="tab-btn gru-tab" onclick="showTab('gru')">⚡ GRU로 읽기</button>
+        </div>
+
+        <!-- LSTM 책 읽기 예제 -->
+        <div id="lstm-content" class="content active">
+            <div class="card">
+                <h2>📦 LSTM이 책을 읽는 방법</h2>
+
+                <div class="analogy-box">
+                    <div class="icon">📚</div>
+                    <h4>LSTM = 꼼꼼한 학생의 4단계 메모법</h4>
+                    <p>LSTM은 4개의 게이트로 정보를 세밀하게 관리합니다:</p>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li><strong style="color: #ff6b6b;">망각 게이트</strong> = "이건 시험에 안 나올 것 같아, 지우자" (불필요한 정보 삭제)</li>
+                        <li><strong style="color: #feca57;">입력 게이트</strong> = "이걸 얼마나 자세히 적을까?" (저장할 양 결정)</li>
+                        <li><strong style="color: #4ecdc4;">셀 게이트</strong> = "이 내용이 중요해 보여" (새로운 정보 후보)</li>
+                        <li><strong style="color: #a29bfe;">출력 게이트</strong> = "지금 이 문제에 뭘 써야 하지?" (출력할 정보 선택)</li>
+                    </ul>
+                </div>
+
+                <h3>📖 LSTM이 문장을 읽는 과정</h3>
+
+                <div class="sentence-container">
+                    <p style="text-align: center; margin-bottom: 15px; color: #888;">각 단어를 클릭하거나 버튼을 눌러 LSTM의 처리 과정을 확인하세요:</p>
+                    <div class="sentence" id="lstm-sentence">
+                        <div class="word" data-idx="0" onclick="showLstmStep(0)">철수는<span class="word-index">1</span></div>
+                        <div class="word" data-idx="1" onclick="showLstmStep(1)">어제<span class="word-index">2</span></div>
+                        <div class="word" data-idx="2" onclick="showLstmStep(2)">도서관에서<span class="word-index">3</span></div>
+                        <div class="word" data-idx="3" onclick="showLstmStep(3)">수학<span class="word-index">4</span></div>
+                        <div class="word" data-idx="4" onclick="showLstmStep(4)">책을<span class="word-index">5</span></div>
+                        <div class="word" data-idx="5" onclick="showLstmStep(5)">빌렸다<span class="word-index">6</span></div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="startLstmExample()" id="lstm-step-btn">▶️ 단계별 보기</button>
+                        <button class="btn btn-primary" onclick="autoPlayLstm()" id="lstm-auto-btn">⏩ 자동 재생</button>
+                        <button class="btn btn-secondary" onclick="resetLstmExample()">🔄 처음으로</button>
+                    </div>
+                    <div class="progress-text" id="lstm-progress-text" style="margin-top: 10px; color: #888;"></div>
+                </div>
+
+                <div id="lstm-explanation" class="step-explanation" style="display: none;">
+                    <div class="step-title">
+                        <span class="step-number" id="lstm-step-num">1</span>
+                        <span id="lstm-step-title">현재 단어: 철수는</span>
+                    </div>
+                    <p id="lstm-step-desc">LSTM이 "철수는"을 읽습니다...</p>
+
+                    <div class="gate-visual" id="lstm-gates">
+                        <div class="gate-item forget-gate">
+                            <div class="gate-icon">🗑️</div>
+                            <div class="gate-name">망각 게이트</div>
+                            <div class="gate-value" id="lstm-forget">0.2</div>
+                            <div class="gate-meaning" id="lstm-forget-meaning">80% 유지</div>
+                        </div>
+                        <div class="gate-item input-gate">
+                            <div class="gate-icon">📝</div>
+                            <div class="gate-name">입력 게이트</div>
+                            <div class="gate-value" id="lstm-input">0.9</div>
+                            <div class="gate-meaning" id="lstm-input-meaning">90% 저장</div>
+                        </div>
+                        <div class="gate-item cell-gate">
+                            <div class="gate-icon">💡</div>
+                            <div class="gate-name">셀 게이트</div>
+                            <div class="gate-value" id="lstm-cell">0.8</div>
+                            <div class="gate-meaning" id="lstm-cell-meaning">새 정보</div>
+                        </div>
+                        <div class="gate-item output-gate">
+                            <div class="gate-icon">📤</div>
+                            <div class="gate-name">출력 게이트</div>
+                            <div class="gate-value" id="lstm-output">0.7</div>
+                            <div class="gate-meaning" id="lstm-output-meaning">70% 출력</div>
+                        </div>
+                    </div>
+
+                    <div class="memory-visual">
+                        <div class="memory-box">
+                            <h4>🧠 장기 기억 (셀 상태)</h4>
+                            <div class="memory-items" id="lstm-long-memory">
+                                <span class="memory-item">철수</span>
+                            </div>
+                        </div>
+                        <div class="memory-box">
+                            <h4>💭 현재 생각 (출력)</h4>
+                            <div class="memory-items" id="lstm-short-memory">
+                                <span class="memory-item">주어: 철수</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="memory-visual">
+                        <div class="memory-box" style="grid-column: span 2;">
+                            <h4>📊 계산 과정</h4>
+                            <div class="memory-items" id="lstm-calc">
+                                <span class="memory-item" style="background: rgba(255,183,77,0.3);">① c̃ = tanh(입력)</span>
+                                <span class="memory-item" style="background: rgba(102,126,234,0.3);">② C = f×C_prev + i×c̃</span>
+                                <span class="memory-item" style="background: rgba(164,129,254,0.3);">③ h = o×tanh(C)</span>
+                            </div>
+                            <div id="lstm-calc-meaning" style="margin-top: 8px; padding: 8px; background: rgba(76,175,80,0.3); border-radius: 8px; font-size: 0.9em; color: white; border-left: 3px solid #4caf50;">
+                                💡 단어를 클릭하면 계산 결과의 의미를 확인할 수 있습니다
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-box">
+                    <h4>💡 LSTM의 4개 게이트 역할</h4>
+                    <ul>
+                        <li><strong>망각 게이트:</strong> 이전 기억 중 불필요한 부분을 선택적으로 삭제</li>
+                        <li><strong>입력 게이트:</strong> 새 정보를 얼마나 저장할지 결정</li>
+                        <li><strong>셀 게이트:</strong> 현재 입력에서 중요한 정보 추출</li>
+                        <li><strong>출력 게이트:</strong> 장기 기억(C)에서 얼마나 읽어와서 새 단기기억에 반영할 지 결정 </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRU 책 읽기 예제 -->
+        <div id="gru-content" class="content">
+            <div class="card gru-card">
+                <h2>⚡ GRU가 책을 읽는 방법</h2>
+
+                <div class="analogy-box gru">
+                    <div class="icon">📝</div>
+                    <h4>GRU = 효율적인 학생의 2단계 메모법</h4>
+                    <p>GRU는 2개의 게이트로 빠르고 효율적으로 정보를 관리합니다:</p>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li><strong style="color: #ff6b6b;">리셋 게이트</strong> = "이전 내용을 얼마나 참고할까?" (이전 기억 리셋 정도)</li>
+                        <li><strong style="color: #feca57;">업데이트 게이트</strong> = "새 내용과 기존 내용을 어떤 비율로 섞을까?" (혼합 비율)</li>
+                    </ul>
+                    <p style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        💡 <strong>핵심:</strong> LSTM의 4개 게이트를 2개로 단순화! 장기기억과 단기기억을 하나로 통합하여 더 빠르게 처리합니다.
+                    </p>
+                </div>
+
+                <h3>📖 GRU가 문장을 읽는 과정</h3>
+
+                <div class="sentence-container">
+                    <p style="text-align: center; margin-bottom: 15px; color: #888;">각 단어를 클릭하거나 버튼을 눌러 GRU의 처리 과정을 확인하세요:</p>
+                    <div class="sentence" id="gru-sentence">
+                        <div class="word" data-idx="0" onclick="showGruStep(0)">철수는<span class="word-index">1</span></div>
+                        <div class="word" data-idx="1" onclick="showGruStep(1)">어제<span class="word-index">2</span></div>
+                        <div class="word" data-idx="2" onclick="showGruStep(2)">도서관에서<span class="word-index">3</span></div>
+                        <div class="word" data-idx="3" onclick="showGruStep(3)">수학<span class="word-index">4</span></div>
+                        <div class="word" data-idx="4" onclick="showGruStep(4)">책을<span class="word-index">5</span></div>
+                        <div class="word" data-idx="5" onclick="showGruStep(5)">빌렸다<span class="word-index">6</span></div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary gru" onclick="startGruExample()" id="gru-step-btn">▶️ 단계별 보기</button>
+                        <button class="btn btn-primary gru" onclick="autoPlayGru()" id="gru-auto-btn">⏩ 자동 재생</button>
+                        <button class="btn btn-secondary" onclick="resetGruExample()">🔄 처음으로</button>
+                    </div>
+                    <div class="progress-text" id="gru-progress-text" style="margin-top: 10px; color: #888;"></div>
+                </div>
+
+                <div id="gru-explanation" class="step-explanation gru" style="display: none;">
+                    <div class="step-title gru">
+                        <span class="step-number gru" id="gru-step-num">1</span>
+                        <span id="gru-step-title">현재 단어: 철수는</span>
+                    </div>
+                    <p id="gru-step-desc">GRU가 "철수는"을 읽습니다...</p>
+
+                    <div class="gate-visual" id="gru-gates">
+                        <div class="gate-item reset-gate">
+                            <div class="gate-icon">🔄</div>
+                            <div class="gate-name">리셋 게이트</div>
+                            <div class="gate-value" id="gru-reset">0.3</div>
+                            <div class="gate-meaning" id="gru-reset-meaning">이전 기억 30% 참고</div>
+                        </div>
+                        <div class="gate-item update-gate">
+                            <div class="gate-icon">🔀</div>
+                            <div class="gate-name">업데이트 게이트</div>
+                            <div class="gate-value" id="gru-update">0.8</div>
+                            <div class="gate-meaning" id="gru-update-meaning">새 정보 80% 반영</div>
+                        </div>
+                        <div class="gate-item candidate-gate">
+                            <div class="gate-icon">💡</div>
+                            <div class="gate-name">후보 상태 (h̃)</div>
+                            <div class="gate-value" id="gru-candidate">0.9</div>
+                            <div class="gate-meaning" id="gru-candidate-meaning">새로 만든 기억</div>
+                        </div>
+                    </div>
+
+                    <div class="memory-visual">
+                        <div class="memory-box">
+                            <h4>🧠 통합 기억 (Hidden State)</h4>
+                            <div class="memory-items" id="gru-memory">
+                                <span class="memory-item">철수</span>
+                            </div>
+                        </div>
+                        <div class="memory-box">
+                            <h4>📊 계산 과정</h4>
+                            <div class="memory-items" id="gru-calc">
+                                <span class="memory-item" style="background: rgba(118,200,147,0.3);">① h̃ = tanh(입력)</span>
+                                <span class="memory-item" style="background: rgba(240,147,251,0.3);">② h = (1-z)×h_prev + z×h̃</span>
+                            </div>
+                            <div id="gru-calc-meaning" style="margin-top: 8px; padding: 8px; background: rgba(156,39,176,0.3); border-radius: 8px; font-size: 0.9em; color: white; border-left: 3px solid #9c27b0;">
+                                💡 단어를 클릭하면 계산 결과의 의미를 확인할 수 있습니다
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-box gru">
+                    <h4>💡 GRU의 2개 게이트 역할</h4>
+                    <ul>
+                        <li><strong>리셋 게이트:</strong> 이전 기억을 얼마나 무시할지 결정 (낮으면 이전 기억 무시)</li>
+                        <li><strong>업데이트 게이트:</strong> 새 정보와 기존 정보의 혼합 비율 결정</li>
+                        <li><strong>후보 생성:</strong> 리셋된 이전 기억과 현재 입력으로 새로운 기억 후보 생성</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- LSTM vs GRU 비교 -->
+            <div class="card">
+                <h2>⚖️ LSTM vs GRU 비교</h2>
+
+                <div class="simple-comparison">
+                    <div class="comparison-card lstm">
+                        <h4>📦 LSTM</h4>
+                        <ul class="comparison-list">
+                            <li>🚪 게이트 4개 (망각, 입력, 셀, 출력)</li>
+                            <li>📊 장기기억 + 단기기억 분리</li>
+                            <li>🎛️ 세밀한 제어 가능</li>
+                            <li>⏱️ 학습 속도 느림</li>
+                            <li>📈 긴 문장에 강함</li>
+                            <li>💾 파라미터 더 많음</li>
+                        </ul>
+                    </div>
+                    <div class="comparison-card gru">
+                        <h4>⚡ GRU</h4>
+                        <ul class="comparison-list">
+                            <li>🚪 게이트 2개 (리셋, 업데이트)</li>
+                            <li>📊 하나의 통합 기억 사용</li>
+                            <li>🎛️ 간단한 구조</li>
+                            <li>⏱️ 학습 속도 빠름</li>
+                            <li>📈 짧은 문장에 효율적</li>
+                            <li>💾 파라미터 25% 적음</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="summary-box" style="background: linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,212,255,0.1));">
+                    <h4 style="color: #00ff88;">🎯 언제 어떤 것을 선택할까?</h4>
+                    <ul>
+                        <li><strong>데이터가 적을 때:</strong> GRU (과적합 위험 낮음)</li>
+                        <li><strong>아주 긴 문장:</strong> LSTM (장기 기억에 강함)</li>
+                        <li><strong>빠른 학습 필요:</strong> GRU (파라미터 25% 적음)</li>
+                        <li><strong>복잡한 패턴:</strong> LSTM (세밀한 제어)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 탭 전환
+        function showTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`${tab}-content`).classList.add('active');
+        }
+
+        // ========== LSTM 책 읽기 예제 ==========
+        let lstmStep = 0;
+        const lstmData = [
+            {
+                word: '철수는',
+                forget: 0.2, input: 0.9, cell: 0.8, output: 0.7,
+                forgetMeaning: '처음이라 지울게 없음',
+                inputMeaning: '주어 정보 90% 저장',
+                cellMeaning: '사람 이름 감지',
+                outputMeaning: '주어 정보 단기기억에 반영',
+                longMemory: ['철수(주어)'],
+                shortMemory: ['주어: 철수'],
+                calc: ['c̃ = tanh("철수") → 0.8', 'C = 0.2×0 + 0.9×0.8 = 0.72', 'h = 0.7×tanh(0.72) = 0.44'],
+                calcMeaning: '📊 C=0.72: 장기기억에 "철수" 저장 | h=0.44: 주어 정보 44% 강도로 단기기억에 반영',
+                desc: '첫 단어! LSTM은 "철수"가 문장의 주어라는 것을 기억합니다. 나중에 "누가 했는지" 물으면 대답할 수 있도록요.'
+            },
+            {
+                word: '어제',
+                forget: 0.8, input: 0.3, cell: 0.4, output: 0.5,
+                forgetMeaning: '철수 정보 유지',
+                inputMeaning: '시간 정보 약간 저장',
+                cellMeaning: '시간 정보',
+                outputMeaning: '시간 참고만',
+                longMemory: ['철수(주어)', '어제(시간)'],
+                shortMemory: ['시간: 어제'],
+                calc: ['c̃ = tanh("어제") → 0.4', 'C = 0.8×0.72 + 0.3×0.4 = 0.70', 'h = 0.5×tanh(0.70) = 0.30'],
+                calcMeaning: '📊 C=0.70: 장기기억 유지 (철수+어제) | h=0.30: 시간 정보는 약하게만 단기기억에 반영',
+                desc: '"어제"는 부가 정보입니다. 중요하지만 주어만큼 핵심은 아니에요. 입력 게이트가 낮아 조금만 기억합니다.'
+            },
+            {
+                word: '도서관에서',
+                forget: 0.7, input: 0.5, cell: 0.6, output: 0.4,
+                forgetMeaning: '이전 정보 유지',
+                inputMeaning: '장소 정보 적당히',
+                cellMeaning: '장소 정보',
+                outputMeaning: '장소는 배경',
+                longMemory: ['철수(주어)', '어제(시간)', '도서관(장소)'],
+                shortMemory: ['장소: 도서관'],
+                calc: ['c̃ = tanh("도서관") → 0.6', 'C = 0.7×0.70 + 0.5×0.6 = 0.79', 'h = 0.4×tanh(0.79) = 0.26'],
+                calcMeaning: '📊 C=0.79: 장기기억 축적 중 | h=0.26: 배경 정보라 단기기억 반영율 낮음',
+                desc: '"도서관에서"는 장소 정보입니다. 배경 정보로 기억하되, 핵심 정보인 주어는 계속 유지합니다.'
+            },
+            {
+                word: '수학',
+                forget: 0.6, input: 0.8, cell: 0.9, output: 0.6,
+                forgetMeaning: '시간/장소 일부 잊기',
+                inputMeaning: '목적어 정보 많이 저장',
+                cellMeaning: '과목 정보 중요!',
+                outputMeaning: '과목 정보 단기기억에 반영',
+                longMemory: ['철수(주어)', '도서관(장소)', '수학(과목)'],
+                shortMemory: ['과목: 수학', '⚠️ 중요 정보!'],
+                calc: ['c̃ = tanh("수학") → 0.9', 'C = 0.6×0.79 + 0.8×0.9 = 1.19', 'h = 0.6×tanh(1.19) = 0.50'],
+                calcMeaning: '📊 C=1.19: 장기기억 급상승! (중요 정보) | h=0.50: 과목 정보 강하게 단기기억에 반영',
+                desc: '"수학"은 무엇을 빌렸는지에 대한 핵심 정보! 입력 게이트가 높아져 강하게 기억합니다. 망각 게이트는 덜 중요한 "어제" 정보를 조금 줄입니다.'
+            },
+            {
+                word: '책을',
+                forget: 0.5, input: 0.7, cell: 0.8, output: 0.7,
+                forgetMeaning: '최근 정보 유지',
+                inputMeaning: '목적어 확정',
+                cellMeaning: '"수학 책" 연결',
+                outputMeaning: '목적어 단기기억에 반영',
+                longMemory: ['철수(주어)', '수학 책(목적어)'],
+                shortMemory: ['목적어: 수학 책'],
+                calc: ['c̃ = tanh("책") → 0.8', 'C = 0.5×1.19 + 0.7×0.8 = 1.16', 'h = 0.7×tanh(1.16) = 0.57'],
+                calcMeaning: '📊 C=1.16: "수학+책" 연결 기억 | h=0.57: 목적어 정보 57% 강도로 단기기억에 반영',
+                desc: '"책을"이 나와서 "수학"과 연결됩니다. LSTM은 "수학 책"이라는 완전한 목적어를 형성합니다.'
+            },
+            {
+                word: '빌렸다',
+                forget: 0.3, input: 0.9, cell: 0.95, output: 0.9,
+                forgetMeaning: '배경 정보 더 잊기',
+                inputMeaning: '동사 정보 강하게',
+                cellMeaning: '행위 완성!',
+                outputMeaning: '전체 문장 이해',
+                longMemory: ['철수(주어)', '수학 책(목적어)', '빌렸다(동사)'],
+                shortMemory: ['✅ 철수가 수학 책을 빌림'],
+                calc: ['c̃ = tanh("빌렸다") → 0.95', 'C = 0.3×1.16 + 0.9×0.95 = 1.20', 'h = 0.9×tanh(1.20) = 0.75'],
+                calcMeaning: '📊 C=1.20: 전체 문장 기억 완성! | h=0.75: 높은 확신으로 "철수가 수학책을 빌렸다" 이해!',
+                desc: '마지막 단어 "빌렸다"! 문장의 핵심 동작입니다. 출력 게이트가 최대로 열려 전체 문장의 의미를 단기기억에 반영합니다: "철수가 수학 책을 빌렸다"'
+            }
+        ];
+
+        function startLstmExample() {
+            if (lstmStep >= lstmData.length) {
+                resetLstmExample();
+                return;
+            }
+            showLstmStep(lstmStep);
+            lstmStep++;
+        }
+
+        function showLstmStep(idx) {
+            if (idx < 0 || idx >= lstmData.length) return;
+
+            if (lstmAutoPlaying) {
+                lstmAutoPlaying = false;
+                document.getElementById('lstm-auto-btn').textContent = '⏩ 자동 재생';
+            }
+
+            const data = lstmData[idx];
+
+            document.querySelectorAll('#lstm-sentence .word').forEach((w, i) => {
+                w.classList.remove('current', 'processed');
+                if (i < idx) w.classList.add('processed');
+                if (i === idx) w.classList.add('current');
+            });
+
+            document.getElementById('lstm-explanation').style.display = 'block';
+            document.getElementById('lstm-step-num').textContent = idx + 1;
+            document.getElementById('lstm-step-title').textContent = `현재 단어: ${data.word}`;
+            document.getElementById('lstm-step-desc').textContent = data.desc;
+
+            document.getElementById('lstm-forget').textContent = data.forget.toFixed(1);
+            document.getElementById('lstm-input').textContent = data.input.toFixed(1);
+            document.getElementById('lstm-cell').textContent = data.cell.toFixed(1);
+            document.getElementById('lstm-output').textContent = data.output.toFixed(1);
+
+            document.getElementById('lstm-forget-meaning').textContent = data.forgetMeaning;
+            document.getElementById('lstm-input-meaning').textContent = data.inputMeaning;
+            document.getElementById('lstm-cell-meaning').textContent = data.cellMeaning;
+            document.getElementById('lstm-output-meaning').textContent = data.outputMeaning;
+
+            document.getElementById('lstm-long-memory').innerHTML =
+                data.longMemory.map(m => `<span class="memory-item">${m}</span>`).join('');
+            document.getElementById('lstm-short-memory').innerHTML =
+                data.shortMemory.map(m => `<span class="memory-item">${m}</span>`).join('');
+
+            // 계산 과정 업데이트 (3단계: 후보셀 → 셀상태 → 은닉상태)
+            const calcColors = ['255,183,77', '102,126,234', '164,129,254'];
+            document.getElementById('lstm-calc').innerHTML =
+                data.calc.map((c, i) => `<span class="memory-item" style="background: rgba(${calcColors[i]},0.3);">${c}</span>`).join('');
+
+            // 계산 의미 표시
+            document.getElementById('lstm-calc-meaning').textContent = data.calcMeaning;
+
+            document.getElementById('lstm-progress-text').textContent = `${idx + 1}/${lstmData.length} 단계`;
+
+            lstmStep = idx + 1;
+        }
+
+        function resetLstmExample() {
+            lstmStep = 0;
+            lstmAutoPlaying = false;
+            document.querySelectorAll('#lstm-sentence .word').forEach(w => {
+                w.classList.remove('current', 'processed');
+            });
+            document.getElementById('lstm-explanation').style.display = 'none';
+            document.getElementById('lstm-progress-text').textContent = '';
+            document.getElementById('lstm-auto-btn').disabled = false;
+            document.getElementById('lstm-auto-btn').textContent = '⏩ 자동 재생';
+        }
+
+        let lstmAutoPlaying = false;
+        function autoPlayLstm() {
+            if (lstmAutoPlaying) {
+                lstmAutoPlaying = false;
+                document.getElementById('lstm-auto-btn').textContent = '⏩ 자동 재생';
+                return;
+            }
+
+            resetLstmExample();
+            lstmAutoPlaying = true;
+            document.getElementById('lstm-auto-btn').textContent = '⏸️ 일시정지';
+
+            function playNextStep() {
+                if (!lstmAutoPlaying || lstmStep >= lstmData.length) {
+                    lstmAutoPlaying = false;
+                    document.getElementById('lstm-auto-btn').textContent = '⏩ 자동 재생';
+                    if (lstmStep >= lstmData.length) {
+                        document.getElementById('lstm-progress-text').textContent = '✅ 완료! (6/6 단계)';
+                    }
+                    return;
+                }
+
+                document.getElementById('lstm-progress-text').textContent = `${lstmStep + 1}/${lstmData.length} 단계 진행 중...`;
+                startLstmExample();
+                setTimeout(playNextStep, 2000);
+            }
+
+            playNextStep();
+        }
+
+        // ========== GRU 책 읽기 예제 ==========
+        let gruStep = 0;
+        const gruData = [
+            {
+                word: '철수는',
+                reset: 0.3, update: 0.9, candidate: 0.85,
+                resetMeaning: '첫 입력, 이전 기억 없음',
+                updateMeaning: '새 정보 90% 반영',
+                candidateMeaning: '주어 정보 생성',
+                memory: ['철수(주어)'],
+                calc: ['h̃ = tanh("철수") → 0.85', 'h = (1-0.9)×0 + 0.9×0.85 = 0.77'],
+                calcMeaning: '📊 h=0.77: 주어 "철수"를 77% 강도로 기억! (새 정보 90% 반영)',
+                desc: '첫 단어! GRU는 업데이트 게이트를 높여 "철수"를 새 기억으로 저장합니다. 이전 기억이 없으니 리셋 게이트는 중요하지 않아요.'
+            },
+            {
+                word: '어제',
+                reset: 0.7, update: 0.3, candidate: 0.4,
+                resetMeaning: '철수 기억 70% 참고',
+                updateMeaning: '기존 유지, 약간만 추가',
+                candidateMeaning: '시간 정보 생성',
+                memory: ['철수(주어)', '어제(시간-약함)'],
+                calc: ['h̃ = tanh("어제") → 0.4', 'h = (1-0.3)×0.77 + 0.3×0.4 = 0.66'],
+                calcMeaning: '📊 h=0.66: 기존 기억 70% 유지 + 새 정보 30%만 추가 → 균형 유지',
+                desc: '"어제"는 부가 정보. 업데이트 게이트가 낮아 기존 "철수" 정보를 많이 유지하고, "어제"는 약하게 추가합니다.'
+            },
+            {
+                word: '도서관에서',
+                reset: 0.6, update: 0.4, candidate: 0.5,
+                resetMeaning: '이전 기억 60% 참고',
+                updateMeaning: '기존:새로운 = 6:4',
+                candidateMeaning: '장소 정보 생성',
+                memory: ['철수(주어)', '도서관(장소)'],
+                calc: ['h̃ = tanh("도서관") → 0.5', 'h = (1-0.4)×0.66 + 0.4×0.5 = 0.60'],
+                calcMeaning: '📊 h=0.60: 배경 정보 추가로 살짝 감소 (핵심은 여전히 "철수")',
+                desc: '"도서관에서"는 배경 정보. GRU는 적당한 비율로 장소 정보를 추가하면서 주어 정보는 유지합니다.'
+            },
+            {
+                word: '수학',
+                reset: 0.4, update: 0.8, candidate: 0.9,
+                resetMeaning: '배경 일부 리셋',
+                updateMeaning: '새 정보 80% 반영!',
+                candidateMeaning: '과목 정보 중요!',
+                memory: ['철수(주어)', '수학(과목-강함)'],
+                calc: ['h̃ = tanh("수학") → 0.9', 'h = (1-0.8)×0.60 + 0.8×0.9 = 0.84'],
+                calcMeaning: '📊 h=0.84: 중요 정보 "수학" 추가로 기억 급상승! (80% 새 정보 반영)',
+                desc: '"수학"은 핵심 정보! 업데이트 게이트가 높아져 강하게 기억합니다. 리셋 게이트가 낮아 불필요한 배경 정보는 줄입니다.'
+            },
+            {
+                word: '책을',
+                reset: 0.5, update: 0.7, candidate: 0.8,
+                resetMeaning: '수학 정보 참고',
+                updateMeaning: '"수학+책" 연결',
+                candidateMeaning: '목적어 완성',
+                memory: ['철수(주어)', '수학 책(목적어)'],
+                calc: ['h̃ = tanh("책") → 0.8', 'h = (1-0.7)×0.84 + 0.7×0.8 = 0.81'],
+                calcMeaning: '📊 h=0.81: "수학"+"책" 연결 → "수학 책" 목적어 형성',
+                desc: '"책을"이 나와 "수학"과 연결됩니다. GRU는 두 정보를 자연스럽게 합쳐 "수학 책"을 기억합니다.'
+            },
+            {
+                word: '빌렸다',
+                reset: 0.2, update: 0.95, candidate: 0.95,
+                resetMeaning: '핵심 정보만 참고',
+                updateMeaning: '최종 정보 강하게!',
+                candidateMeaning: '문장 완성!',
+                memory: ['철수(주어)', '수학 책(목적어)', '빌렸다(동사)', '✅ 문장 이해 완료!'],
+                calc: ['h̃ = tanh("빌렸다") → 0.95', 'h = (1-0.95)×0.81 + 0.95×0.95 = 0.94'],
+                calcMeaning: '📊 h=0.94: 최고 수준! 95% 새 정보 반영 → "철수가 수학책을 빌렸다" 완벽 이해!',
+                desc: '마지막 단어 "빌렸다"! 업데이트 게이트가 최대로 열려 동사 정보를 강하게 반영합니다. GRU는 "철수가 수학 책을 빌렸다"를 이해했습니다!'
+            }
+        ];
+
+        function startGruExample() {
+            if (gruStep >= gruData.length) {
+                resetGruExample();
+                return;
+            }
+            showGruStep(gruStep);
+            gruStep++;
+        }
+
+        function showGruStep(idx) {
+            if (idx < 0 || idx >= gruData.length) return;
+
+            if (gruAutoPlaying) {
+                gruAutoPlaying = false;
+                document.getElementById('gru-auto-btn').textContent = '⏩ 자동 재생';
+            }
+
+            const data = gruData[idx];
+
+            document.querySelectorAll('#gru-sentence .word').forEach((w, i) => {
+                w.classList.remove('current', 'processed', 'gru');
+                if (i < idx) w.classList.add('processed');
+                if (i === idx) {
+                    w.classList.add('current');
+                    w.classList.add('gru');
+                }
+            });
+
+            document.getElementById('gru-explanation').style.display = 'block';
+            document.getElementById('gru-step-num').textContent = idx + 1;
+            document.getElementById('gru-step-title').textContent = `현재 단어: ${data.word}`;
+            document.getElementById('gru-step-desc').textContent = data.desc;
+
+            document.getElementById('gru-reset').textContent = data.reset.toFixed(1);
+            document.getElementById('gru-update').textContent = data.update.toFixed(1);
+            document.getElementById('gru-candidate').textContent = data.candidate.toFixed(2);
+
+            document.getElementById('gru-reset-meaning').textContent = data.resetMeaning;
+            document.getElementById('gru-update-meaning').textContent = data.updateMeaning;
+            document.getElementById('gru-candidate-meaning').textContent = data.candidateMeaning;
+
+            document.getElementById('gru-memory').innerHTML =
+                data.memory.map(m => `<span class="memory-item">${m}</span>`).join('');
+            // 계산 과정 업데이트 (2단계: 후보은닉 → 최종은닉)
+            const gruCalcColors = ['118,200,147', '240,147,251'];
+            document.getElementById('gru-calc').innerHTML =
+                data.calc.map((c, i) => `<span class="memory-item" style="background: rgba(${gruCalcColors[i]},0.3);">${c}</span>`).join('');
+
+            // 계산 의미 표시
+            document.getElementById('gru-calc-meaning').textContent = data.calcMeaning;
+
+            document.getElementById('gru-progress-text').textContent = `${idx + 1}/${gruData.length} 단계`;
+
+            gruStep = idx + 1;
+        }
+
+        function resetGruExample() {
+            gruStep = 0;
+            gruAutoPlaying = false;
+            document.querySelectorAll('#gru-sentence .word').forEach(w => {
+                w.classList.remove('current', 'processed', 'gru');
+            });
+            document.getElementById('gru-explanation').style.display = 'none';
+            document.getElementById('gru-progress-text').textContent = '';
+            document.getElementById('gru-auto-btn').disabled = false;
+            document.getElementById('gru-auto-btn').textContent = '⏩ 자동 재생';
+        }
+
+        let gruAutoPlaying = false;
+        function autoPlayGru() {
+            if (gruAutoPlaying) {
+                gruAutoPlaying = false;
+                document.getElementById('gru-auto-btn').textContent = '⏩ 자동 재생';
+                return;
+            }
+
+            resetGruExample();
+            gruAutoPlaying = true;
+            document.getElementById('gru-auto-btn').textContent = '⏸️ 일시정지';
+
+            function playNextStep() {
+                if (!gruAutoPlaying || gruStep >= gruData.length) {
+                    gruAutoPlaying = false;
+                    document.getElementById('gru-auto-btn').textContent = '⏩ 자동 재생';
+                    if (gruStep >= gruData.length) {
+                        document.getElementById('gru-progress-text').textContent = '✅ 완료! (6/6 단계)';
+                    }
+                    return;
+                }
+
+                document.getElementById('gru-progress-text').textContent = `${gruStep + 1}/${gruData.length} 단계 진행 중...`;
+                startGruExample();
+                setTimeout(playNextStep, 2000);
+            }
+
+            playNextStep();
+        }
+    </script>
+</body>
+</html>

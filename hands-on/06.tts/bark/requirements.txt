@@ -1,0 +1,31 @@
+# Bark TTS Requirements
+# For GPU: Install PyTorch with CUDA 12.1+ before running pip install -r requirements.txt
+# See: https://github.com/cna-bootcamp/aistudy/blob/main/agentic-ai/reference/install-pytorch.md
+
+# Core deep learning framework (install separately with CUDA support)
+# torch>=2.1.0  -- install via pytorch.org, not here
+
+# Hugging Face Transformers (Bark model)
+transformers>=4.31.0
+
+# Hugging Face Hub (model downloading)
+huggingface-hub>=0.16.0
+
+# Accelerate for optimized inference
+accelerate>=0.20.0
+
+# Audio file processing
+scipy>=1.10.0
+
+# Numerical computing
+numpy>=1.24.0
+
+# Data processing
+pandas>=2.0.0
+
+# Progress bar
+tqdm>=4.65.0
+
+# Translation (OpenAI API)
+openai>=1.0.0
+python-dotenv>=1.0.0

@@ -1,0 +1,20 @@
+# LangChain core framework (Runnable, prompts, output parsers)
+langchain-core>=0.3.0
+
+# Groq LPU chat model integration (ChatGroq, openai/gpt-oss-120b)
+langchain-groq>=0.2.0
+
+# OpenAI integration (query embeddings: text-embedding-3-small)
+langchain-openai>=0.2.0
+
+# ChromaDB integration for LangChain (load shared vector store)
+langchain-chroma>=0.1.4
+
+# ChromaDB vector database (local persistence backend)
+chromadb>=0.5.0
+
+# Structured output schemas for Self-RAG reflection tokens
+pydantic>=2.0.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

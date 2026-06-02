@@ -1,0 +1,17 @@
+# LangChain core primitives (ChatPromptTemplate, StrOutputParser, Runnable pipe)
+langchain-core>=0.3.0
+
+# Chroma vector store integration (load the shared persisted DB, no re-indexing)
+langchain-chroma>=0.1.4
+
+# OpenAI integration (query embedding only: text-embedding-3-small)
+langchain-openai>=0.2.0
+
+# Groq LPU chat model integration (LLM: openai/gpt-oss-120b)
+langchain-groq>=0.2.0
+
+# Chroma vector database engine (local persistence backend)
+chromadb>=0.5.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

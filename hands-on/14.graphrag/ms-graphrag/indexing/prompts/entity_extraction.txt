@@ -1,0 +1,42 @@
+-목표-
+주어진 텍스트에서 모든 엔티티와 그들 사이의 관계를 추출하세요.
+
+-단계-
+1. 모든 엔티티를 식별하세요. 각 엔티티에 대해:
+- entity_name: 엔티티 이름 (대문자로)
+- entity_type: 다음 유형 중 하나: [{entity_types}]
+- entity_description: 엔티티의 속성과 활동에 대한 종합적인 설명
+
+2. 식별된 엔티티들 사이의 모든 관계를 추출하세요.
+각 관계에 대해:
+- source_entity: 관계의 출발 엔티티 이름
+- target_entity: 관계의 도착 엔티티 이름
+- relationship_description: 두 엔티티가 어떻게 연결되어 있는지 설명
+- relationship_strength: 관계의 강도를 1-10 사이의 숫자로 표현
+
+3. 모든 출력은 한국어로 작성하세요.
+
+-출력 형식-
+각 엔티티와 관계를 다음 형식으로 출력하세요:
+
+("entity"{{tuple_delimiter}}<entity_name>{{tuple_delimiter}}<entity_type>{{tuple_delimiter}}<entity_description>)
+
+("relationship"{{tuple_delimiter}}<source_entity>{{tuple_delimiter}}<target_entity>{{tuple_delimiter}}<relationship_description>{{tuple_delimiter}}<relationship_strength>)
+
+-예시-
+텍스트: "LangChain은 대규모 언어 모델을 활용한 애플리케이션 개발 프레임워크이다.
+OpenAI의 GPT 모델과 연동하여 다양한 AI 에이전트를 구축할 수 있다."
+
+출력:
+("entity"{{tuple_delimiter}}LANGCHAIN{{tuple_delimiter}}프레임워크{{tuple_delimiter}}대규모 언어 모델을 활용한 애플리케이션 개발을 위한 프레임워크)
+("entity"{{tuple_delimiter}}OPENAI{{tuple_delimiter}}조직{{tuple_delimiter}}GPT 모델을 개발한 AI 연구 기업)
+("entity"{{tuple_delimiter}}GPT{{tuple_delimiter}}기술{{tuple_delimiter}}OpenAI에서 개발한 대규모 언어 모델)
+("entity"{{tuple_delimiter}}AI 에이전트{{tuple_delimiter}}기술{{tuple_delimiter}}자율적으로 작업을 수행하는 인공지능 시스템)
+("relationship"{{tuple_delimiter}}LANGCHAIN{{tuple_delimiter}}GPT{{tuple_delimiter}}LangChain은 GPT 모델과 연동하여 애플리케이션을 개발함{{tuple_delimiter}}9)
+("relationship"{{tuple_delimiter}}OPENAI{{tuple_delimiter}}GPT{{tuple_delimiter}}OpenAI가 GPT 모델을 개발함{{tuple_delimiter}}10)
+("relationship"{{tuple_delimiter}}LANGCHAIN{{tuple_delimiter}}AI 에이전트{{tuple_delimiter}}LangChain을 사용하여 AI 에이전트를 구축할 수 있음{{tuple_delimiter}}8)
+
+-실제 텍스트-
+{input_text}
+
+위 텍스트에서 엔티티와 관계를 추출하세요.

@@ -1,0 +1,23 @@
+# GraphRAG 프레임워크 (KG 추출 + 벡터 임베딩 통합, NetworkX+파일 저장)
+lightrag-hku>=1.4.0
+
+# 경량 벡터 DB (LightRAG 내장 + 예제코드 전용 인덱스)
+nano-vectordb>=0.0.4.3
+
+# Groq LPU LLM (OpenAI 호환 클라이언트, openai_complete_if_cache가 사용)
+openai>=1.50.0
+
+# Ollama 임베딩 클라이언트 (qwen3-embedding, ollama_embed가 사용)
+ollama>=0.3.0
+
+# 토큰 기반 청킹 (LightRAG 내부 사용)
+tiktoken>=0.7.0
+
+# 수치 연산 (임베딩 벡터, nano-vectordb 레코드)
+numpy>=1.26.0
+
+# HTTP 클라이언트 (Ollama 연결 점검)
+httpx>=0.27.0
+
+# 환경변수 관리 (.env 로드)
+python-dotenv>=1.0.0

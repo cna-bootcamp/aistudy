@@ -1,0 +1,31 @@
+- generic [ref=e2]:
+  - region "Skip to main content":
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#__docusaurus_skipToContent_fallback"
+  - navigation "Main" [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - button "Toggle navigation bar" [ref=e7] [cursor=pointer]:
+          - img [ref=e8]
+        - link "Langflow" [ref=e10] [cursor=pointer]:
+          - /url: /
+          - img "Langflow" [ref=e12]
+      - button "Search (Meta+k)" [ref=e14] [cursor=pointer]:
+        - generic [ref=e15]:
+          - img [ref=e16]
+          - generic [ref=e19]: Search
+  - main [ref=e21]:
+    - generic [ref=e23]:
+      - heading "Page Not Found" [level=1] [ref=e24]
+      - paragraph [ref=e25]: We could not find what you were looking for.
+      - paragraph [ref=e26]: Please contact the owner of the site that linked you to the original URL and let them know their link is broken.
+  - contentinfo [ref=e27]:
+    - list [ref=e31]:
+      - listitem [ref=e32]:
+        - generic [ref=e33]:
+          - generic [ref=e34]: © 2026 Langflow
+          - generic [ref=e35]:
+            - text: ·
+            - link "Manage Privacy Choices" [ref=e36] [cursor=pointer]:
+              - /url: "#"
+  - img "Search" [ref=e39] [cursor=pointer]

@@ -1,0 +1,6 @@
+torch
+torchvision
+torchaudio
+transformers>=4.54.0
+accelerate
+sentencepiece

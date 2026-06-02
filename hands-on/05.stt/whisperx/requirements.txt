@@ -1,0 +1,26 @@
+# ============================================================
+# WhisperX STT + Speaker Diarization dependencies
+# ============================================================
+#
+# STEP 1 — Install PyTorch with CUDA 12.1+ BEFORE this file
+#   (GPU)  pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+#   (CPU)  pip install torch torchaudio
+#
+# STEP 2 — Install remaining dependencies
+#   pip install -r requirements.txt
+#
+# NOTE: torchcodec is NOT used (avoids PyTorch version conflicts)
+# ============================================================
+
+# WhisperX: fast Whisper transcription + word-level alignment + pyannote diarization
+# Pinned to <3.8.5: versions 3.8.5+ introduce torchcodec which conflicts with PyTorch
+whisperx<=3.8.4
+
+# Speaker diarization backend (pulled transitively by whisperx; listed for clarity)
+pyannote.audio>=3.1.0
+
+# Data processing for result_chunks.csv
+pandas>=2.0.0
+
+# Environment variable loading (.env support)
+python-dotenv>=1.0.0

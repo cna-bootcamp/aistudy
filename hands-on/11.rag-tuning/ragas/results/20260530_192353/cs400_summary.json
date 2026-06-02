@@ -1,0 +1,14 @@
+{
+  "chunk_size": 400,
+  "chunk_overlap": 80,
+  "num_chunks": 521,
+  "scores": {
+    "llm_context_precision_with_reference": 0.8642676767408595,
+    "context_recall": 0.7878787878787878,
+    "context_entity_recall": 0.5331529570638612,
+    "faithfulness": 0.8254132231404959,
+    "answer_relevancy": 0.34145219964810986,
+    "factual_correctness": 0.6200000000000001
+  },
+  "selection_score": 0.7284331405611696
+}

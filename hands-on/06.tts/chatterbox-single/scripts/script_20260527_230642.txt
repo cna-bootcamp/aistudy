@@ -1,0 +1,14 @@
+(calm_clear|exaggeration=0.35|cfg_weight=0.65) 난장이가 쏘아 올린 작은 공
+(calm_clear|exaggeration=0.35|cfg_weight=0.65) 사람들은 아버지를 난장이라고 불렀다. 사람들은 옳게 보았다. 아버지는 난장이였다. 불행하게도 사람들은 아버지를 보는 것 하나만 옳았다. 그 밖의 것들은 하나도 옳지 않았다.
+(calm_clear|exaggeration=0.35|cfg_weight=0.65) 나는 아버지·어머니·영호·영희, 그리고 나를 포함한 다섯 식구의 모든 것을 걸고 그들이 옳지 않다는 것을 언제나 말할 수 있다. 나의 모든 것이라는 표현에는 다섯 식구의 목숨이 포함되어 있다.
+(calm_clear|exaggeration=0.35|cfg_weight=0.65) 천국에 사는 사람들은 지옥을 생각할 필요가 없다. 그러나 우리 다섯 식구는 지옥에 살면서 천국을 생각했다. 난 하루라도 천국을 생각해 보지 않은 날이 없다. 하루하루의 생활이 지겨웠기 때문이다.
+(calm_clear|exaggeration=0.35|cfg_weight=0.65) 우리의 생활은 전쟁과 같았다. 우리는 그 전쟁에서 날마다 지기만 했다. 그런데도 어머니는 모든 것을 잘 참았다. 그러나 그 날 아침 일만은 참기 어려웠던 것 같다.
+(calm_clear|exaggeration=0.35|cfg_weight=0.65) “통장이 이걸 가져왔어요.”
+(calm_clear|exaggeration=0.35|cfg_weight=0.70) 내가 말했다. 어머니는 조각마루 끝에 앉아 아침식사를 하고 있었다.
+(calm_clear|exaggeration=0.35|cfg_weight=0.70) “그게 뭐냐?”
+(calm_clear|exaggeration=0.35|cfg_weight=0.70) “철거 계고장이요.”
+(calm_clear|exaggeration=0.35|cfg_weight=0.70) “기어코 왔구나.”
+(calm_clear|exaggeration=0.35|cfg_weight=0.70) 어머니가 말했다.
+(calm_clear|exaggeration=0.35|cfg_weight=0.70) “그러니까 집을 헐라는 거지? 우리가 꼭 받아야 할 것 중의 하나가 이제 나온 셈이구나!”
+(calm_clear|exaggeration=0.35|cfg_weight=0.70) 어머니는 식사를 중단했다. 나는 어머니의 밥상을 내려다보았다. 보리밥에 까만 된장, 그리고 시든 고추 두어 개와 졸인 감자.
+(calm_clear|exaggeration=0.35|cfg_weight=0.70) 나는 어머니를 위해 철거 계고장을 천천히 읽었다.

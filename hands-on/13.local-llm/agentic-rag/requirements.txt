@@ -1,0 +1,35 @@
+# LangGraph: StateGraph-based agent workflow orchestration
+langgraph>=0.2.0
+
+# LangChain core framework (Runnable, prompts, output parsers, Document)
+langchain-core>=0.3.0
+
+# Ollama chat + embedding integration (ChatOllama runs gemma3:12b locally)
+langchain-ollama>=0.2.0
+
+# OpenAI integration (query embeddings only: text-embedding-3-small, 1536-dim)
+langchain-openai>=0.2.0
+
+# ChromaDB integration for LangChain (load shared patent-law vector store)
+langchain-chroma>=0.1.4
+
+# ChromaDB vector database (local persistence backend)
+chromadb>=0.5.0
+
+# LangChain community tools/utilities (DuckDuckGoSearchAPIWrapper)
+langchain-community>=0.3.0
+
+# DuckDuckGo web search backend (legacy package name, still imported by wrapper)
+duckduckgo-search>=6.0.0
+
+# DuckDuckGo search engine (new package; required after duckduckgo-search rename)
+ddgs>=6.0.0
+
+# YouTube search via page scraping (no API key required, replaces Data API v3)
+scrapetube>=2.5.1
+
+# Structured output schemas for routing / reflection tokens
+pydantic>=2.0.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

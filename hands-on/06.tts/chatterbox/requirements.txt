@@ -1,0 +1,32 @@
+# Resemble AI Chatterbox Multilingual TTS Requirements
+#
+# IMPORTANT: Create venv with Python 3.12 and system-site-packages BEFORE running pip install
+#   Windows: py -3.12 -m venv venv --system-site-packages
+#   macOS/Linux: python3.12 -m venv venv --system-site-packages
+#
+# PyTorch must be installed system-wide first (CUDA build):
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+# See: https://github.com/cna-bootcamp/aistudy/blob/main/agentic-ai/reference/install-pytorch.md
+
+# Chatterbox TTS by Resemble AI (includes multilingual model — ChatterboxMultilingualTTS)
+chatterbox-tts
+
+# ffmpeg is required for non-WAV reference voice conversion (M4A, MP3, AAC, OGG, etc.)
+# ffmpeg is a system-level tool — install separately, NOT via pip:
+#   Windows: winget install ffmpeg
+#   macOS:   brew install ffmpeg
+#   Linux:   sudo apt install ffmpeg
+# See: https://ffmpeg.org/download.html
+
+# Audio file writing for 16-bit PCM WAV output
+scipy>=1.10.0
+
+# Numerical array operations — pin <2.0 to prevent pip from upgrading to numpy 2.x
+# (numpy 2.x can break torch CUDA detection when installed in venv alongside system torch)
+numpy>=1.23.0,<2.0
+
+# CSV data processing
+pandas>=2.0.0
+
+# Progress bar during generation
+tqdm>=4.65.0

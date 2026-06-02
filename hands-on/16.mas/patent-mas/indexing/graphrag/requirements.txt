@@ -1,0 +1,27 @@
+# Microsoft GraphRAG 3.x (graphrag CLI + graphrag.api, KG indexing pipeline)
+graphrag>=3.0,<4.0
+
+# LanceDB vector store (entity/text-unit/community embeddings + index validation)
+lancedb>=0.13.0
+
+# Data processing (read/write Parquet, validation)
+pandas>=2.0.0
+
+# OpenAI client (text-embedding-3-small embeddings via cloud API)
+openai>=1.40.0
+
+# PDF loader for 특허법.pdf (LangChain PyPDFLoader)
+langchain-community>=0.3.0
+pypdf>=4.0.0
+
+# Law-structure-aware chunking (RecursiveCharacterTextSplitter)
+langchain-text-splitters>=0.3.0
+
+# Progress bar (indexing/embedding progress)
+tqdm>=4.65.0
+
+# settings.yaml parsing
+pyyaml>=6.0
+
+# .env environment variables (GROQ_API_KEY, OPENAI_API_KEY)
+python-dotenv>=1.0.0

@@ -1,0 +1,10 @@
+OpenAI Whisper STT Result
+Generated At: 2026-05-22 14:12:29
+Model: whisper-1
+Audio File: phone-with-wife.mp3
+
+## 한국어 전사
+내려오세요 차 여기 있어요 지하철 내려왔어요 어디? 나 안보이는데? 내려왔는데? GFC 맞잖아 어 엘리베이터 타고 내려왔어요? 여기 에스칼레이터 앞에 있는데 나 에스칼레이터? 엘리베이터 타고 내려왔지 엘리베이터면 어디 있는거야? 어허허허 주차장 앞에 있어요? 화장실 앞에 있어요? 주차장 화장실 둘 다 안보이구요 뭐가 보여요 그럼? 여기 I4가 보이네요 I4 I4구역 아 주차장에 가있어요? 어 아하 알았어요 저기 나오는게 당신이네 그러네
+
+## English Translation
+Come down. The car is here. The subway came down. Where? I can't see it. It's coming down. It's GFC. Did you get off the elevator? I'm in front of the escalator. Escalator? The elevator came down. Where is the elevator? Is it in front of the parking lot or in front of the bathroom? I can't see the bathroom. What do you see? I can see I-4 here. I-4 area Are you in the parking lot? Yeah. Okay. You're the one coming out there. That's right.

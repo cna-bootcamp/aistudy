@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRU 셀 구조</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+            background: #f0f0f0;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 950px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            color: #4CAF50;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .diagram-area {
+            background: #fafafa;
+            border-radius: 15px;
+            padding: 10px;
+        }
+
+        .info-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-top: 15px;
+        }
+
+        .info-box h4 {
+            color: #2E7D32;
+            margin-bottom: 5px;
+        }
+
+        .info-box p {
+            color: #444;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #ccc;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8em;
+            color: #555;
+        }
+
+        .legend-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.75em;
+        }
+
+        .legend-line {
+            width: 25px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .clickable {
+            cursor: pointer;
+            transition: filter 0.2s, transform 0.2s;
+        }
+
+        .clickable:hover {
+            filter: brightness(1.1);
+            transform: scale(1.03);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧠 GRU 셀 구조</h1>
+            <p>Gated Recurrent Unit - 간소화된 순환 신경망</p>
+        </div>
+
+        <div class="diagram-area">
+            <svg viewBox="0 0 900 580" style="width:100%; height:auto;">
+                <defs>
+                    <marker id="arrow-black" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#555"/>
+                    </marker>
+                    <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#4CAF50"/>
+                    </marker>
+                    <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#FF9800"/>
+                    </marker>
+                    <marker id="arrow-pink" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#E91E63"/>
+                    </marker>
+                    <marker id="arrow-purple" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+                        <polygon points="0 0, 8 3, 0 6" fill="#7E57C2"/>
+                    </marker>
+                </defs>
+
+                <!-- ========== 은닉상태 업데이트 라벨 ========== -->
+                <text x="450" y="30" text-anchor="middle" font-size="14" fill="#FF9800" font-weight="bold">은닉상태 업데이트</text>
+
+                <!-- ④ 번호 -->
+                <circle cx="520" cy="55" r="14" fill="white" stroke="#FF9800" stroke-width="2"/>
+                <text x="520" y="60" text-anchor="middle" font-size="12" fill="#FF9800" font-weight="bold">4</text>
+
+                <!-- ========== h(t-1) 이전 은닉상태 (좌측 상단) ========== -->
+                <g class="clickable" onclick="showInfo('h_prev_top')">
+                    <rect x="50" y="70" width="70" height="45" rx="8" fill="#4CAF50"/>
+                    <text x="85" y="98" text-anchor="middle" fill="white" font-size="13" font-weight="bold">h(t-1)</text>
+                </g>
+                <text x="85" y="135" text-anchor="middle" font-size="10" fill="#4CAF50">이전 은닉상태</text>
+
+                <!-- h(t-1) → 첫번째 곱셈 (녹색) -->
+                <path d="M 120 92 L 165 92" stroke="#4CAF50" stroke-width="3" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- 첫번째 곱셈 × (1-z 적용) -->
+                <g class="clickable" onclick="showInfo('mult_1z')">
+                    <circle cx="190" cy="92" r="16" fill="white" stroke="#E91E63" stroke-width="3"/>
+                    <text x="190" y="98" text-anchor="middle" font-size="16" fill="#E91E63" font-weight="bold">×</text>
+                </g>
+
+                <!-- 1-z 박스 -->
+                <g class="clickable" onclick="showInfo('one_minus_z')">
+                    <rect x="230" y="140" width="50" height="32" rx="6" fill="#4CAF50"/>
+                    <text x="255" y="161" text-anchor="middle" fill="white" font-size="13" font-weight="bold">1-z</text>
+                </g>
+                <!-- 1-z → 곱셈 -->
+                <path d="M 255 140 L 200 108" stroke="#FF9800" stroke-width="2" stroke-dasharray="5,3" fill="none" marker-end="url(#arrow-orange)"/>
+
+                <!-- 첫번째 곱셈 → 덧셈 -->
+                <path d="M 206 92 L 600 92" stroke="#4CAF50" stroke-width="3" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- r × h(t-1) 라벨 -->
+                <text x="300" y="80" text-anchor="middle" font-size="10" fill="#FF9800" font-style="italic">r × h(t-1)</text>
+
+                <!-- ★★★ 두번째 곱셈 × (z와 h̃가 만나는 곳) ★★★ -->
+                <g class="clickable" onclick="showInfo('mult_z')">
+                    <circle cx="520" cy="92" r="18" fill="white" stroke="#FF9800" stroke-width="3"/>
+                    <text x="520" y="98" text-anchor="middle" font-size="18" fill="#FF9800" font-weight="bold">×</text>
+                </g>
+
+                <!-- 덧셈 + -->
+                <g class="clickable" onclick="showInfo('add_op')">
+                    <circle cx="640" cy="92" r="20" fill="#4CAF50"/>
+                    <text x="640" y="100" text-anchor="middle" font-size="22" fill="white" font-weight="bold">+</text>
+                </g>
+
+                <!-- 최종 출력 라벨 -->
+                <text x="700" y="75" text-anchor="middle" font-size="11" fill="#666">최종 출력</text>
+
+                <!-- ⑤ 번호 -->
+                <circle cx="700" cy="92" r="14" fill="white" stroke="#4CAF50" stroke-width="2"/>
+                <text x="700" y="97" text-anchor="middle" font-size="12" fill="#4CAF50" font-weight="bold">5</text>
+
+                <!-- 덧셈 → h(t) -->
+                <path d="M 660 92 L 755 92" stroke="#4CAF50" stroke-width="3" fill="none" marker-end="url(#arrow-green)"/>
+
+                <!-- 다음 타임스텝 라벨 -->
+                <text x="820" y="55" text-anchor="middle" font-size="10" fill="#4CAF50">다음 타임스텝:</text>
+                <text x="820" y="68" text-anchor="middle" font-size="10" fill="#4CAF50">h(t) → h(t-1)</text>
+
+                <!-- h(t) 출력 (점선 박스) -->
+                <g class="clickable" onclick="showInfo('h_t')">
+                    <rect x="770" y="72" width="70" height="45" rx="8" fill="#FF9800" stroke="#E91E63" stroke-width="2" stroke-dasharray="5,3"/>
+                    <text x="805" y="100" text-anchor="middle" fill="white" font-size="14" font-weight="bold">h(t)</text>
+                </g>
+                <text x="805" y="135" text-anchor="middle" font-size="10" fill="#FF9800">새 은닉상태</text>
+
+                <!-- ========== GRU 셀 내부 (타원) ========== -->
+                <ellipse cx="400" cy="380" rx="300" ry="170" fill="#f5f5f5" stroke="#bbb" stroke-width="2"/>
+
+                <!-- ========== 3개의 게이트 (위치 조정) ========== -->
+
+                <!-- ① 리셋 게이트 (Reset) - y=280 -->
+                <g class="clickable" onclick="showInfo('reset')">
+                    <rect x="180" y="280" width="50" height="40" rx="6" fill="#C62828"/>
+                    <text x="205" y="306" text-anchor="middle" fill="white" font-size="16" font-weight="bold">σ</text>
+                </g>
+                <!-- W_r -->
+                <g class="clickable" onclick="showInfo('w_r')">
+                    <circle cx="205" cy="350" r="22" fill="white" stroke="#E57373" stroke-width="2"/>
+                    <text x="205" y="355" text-anchor="middle" font-size="11" fill="#C62828" font-weight="bold">W_r</text>
+                </g>
+                <!-- ① 번호 -->
+                <circle cx="205" cy="395" r="14" fill="white" stroke="#C62828" stroke-width="2"/>
+                <text x="205" y="400" text-anchor="middle" font-size="12" fill="#C62828" font-weight="bold">1</text>
+                <text x="205" y="425" text-anchor="middle" font-size="10" fill="#C62828" font-weight="bold">뭘 잊을까?</text>
+
+                <!-- 리셋 → 상단 곱셈 -->
+                <path d="M 205 280 L 190 115" stroke="#E91E63" stroke-width="2" fill="none" marker-end="url(#arrow-pink)"/>
+
+                <!-- ② 업데이트 게이트 (Update) - y=280, σ 박스 -->
+                <g class="clickable" onclick="showInfo('update')">
+                    <rect x="325" y="280" width="50" height="40" rx="6" fill="#FF9800" stroke="#E65100" stroke-width="2"/>
+                    <text x="350" y="306" text-anchor="middle" fill="white" font-size="16" font-weight="bold">σ</text>
+                </g>
+                <!-- W_z -->
+                <g class="clickable" onclick="showInfo('w_z')">
+                    <circle cx="350" cy="350" r="22" fill="white" stroke="#FF9800" stroke-width="2"/>
+                    <text x="350" y="355" text-anchor="middle" font-size="11" fill="#E65100" font-weight="bold">W_z</text>
+                </g>
+                <!-- ② 번호 -->
+                <circle cx="350" cy="395" r="14" fill="white" stroke="#FF9800" stroke-width="2"/>
+                <text x="350" y="400" text-anchor="middle" font-size="12" fill="#FF9800" font-weight="bold">2</text>
+                <text x="350" y="425" text-anchor="middle" font-size="10" fill="#E65100" font-weight="bold">얼마나 유지?</text>
+
+                <!-- 업데이트 → 1-z -->
+                <path d="M 340 280 L 270 172" stroke="#FF9800" stroke-width="2" fill="none" marker-end="url(#arrow-orange)"/>
+
+                <!-- ★★★ z 화살표: σ 박스 상단(y=280)에서 출발 → 곱셈(×)으로 ★★★ -->
+                <path d="M 360 280 L 505 108" stroke="#FF9800" stroke-width="3" stroke-dasharray="6,4" fill="none" marker-end="url(#arrow-orange)"/>
+                <!-- z 라벨 -->
+                <text x="450" y="170" text-anchor="middle" font-size="13" fill="#FF9800" font-weight="bold" font-style="italic">z</text>
+
+                <!-- ③ 새 후보 생성 (tanh) - y=280, tanh 박스 -->
+                <g class="clickable" onclick="showInfo('candidate')">
+                    <rect x="480" y="280" width="60" height="40" rx="6" fill="#7E57C2" stroke="#512DA8" stroke-width="2"/>
+                    <text x="510" y="306" text-anchor="middle" fill="white" font-size="14" font-weight="bold">tanh</text>
+                </g>
+                <!-- W_h -->
+                <g class="clickable" onclick="showInfo('w_h')">
+                    <circle cx="510" cy="350" r="22" fill="white" stroke="#7E57C2" stroke-width="2"/>
+                    <text x="510" y="355" text-anchor="middle" font-size="11" fill="#512DA8" font-weight="bold">W_h</text>
+                </g>
+                <!-- ③ 번호 -->
+                <circle cx="510" cy="395" r="14" fill="white" stroke="#7E57C2" stroke-width="2"/>
+                <text x="510" y="400" text-anchor="middle" font-size="12" fill="#7E57C2" font-weight="bold">3</text>
+                <text x="510" y="425" text-anchor="middle" font-size="10" fill="#512DA8" font-weight="bold">새 후보 생성</text>
+
+                <!-- ★★★ h̃ 화살표: tanh 박스 상단(y=280)에서 출발 → 곱셈(×)으로 ★★★ -->
+                <path d="M 510 280 L 520 115" stroke="#7E57C2" stroke-width="3" fill="none" marker-end="url(#arrow-purple)"/>
+                <!-- h̃ 라벨 -->
+                <text x="540" y="200" text-anchor="middle" font-size="13" fill="#7E57C2" font-weight="bold" font-style="italic">h̃</text>
+
+                <!-- ========== 입력 결합 [h(t-1), x(t)] ========== -->
+                <g class="clickable" onclick="showInfo('concat')">
+                    <rect x="300" y="460" width="120" height="35" rx="8" fill="#607D8B"/>
+                    <text x="360" y="483" text-anchor="middle" fill="white" font-size="12" font-weight="bold">[h(t-1), x(t)]</text>
+                </g>
+
+                <!-- 결합 → 각 W로 분기 -->
+                <path d="M 320 460 L 205 375" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+                <path d="M 360 460 L 350 375" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+                <path d="M 400 460 L 510 375" stroke="#555" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ========== x(t) 현재 입력 ========== -->
+                <g class="clickable" onclick="showInfo('x_t')">
+                    <rect x="240" y="510" width="70" height="40" rx="10" fill="#2196F3"/>
+                    <text x="275" y="536" text-anchor="middle" fill="white" font-size="14" font-weight="bold">x(t)</text>
+                </g>
+                <text x="275" y="565" text-anchor="middle" font-size="11" fill="#555">현재 입력</text>
+                <path d="M 290 510 L 330 495" stroke="#2196F3" stroke-width="2" fill="none" marker-end="url(#arrow-black)"/>
+
+                <!-- ========== h(t-1) 이전 은닉상태 (하단) ========== -->
+                <g class="clickable" onclick="showInfo('h_prev')">
+                    <rect x="400" y="510" width="80" height="40" rx="10" fill="#E91E63"/>
+                    <text x="440" y="536" text-anchor="middle" fill="white" font-size="13" font-weight="bold">h(t-1)</text>
+                </g>
+                <text x="440" y="565" text-anchor="middle" font-size="11" fill="#555">이전 은닉상태</text>
+                <path d="M 420 510 L 390 495" stroke="#E91E63" stroke-width="2" fill="none" marker-end="url(#arrow-pink)"/>
+
+                <!-- h(t) 피드백 루프 -->
+                <path d="M 805 117 L 805 580 L 440 580 L 440 555" stroke="#E91E63" stroke-width="2" stroke-dasharray="6,3" fill="none" marker-end="url(#arrow-pink)"/>
+
+            </svg>
+        </div>
+
+        <div class="info-box" id="info-box">
+            <h4>💡 요소를 클릭해보세요</h4>
+            <p>각 게이트(① 리셋, ② 업데이트, ③ 새 후보 생성)와 연산을 클릭하면 상세 설명이 나타납니다.</p>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-num" style="background:#C62828;">1</div>
+                <span>리셋</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:#FF9800;">2</div>
+                <span>업데이트</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:#7E57C2;">3</div>
+                <span>후보생성</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:white; color:#FF9800; border:2px solid #FF9800;">4</div>
+                <span>은닉상태 업데이트</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-num" style="background:white; color:#4CAF50; border:2px solid #4CAF50;">5</div>
+                <span>h(t)생성</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background:#4CAF50;"></div>
+                <span>h 경로</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-line" style="background:#E91E63;"></div>
+                <span>피드백</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showInfo(id) {
+            const data = {
+                'h_prev_top': { title: '🟢 h(t-1) - 이전 은닉상태', desc: '이전 시점에서 전달된 은닉상태입니다. (1-z)와 곱해져 유지될 정보가 결정됩니다.' },
+                'h_t': { title: '🟠 h(t) - 새 은닉상태', desc: '현재 시점의 출력입니다. (1-z)×h(t-1) + z×h̃ 로 계산됩니다. 다음 시점으로 피드백됩니다.' },
+                'reset': { title: '① 리셋 게이트 (σ)', desc: '시그모이드 함수로 0~1 값 출력. 이전 은닉상태에서 뭘 잊을지 결정합니다. 후보 생성 시 과거 정보 반영 비율을 조절합니다.' },
+                'w_r': { title: 'W_r - 리셋 가중치', desc: '리셋 게이트의 학습 가능한 가중치 행렬입니다.' },
+                'update': { title: '② 업데이트 게이트 (σ) → z 출력', desc: '시그모이드 함수로 0~1 값(z) 출력. 이전 상태를 얼마나 유지할지 결정합니다. z가 크면 새 정보 반영↑, (1-z)가 크면 기존 유지↑' },
+                'w_z': { title: 'W_z - 업데이트 가중치', desc: '업데이트 게이트의 학습 가능한 가중치 행렬입니다.' },
+                'candidate': { title: '③ 새 후보 생성 (tanh) → h̃ 출력', desc: 'tanh 함수로 -1~1 값 출력. 리셋된 이전 상태와 현재 입력으로 새로운 후보 은닉상태(h̃)를 생성합니다.' },
+                'w_h': { title: 'W_h - 후보 가중치', desc: '후보 은닉상태 생성을 위한 학습 가능한 가중치 행렬입니다.' },
+                'one_minus_z': { title: '1-z (유지 비율)', desc: '업데이트 게이트의 보수. 이전 은닉상태를 얼마나 유지할지 결정합니다.' },
+                'mult_1z': { title: '× (1-z) 곱셈', desc: 'h(t-1) × (1-z). 이전 상태에서 유지할 정보량을 조절합니다.' },
+                'mult_z': { title: '× 곱셈 (z × h̃)', desc: '②에서 온 z와 ③에서 온 h̃를 곱합니다. 새 후보 상태에서 반영할 정보량을 결정합니다.' },
+                'add_op': { title: '+ 덧셈 (최종 결합)', desc: '(1-z)×h(t-1) + z×h̃ = h(t). 유지할 정보와 새 정보를 결합하여 최종 은닉상태를 생성합니다.' },
+                'concat': { title: '[h(t-1), x(t)] 결합', desc: '이전 은닉상태와 현재 입력을 연결(concatenate)하여 모든 게이트에 입력합니다.' },
+                'x_t': { title: 'x(t) - 현재 입력', desc: '현재 시점의 입력 데이터입니다.' },
+                'h_prev': { title: 'h(t-1) - 이전 은닉상태', desc: '이전 시점의 출력입니다. 현재 입력과 결합되어 모든 게이트에 전달됩니다.' }
+            };
+            
+            const box = document.getElementById('info-box');
+            if (data[id]) {
+                box.innerHTML = `<h4>${data[id].title}</h4><p>${data[id].desc}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

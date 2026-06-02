@@ -1,0 +1,29 @@
+# ============================================================
+# Whisper + pyannote Speaker Diarization
+# ============================================================
+
+# ── PyTorch (CUDA 12.1+) ──────────────────────────────────
+# GPU environment: install PyTorch with CUDA 12.1 support
+#   pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu121
+# CPU environment: plain pip install torch is sufficient
+torch>=2.1.0
+
+# ── Whisper (HuggingFace Transformers) ───────────────────
+transformers>=4.45.0
+accelerate>=0.26.0
+
+# ── Pyannote Speaker Diarization ─────────────────────────
+# Requires HuggingFace account + accepting model license at:
+#   https://huggingface.co/pyannote/speaker-diarization-3.1
+#   https://huggingface.co/pyannote/segmentation-3.0
+pyannote.audio>=3.1.0
+
+# ── Audio loading (torchcodec-free MP3 support) ───────────
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# ── Data output ──────────────────────────────────────────
+pandas>=2.0.0
+
+# ── Environment & utilities ──────────────────────────────
+python-dotenv>=1.0.0

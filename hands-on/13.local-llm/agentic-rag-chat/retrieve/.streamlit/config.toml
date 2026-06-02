@@ -1,0 +1,14 @@
+# Streamlit 설정 (이 디렉터리에서 `streamlit run app.py` 실행 시 자동 적용)
+
+[server]
+# 파일 워처 비활성화: 기본 워처 스레드가 백그라운드에서 torch 등 임포트된 모듈 경로를 폴링하다가
+# torch 커스텀 클래스(torch.classes)와 충돌해 네이티브 크래시(Segmentation fault)를 일으킬 수 있음.
+# 또한 소스 저장 시 스크립트 재실행으로 7GB 모델이 중복 적재되어 VRAM이 고갈되는 것을 막음.
+fileWatcherType = "none"
+
+# 소스 저장 시 자동 재실행 끔 (모델 중복 적재·VRAM 고갈 방지)
+runOnSave = false
+
+[runner]
+# 위젯 조작마다 스크립트 전체가 재실행되더라도 캐시된 모델은 재적재되지 않도록 magic 비활성화(부수효과 최소화)
+magicEnabled = false

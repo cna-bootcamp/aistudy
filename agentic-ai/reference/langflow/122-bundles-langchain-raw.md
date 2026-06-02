@@ -1,0 +1,38 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - region "Skip to main content":
+      - link "Skip to main content" [ref=e3] [cursor=pointer]:
+        - /url: "#__docusaurus_skipToContent_fallback"
+    - navigation "Main" [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - button "Toggle navigation bar" [ref=e7] [cursor=pointer]:
+            - img [ref=e8]
+          - link "Langflow" [ref=e10] [cursor=pointer]:
+            - /url: /
+            - img "Langflow" [ref=e12]
+        - button "Search (Control+k)" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15]:
+            - img [ref=e16]
+            - generic [ref=e19]: Search
+          - generic [ref=e20]:
+            - img [ref=e22]
+            - img [ref=e25]
+    - main [ref=e28]:
+      - generic [ref=e30]:
+        - heading "Page Not Found" [level=1] [ref=e31]
+        - paragraph [ref=e32]: We could not find what you were looking for.
+        - paragraph [ref=e33]: Please contact the owner of the site that linked you to the original URL and let them know their link is broken.
+    - contentinfo [ref=e34]:
+      - list [ref=e38]:
+        - listitem [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]: © 2026 Langflow
+            - generic [ref=e42]:
+              - text: ·
+              - link "Manage Privacy Choices" [ref=e43] [cursor=pointer]:
+                - /url: "#"
+    - img "Search" [ref=e46] [cursor=pointer]
+  - banner "consent_blackbar"
+  - complementary "Open Cookie Preferences Modal" [ref=e47]:
+    - link "Cookie Preferences, opens a dedicated popup modal window" [ref=e48] [cursor=pointer]: Cookie Preferences

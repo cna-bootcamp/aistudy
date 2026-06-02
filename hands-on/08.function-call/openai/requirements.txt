@@ -1,0 +1,11 @@
+# Web chat UI
+streamlit>=1.35.0
+
+# OpenAI Chat Completions client
+openai>=1.40.0
+
+# Environment variable loading from hands-on/.env
+python-dotenv>=1.0.1
+
+# HTTP requests used by the shared external API tools
+requests>=2.31.0

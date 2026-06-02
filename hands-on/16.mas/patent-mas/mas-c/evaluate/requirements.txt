@@ -1,0 +1,38 @@
+# MAS C OFFLINE evaluator dependencies (RAGAS batch) — NOT part of the deployed runtime.
+# Install in a SEPARATE venv from the runtime so the deployed path stays pure gpt-oss-120b.
+#
+# NOTE: ragas + the langchain family are pinned to EXACT versions verified to work together.
+# Unpinned ">=" floors resolve ragas and langchain independently, and current ragas hard-imports a
+# langchain path removed in langchain 1.x ("langchain_community.chat_models.vertexai"), breaking
+# "import ragas". These pins mirror hands-on/11.rag-tuning/ragas (the tested, mutually compatible
+# set); evaluate_ragas.py additionally installs a tiny import shim for that removed path.
+
+# RAGAS evaluation framework (EvaluationDataset, SingleTurnSample, metrics)
+ragas==0.4.3
+
+# LangChain core primitives (ChatPromptTemplate, StrOutputParser, Runnable pipe)
+langchain-core==1.4.0
+
+# LangChain community (vertexai shim target path; transitive ragas dependency)
+langchain-community==0.4.2
+
+# OpenAI integration (retrieval/eval embeddings text-embedding-3-small + RAGAS evaluator gpt-4o-mini)
+langchain-openai==1.2.2
+
+# Groq LPU chat model integration (MAS C draft generation LLM: openai/gpt-oss-120b)
+langchain-groq==1.1.2
+
+# Chroma vector store integration (read-only load of the shared patent_law index = MAS A retrieval proxy)
+langchain-chroma==1.1.0
+
+# Chroma vector database engine (local persistence backend)
+chromadb==1.5.9
+
+# DataFrame handling for score aggregation and CSV export
+pandas>=2.0.0
+
+# Hugging Face datasets (RAGAS EvaluationDataset backend dependency)
+datasets>=2.0.0
+
+# Environment variable management (.env file: OPENAI_API_KEY, GROQ_API_KEY)
+python-dotenv>=1.0.0

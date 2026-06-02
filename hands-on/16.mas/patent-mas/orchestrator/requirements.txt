@@ -1,0 +1,26 @@
+# ── patent-mas / orchestrator (Distributed MAS Orchestrator, upper SAS) dependencies ──
+# All comments in English (project rule). Local AI models are NOT used: the LLM is Groq LPU
+# (cloud) and unit MAS embeddings are OpenAI (cloud). This venv stays intentionally LIGHT:
+# MAS B/C run as subprocess workers in THEIR OWN venvs, so their heavy deps (duckduckgo,
+# youtube, chromadb, graphrag, ...) are NOT installed here.
+
+# LangGraph StateGraph — upper SAS (Scheduler / parallel run_unit / Supervisor / fan-in C),
+# Send API fan-out, operator.add reducer for parallel merge, MemorySaver checkpointer (multi-turn)
+langgraph>=0.2.0
+
+# LangChain core + Groq chat model (intent routing & output validation via
+# with_structured_output(method="json_schema"), answer synthesis)
+langchain-core>=0.3.0
+langchain-groq>=0.2.0
+
+# MCP SDK — Streamable HTTP client to call MAS A's FastMCP server (ask_patent_law tool)
+mcp>=1.2.0
+
+# Structured output schemas for the Scheduler intent decision and Supervisor verdict
+pydantic>=2.0.0
+
+# Streamlit chatbot UI (multi-turn conversation, HITL review panel)
+streamlit>=1.36.0
+
+# .env loading (shared hands-on/.env: GROQ_API_KEY; unit MAS keys consumed by their own workers)
+python-dotenv>=1.0.0

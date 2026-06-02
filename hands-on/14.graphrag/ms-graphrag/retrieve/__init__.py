@@ -1,0 +1,2 @@
+"""Microsoft GraphRAG retrieval example."""
+

@@ -1,0 +1,9 @@
+services:
+  jsx-viewer:
+    image: jsx-viewer
+    build:
+      context: .
+    ports:
+      - "5173"
+    volumes:
+      - ${JSX_FILE}:/app/src/Component.jsx:ro

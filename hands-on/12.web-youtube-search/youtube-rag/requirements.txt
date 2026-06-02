@@ -1,0 +1,23 @@
+# YouTube Data API v3 client (video search with date/duration/view filtering)
+google-api-python-client>=2.100.0
+
+# Transcript fetch backend, used directly (instance API + proxy_config for IP-block bypass)
+youtube-transcript-api>=1.0.0
+
+# LangChain core primitives (Document, ChatPromptTemplate, StrOutputParser, LCEL pipe)
+langchain-core>=0.3.0
+
+# OpenAI integration (embeddings only: text-embedding-3-small)
+langchain-openai>=0.2.0
+
+# Groq LPU chat model integration (LLM: openai/gpt-oss-120b)
+langchain-groq>=0.2.0
+
+# Chroma vector store integration (persist/query transcript chunks)
+langchain-chroma>=0.1.4
+
+# Chroma vector database engine (local persistence backend)
+chromadb>=0.5.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

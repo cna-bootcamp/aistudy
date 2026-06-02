@@ -1,0 +1,569 @@
+app:
+  description: 온라인 쇼핑몰 고객 문의 자동 분류 및 라우팅
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: workflow
+  name: 고객문의 자동분류
+  use_icon_as_answer_icon: true
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/groq:0.0.12@38f75b2f4a3687af7b0947693c7903f5c7d8756f217ea492b8b81de6f16601f6
+    version: null
+kind: app
+version: 0.5.0
+workflow:
+  conversation_variables: []
+  environment_variables:
+  - description: ''
+    id: ec77ba47-3714-443f-8f90-868c5feff1ae
+    name: SLACK_WEBHOOK_PAYMENT
+    selector:
+    - env
+    - SLACK_WEBHOOK_PAYMENT
+    value: https://hooks.slack.com/services/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
+    value_type: string
+  - description: ''
+    id: 828dd4b5-f8ab-45ba-9460-d4cb11ebe43c
+    name: SLACK_WEBHOOK_SHIPPING
+    selector:
+    - env
+    - SLACK_WEBHOOK_SHIPPING
+    value: https://hooks.slack.com/services/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
+    value_type: string
+  - description: ''
+    id: dd6956c8-a0a9-4157-97b4-1a056f4aa060
+    name: SLACK_WEBHOOK_GENERAL
+    selector:
+    - env
+    - SLACK_WEBHOOK_GENERAL
+    value: https://hooks.slack.com/services/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
+    value_type: string
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        attachment_image_file_size_limit: 2
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        file_upload_limit: 50
+        image_file_batch_limit: 10
+        image_file_size_limit: 10
+        single_chunk_attachment_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        sourceType: start
+        targetType: llm
+      id: edge-start-llm
+      source: '1'
+      sourceHandle: source
+      target: '2'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: llm
+        targetType: code
+      id: edge-llm-code
+      source: '2'
+      sourceHandle: source
+      target: '9'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: code
+        targetType: if-else
+      id: edge-code-branch1
+      source: '9'
+      sourceHandle: source
+      target: '3'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: if-else
+        targetType: http-request
+      id: edge-branch1-payment
+      source: '3'
+      sourceHandle: 'true'
+      target: '4'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: if-else
+        targetType: if-else
+      id: edge-branch1-branch2
+      source: '3'
+      sourceHandle: 'false'
+      target: '5'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: if-else
+        targetType: http-request
+      id: edge-branch2-shipping
+      source: '5'
+      sourceHandle: 'true'
+      target: '6'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: if-else
+        targetType: http-request
+      id: edge-branch2-general
+      source: '5'
+      sourceHandle: 'false'
+      target: '7'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: http-request
+        targetType: end
+      id: edge-payment-end
+      source: '4'
+      sourceHandle: source
+      target: '8'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: http-request
+        targetType: end
+      id: edge-shipping-end
+      source: '6'
+      sourceHandle: source
+      target: '8'
+      targetHandle: target
+      type: custom
+    - data:
+        sourceType: http-request
+        targetType: end
+      id: edge-general-end
+      source: '7'
+      sourceHandle: source
+      target: '8'
+      targetHandle: target
+      type: custom
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 시작
+        type: start
+        variables:
+        - label: 고객명
+          max_length: 100
+          options: []
+          required: true
+          type: text-input
+          variable: customer_name
+        - label: 이메일
+          max_length: 200
+          options: []
+          required: false
+          type: text-input
+          variable: customer_email
+        - label: 문의채널
+          options:
+          - Gmail
+          - 콜센터
+          required: true
+          type: select
+          variable: inquiry_channel
+        - label: 문의내용
+          max_length: 2000
+          options: []
+          required: true
+          type: paragraph
+          variable: inquiry_content
+      height: 186
+      id: '1'
+      position:
+        x: 3.75
+        y: 285.75
+      positionAbsolute:
+        x: 3.75
+        y: 285.75
+      selected: false
+      type: custom
+      width: 242
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: Groq LLM으로 문의 분류
+        model:
+          completion_params:
+            max_tokens: 2048
+            temperature: 0.1
+          mode: chat
+          name: openai/gpt-oss-120b
+          provider: langgenius/groq/groq
+        prompt_template:
+        - id: system-prompt
+          role: system
+          text: "당신은 온라인 쇼핑몰의 고객 문의를 분류하는 전문가입니다.\n고객 문의를 분석하여 다음 정보를 JSON 형식으로 반환하세요:\n\
+            \n1. category: 문의 카테고리\n\t - \"결제\" : 결제, 환불, 카드, 포인트, 쿠폰, 가격 관련\n\t -\
+            \ \"배송\" : 배송, 배달, 택배, 운송, 도착, 추적 관련\n\t - \"일반\" : 결제와 배송 외의 문의\n\n2.\
+            \ urgency: 긴급도\n\t - \"긴급\" : 즉시 처리 필요\n\t - \"보통\" : 일반적인 처리\n\t - \"\
+            낮음\" : 단순 문의\n\n3. department: 담당부서\n\t - \"결제팀\" : category가 \"결제\"인\
+            \ 경우\n\t - \"배송팀\" : category가 \"배송\"인 경우\n\t - \"일반CS\" : category가 \"\
+            일반\"인 경우\n\n4. summary: 문의 내용 요약 (50자 이내)\n\n5. original_inquiry: 원래 사용자\
+            \ 문의 내용 (원문 그대로)\n\n6. reason: 분류 사유 (왜 이 카테고리/긴급도로 분류했는지 근거를 bullet point로\
+            \ 작성)\n\n7. order_info: 문의에서 추출한 주문/거래 관련 정보 (주문번호, 상품, 금액, 요청사항 등을 bullet\
+            \ point로 작성. 없으면 \"해당 없음\")\n\n반드시 아래 JSON 형식으로만 응답하세요:\n{\"category\"\
+            : \"...\", \"urgency\": \"...\", \"department\": \"...\", \"summary\"\
+            : \"...\", \"original_inquiry\": \"...\", \"reason\": \"...\", \"order_info\"\
+            : \"...\"}"
+        - id: user-prompt
+          role: user
+          text: '[고객 정보]
+
+            - 고객명: {{#1.customer_name#}}
+
+            - 이메일: {{#1.customer_email#}}
+
+            - 문의채널: {{#1.inquiry_channel#}}
+
+
+            [문의 내용]
+
+            {{#1.inquiry_content#}}'
+        selected: false
+        structured_output_enabled: false
+        title: LLM 문의분류
+        type: llm
+        vision:
+          enabled: false
+      height: 115
+      id: '2'
+      position:
+        x: 280
+        y: 345.75
+      positionAbsolute:
+        x: 280
+        y: 345.75
+      selected: true
+      type: custom
+      width: 241
+    - data:
+        code: "import json\n\ndef main(llm_output: str) -> dict:\n    try:\n     \
+          \   result = json.loads(llm_output)\n        return {\n            \"category\"\
+          : result.get(\"category\", \"일반\"),\n            \"urgency\": result.get(\"\
+          urgency\", \"보통\"),\n            \"department\": result.get(\"department\"\
+          , \"일반CS\"),\n            \"summary\": result.get(\"summary\", \"\"),\n\
+          \            \"original_inquiry\": result.get(\"original_inquiry\", \"\"\
+          ),\n            \"reason\": result.get(\"reason\", \"\"),\n            \"\
+          order_info\": result.get(\"order_info\", \"해당 없음\")\n        }\n    except\
+          \ json.JSONDecodeError:\n        return {\n            \"category\": \"\
+          일반\",\n            \"urgency\": \"보통\",\n            \"department\": \"\
+          일반CS\",\n            \"summary\": \"JSON 파싱 실패\",\n            \"original_inquiry\"\
+          : \"\",\n            \"reason\": \"\",\n            \"order_info\": \"해당\
+          \ 없음\"\n        }"
+        code_language: python3
+        desc: LLM 출력 JSON 파싱하여 개별 필드 추출
+        outputs:
+          category:
+            children: null
+            type: string
+          department:
+            children: null
+            type: string
+          order_info:
+            children: null
+            type: string
+          original_inquiry:
+            children: null
+            type: string
+          reason:
+            children: null
+            type: string
+          summary:
+            children: null
+            type: string
+          urgency:
+            children: null
+            type: string
+        selected: false
+        title: JSON 파싱
+        type: code
+        variables:
+        - value_selector:
+          - '2'
+          - text
+          variable: llm_output
+      height: 95
+      id: '9'
+      position:
+        x: 562.5
+        y: 282
+      positionAbsolute:
+        x: 562.5
+        y: 282
+      selected: false
+      type: custom
+      width: 241
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: cond1
+            value: 결제
+            variable_selector:
+            - '9'
+            - category
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 결제문의 확인
+        type: if-else
+      height: 123
+      id: '3'
+      position:
+        x: 880
+        y: 282
+      positionAbsolute:
+        x: 880
+        y: 282
+      selected: false
+      type: custom
+      width: 241
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data:
+          - type: text
+            value: "{\n    \"text\": \" 새로운 고객 문의\\n\\n\U0001F4CC 카테고리: {{#9.category#}}\\\
+              n\U0001F6A8 긴급도: {{#9.urgency#}}\\n\U0001F3E2 담당부서: {{#9.department#}}\\\
+              n\\n\U0001F4DD 문의 내용:\\n{{#9.original_inquiry#}}\\n\\n\U0001F50D\n \
+              \ 분류 사유:\\n{{#9.reason#}}\\n\\n\U0001F4E6 주문 정보:\\n{{#9.order_info#}}\"\
+              \n }"
+          type: json
+        desc: '#cs-결제 채널'
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 60
+          max_write_timeout: 60
+        title: Slack 결제팀
+        type: http-request
+        url: '{{#env.SLACK_WEBHOOK_PAYMENT#}}'
+      height: 151
+      id: '4'
+      position:
+        x: 1200
+        y: 120
+      positionAbsolute:
+        x: 1200
+        y: 120
+      selected: false
+      type: custom
+      width: 241
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: is
+            id: cond2
+            value: 배송
+            variable_selector:
+            - '9'
+            - category
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 배송문의 확인
+        type: if-else
+      height: 123
+      id: '5'
+      position:
+        x: 1200
+        y: 360
+      positionAbsolute:
+        x: 1200
+        y: 360
+      selected: false
+      type: custom
+      width: 241
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: "{\n  \"text\": \"\U0001F69A 새 배송 문의 접수\\n고객명: {{#1.customer_name#}}\\\
+            n채널: {{#1.inquiry_channel#}}\\n이메일: {{#1.customer_email#}}\\n긴급도: {{#9.urgency#}}\\\
+            n\\n\U0001F4CB 분류결과:\\n- 카테고리: {{#9.category#}}\\n- 담당부서: {{#9.department#}}\\\
+            n- 요약: {{#9.summary#}}\\n\\n\U0001F4DD 원본문의:\\n{{#1.inquiry_content#}}\"\
+            \n}"
+          type: json
+        desc: '#cs-배달 채널'
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 60
+          max_write_timeout: 60
+        title: Slack 배송팀
+        type: http-request
+        url: '{{#env.SLACK_WEBHOOK_SHIPPING#}}'
+      height: 151
+      id: '6'
+      position:
+        x: 1507.5
+        y: 421.25
+      positionAbsolute:
+        x: 1507.5
+        y: 421.25
+      selected: false
+      type: custom
+      width: 241
+    - data:
+        authorization:
+          config: null
+          type: no-auth
+        body:
+          data: "{\n  \"text\": \"\U0001F4DE 새 일반 문의 접수\\n고객명: {{#1.customer_name#}}\\\
+            n채널: {{#1.inquiry_channel#}}\\n이메일: {{#1.customer_email#}}\\n긴급도: {{#9.urgency#}}\\\
+            n\\n\U0001F4CB 분류결과:\\n- 카테고리: {{#9.category#}}\\n- 담당부서: {{#9.department#}}\\\
+            n- 요약: {{#9.summary#}}\\n\\n\U0001F4DD 원본문의:\\n{{#1.inquiry_content#}}\"\
+            \n}"
+          type: json
+        desc: '#cs-일반 채널'
+        headers: Content-Type:application/json
+        method: post
+        params: ''
+        retry_config:
+          max_retries: 3
+          retry_enabled: true
+          retry_interval: 100
+        selected: false
+        ssl_verify: true
+        timeout:
+          max_connect_timeout: 10
+          max_read_timeout: 60
+          max_write_timeout: 60
+        title: Slack 일반CS
+        type: http-request
+        url: '{{#env.SLACK_WEBHOOK_GENERAL#}}'
+      height: 151
+      id: '7'
+      position:
+        x: 1525
+        y: 608.75
+      positionAbsolute:
+        x: 1525
+        y: 608.75
+      selected: false
+      type: custom
+      width: 241
+    - data:
+        desc: ''
+        outputs:
+        - value_selector:
+          - '9'
+          - category
+          variable: category
+        - value_selector:
+          - '9'
+          - urgency
+          variable: urgency
+        - value_selector:
+          - '9'
+          - department
+          variable: department
+        - value_selector:
+          - '9'
+          - summary
+          variable: summary
+        - value_selector:
+          - '1'
+          - customer_name
+          variable: customer_name
+        - value_selector:
+          - '9'
+          - original_inquiry
+          value_type: string
+          variable: original_inquiry_
+        - value_selector:
+          - '9'
+          - reason
+          value_type: string
+          variable: reason
+        - value_selector:
+          - '9'
+          - order_info
+          value_type: string
+          variable: order_info
+        selected: false
+        title: 완료
+        type: end
+      height: 269
+      id: '8'
+      position:
+        x: 1842.5
+        y: 257.5
+      positionAbsolute:
+        x: 1842.5
+        y: 257.5
+      selected: false
+      type: custom
+      width: 241
+    viewport:
+      x: -367.9000000000001
+      y: 29.399999999999977
+      zoom: 0.8
+  rag_pipeline_variables: []

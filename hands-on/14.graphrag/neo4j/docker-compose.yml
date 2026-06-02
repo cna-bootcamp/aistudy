@@ -1,0 +1,35 @@
+# LangChain + Neo4j GraphRAG — Neo4j Community Edition 로컬 실행 구성
+#
+# 인덱싱(indexing/)과 검색(retrieve/)이 공유하는 단일 Neo4j 인스턴스임.
+# KG 노드/관계 + entity_embedding/doc_embedding 벡터 인덱스를 모두 이 컨테이너에 통합 저장함.
+#
+# 실행:  docker compose up -d --wait    # healthy 상태가 될 때까지 블록(콜드스타트 대기)
+# 종료:  docker compose down            # 컨테이너만 제거(데이터는 store/ 볼륨에 보존)
+services:
+  neo4j:
+    # 5.11+ 필수(벡터 인덱스 지원), 5.26-community 권장(LTS)
+    image: neo4j:5.26-community
+    container_name: graphrag-neo4j
+    ports:
+      - "7474:7474"   # HTTP (Neo4j Browser: http://localhost:7474)
+      - "7687:7687"   # Bolt (드라이버 연결: bolt://localhost:7687)
+    environment:
+      # 초기 계정/비밀번호 (settings.py 기본값 neo4j/password 와 일치해야 함)
+      - NEO4J_AUTH=neo4j/password
+      # APOC Core 플러그인 자동 설치 (Extended 불필요). 첫 기동 시 plugins/로 다운로드됨
+      - NEO4J_PLUGINS=["apoc"]
+      # APOC 프로시저 실행 허용 (LLMGraphTransformer 저장 시 일부 apoc.* 사용)
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+    volumes:
+      # 로컬 디렉토리 바인드 마운트 — 컨테이너를 지워도 KG/벡터 인덱스가 store/에 보존됨
+      - ./store/neo4j/data:/data        # KG 노드/관계 + 벡터 인덱스(영속 데이터)
+      - ./store/neo4j/logs:/logs        # Neo4j 서버 로그
+      - ./store/neo4j/plugins:/plugins  # APOC 등 플러그인 jar
+    healthcheck:
+      # cypher-shell로 실제 쿼리가 응답하는지 확인 — APOC 다운로드 포함 콜드스타트(~40초)를 흡수함
+      # docker compose up --wait 가 이 healthcheck 통과까지 대기하므로 인덱싱이 콜드스타트에 실패하지 않음
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p password 'RETURN 1' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 40s

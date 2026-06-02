@@ -1,0 +1,22 @@
+# MAS C runtime dependencies — pure Groq gpt-oss-120b + korean-law MCP only.
+# RAGAS / OpenAI evaluator are intentionally NOT here; the offline batch evaluator
+# has its own pinned set in evaluate/requirements.txt so the deployed runtime stays clean.
+
+# LangGraph: StateGraph workflow + MemorySaver checkpointer + interrupt_before (HITL)
+langgraph>=0.2.0
+
+# LangChain core framework (ChatPromptTemplate, StrOutputParser, Runnable pipe)
+langchain-core>=0.3.0
+
+# Groq LPU chat model integration (ChatGroq, openai/gpt-oss-120b, reasoning_format='hidden')
+langchain-groq>=0.2.0
+
+# Model Context Protocol SDK (Streamable HTTP client for the remote korean-law MCP server:
+# context gathering + verify_citations hallucination gate)
+mcp>=1.2.0
+
+# Structured output schemas (Self-RAG [IsSup] grader, context planner) via json_schema
+pydantic>=2.0.0
+
+# Environment variable management (.env file: GROQ_API_KEY, LAW_OC)
+python-dotenv>=1.0.0

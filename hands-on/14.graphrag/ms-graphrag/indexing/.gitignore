@@ -1,0 +1,17 @@
+# 가상환경
+venv/
+
+# GraphRAG 실행 산출물 (재생성됨)
+cache/
+logs/
+data/input/
+
+# 검증 리포트 (재생성됨)
+check/
+
+# 파이썬 캐시
+__pycache__/
+*.pyc
+
+# 임시 로그
+*.log

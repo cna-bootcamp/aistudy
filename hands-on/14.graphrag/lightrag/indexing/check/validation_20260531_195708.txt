@@ -1,0 +1,28 @@
+============================================================
+  LightRAG 인덱싱 검증 리포트
+============================================================
+
+[INFO]
+  - KG 노드 129개 / 엣지 127개
+  - 교재 청크 벡터: 7개
+  - 엔티티 벡터: 129개
+  - 관계 벡터: 127개
+  - 코드 청크 벡터: 5개
+  - 문서 상태 KV Store 존재: kv_store_doc_status.json
+  - LLM 캐시 KV Store 존재: kv_store_llm_response_cache.json
+
+[검증 결과]
+  [PASS] C1. KG GraphML 존재 (노드 129개)
+  [PASS] C2. 교재 청크 벡터: 7개
+  [PASS] C3. 코드 청크 벡터: 5개
+  [PASS] W1. 엔티티 벡터 존재 (vdb_entities.json)
+  [PASS] W2. 관계 벡터 존재 (vdb_relationships.json)
+  [PASS] W3. 원문 KV Store 존재 (kv_store_full_docs.json)
+  [PASS] W4. 청크 KV Store 존재 (kv_store_text_chunks.json)
+  [PASS] W5. 코드 벡터 차원 일치: 실제 4096 / 설정 4096
+
+[심각도 요약]
+  CRITICAL: 0건 | WARNING: 0건
+
+[권고사항]
+  이슈 없음 — 인덱싱 상태 양호

@@ -1,0 +1,178 @@
+# GraphRAG 3.x 설정 파일 - 특허법(PDF) Knowledge Graph + Vector 인덱싱 전용
+#
+# 이 파일은 `graphrag index --root .`(--root=indexing/graphrag/) 실행 시 사용됨.
+# 단일 데이터소스(hands-on/10.rag/data/특허법.pdf)를 텍스트로 변환한 뒤
+# data/input/*.txt 를 GraphRAG 파이프라인 입력으로 사용하여 KG + Vector를 구축함.
+#
+# 핵심 구성(요구사항):
+#   - 추출/요약/리포트 LLM: Groq LPU openai/gpt-oss-120b 그대로 유지 (클라우드)
+#   - 임베딩 모델만 로컬(Ollama qwen3-embedding 4096d) → OpenAI text-embedding-3-small(1536d) 교체
+#   - 로컬 AI 모델 사용 금지: 임베딩·LLM 모두 클라우드 API
+#
+# 성능 최적화:
+#   - max_gleanings: 0 (재추출 비활성화, 속도 약 2배)
+#   - chunking.size: 2500 (청크 크기 증가로 LLM 호출 수 감소)
+#   - Groq LPU 병렬 처리: concurrent_requests: 5 (고속 LPU 활용)
+#   - snapshots.graphml: false (시각화 파일 생략으로 속도 향상)
+#
+# 경로 규약: --root가 indexing/graphrag/ 이므로 store는 이 디렉터리 하위(store/)에 생성됨.
+
+###─────────────────────────────────────
+### LLM 설정 - 텍스트 생성용 모델 (Groq LPU, 그대로 유지: MUST)
+###─────────────────────────────────────
+completion_models:
+  default_completion_model:
+    model_provider: groq              # litellm Groq 프로바이더 (groq/model 형식으로 호출)
+    model: openai/gpt-oss-120b        # Groq LPU가 서빙하는 OpenAI gpt-oss 120B 모델 (클라우드)
+    api_key: ${GROQ_API_KEY}          # hands-on/.env의 환경변수에서 Groq API 키 로드
+    concurrent_requests: 5            # Groq LPU 고속 병렬 처리 (5개 동시 요청)
+    retry:
+      type: exponential_backoff       # 실패 시 지수 백오프 재시도 (추출 단계 리스크 완화: MUST)
+    # call_args: litellm.completion()에 그대로 전달되는 추가 인자 (graphrag_llm ModelConfig)
+    # (중요) gpt-oss 추출 잘림 방지:
+    #   기본 max_tokens가 작아(약 3072) 엔티티 나열 도중 출력이 잘리면 관계(relationships)
+    #   섹션에 도달하지 못해 "No relationships detected"로 파이프라인이 중단됨.
+    #   특허법은 조문당 엔티티가 많고 설명이 길어 출력 토큰 한도를 크게 잡아야 함.
+    call_args:
+      max_tokens: 16000               # 엔티티+관계 전체 출력 보장 (gpt-oss 잘림 방지)
+      reasoning_effort: low           # gpt-oss reasoning 토큰 최소화 (추출은 구조화 출력이라 과도한 추론 불필요)
+
+###─────────────────────────────────────
+### 임베딩 설정 - 벡터 변환용 모델 (OpenAI 클라우드, qwen3-embedding 대체)
+###─────────────────────────────────────
+embedding_models:
+  default_embedding_model:
+    model_provider: openai            # OpenAI 프로바이더 (litellm openai/ 경로, graphrag 기본값)
+    model: text-embedding-3-small     # OpenAI 임베딩 모델 (1536차원 출력)
+    api_key: ${OPENAI_API_KEY}        # hands-on/.env의 환경변수에서 OpenAI API 키 로드
+    concurrent_requests: 5            # 임베딩 병렬 요청 수
+    retry:
+      type: exponential_backoff       # 실패 시 지수 백오프 재시도
+
+###─────────────────────────────────────
+### 문서 입력 설정
+###─────────────────────────────────────
+input:
+  type: text                          # 입력 형식 (data/input/*.txt 파일을 읽음)
+
+###─────────────────────────────────────
+### 청킹 설정 - 문서를 작은 단위로 분할
+###─────────────────────────────────────
+chunking:
+  type: tokens                        # 분할 기준 (tokens 또는 sentence)
+  size: 2500                          # 청크 크기 (토큰 수, 클수록 LLM 호출 감소)
+  overlap: 100                        # 청크 간 겹침 (문맥 연결성 유지)
+  encoding_model: o200k_base          # 토크나이저 (GPT-4o 계열)
+
+###─────────────────────────────────────
+### 스토리지 설정 - 파일 저장 경로 (모두 --root 하위)
+###─────────────────────────────────────
+input_storage:
+  type: file                          # 저장 방식
+  base_dir: "data/input"              # 원본 txt 입력 경로 (indexing/graphrag/data/input)
+
+output_storage:
+  type: file                          # 저장 방식
+  base_dir: "store/parquet"           # Parquet 출력 경로 (indexing/graphrag/store/parquet)
+
+reporting:
+  type: file                          # 리포트 저장 방식
+  base_dir: "logs"                    # 실행 로그 저장 경로 (indexing/graphrag/logs)
+
+cache:
+  type: json                          # 캐시 형식
+  storage:
+    type: file                        # 캐시 저장 방식
+    base_dir: "cache"                 # LLM 응답 캐시 경로 (재시작 시 비용 절감)
+
+###─────────────────────────────────────
+### 벡터 스토어 설정 - 임베딩 검색용 LanceDB
+###─────────────────────────────────────
+# GraphRAG 3.x의 vector_store는 단일 객체임 (type/db_uri/index_schema를 직접 지정)
+vector_store:
+  type: lancedb                       # 벡터 DB 종류 (lancedb 또는 azure_ai_search)
+  db_uri: store/vector/graphrag       # LanceDB 저장 경로 (indexing/graphrag/store/vector/graphrag)
+  vector_size: 1536                   # 기본 벡터 차원 (text-embedding-3-small=1536)
+  # MUST: index_name을 임베딩 종류별로 분리함.
+  #   index_name을 생략하면 GraphRAG가 모두 기본값으로 매핑하여,
+  #   entity_description / text_unit_text / community_full_content가 같은 LanceDB 테이블을 공유(충돌)함.
+  #   그 결과 인덱싱 시 한쪽이 다른 쪽을 덮어써 임베딩이 누락되고,
+  #   Local/Basic/DRIFT Search가 빈 컨텍스트를 반환함. 종류별 index_name 분리가 필수임.
+  index_schema:                       # 각 임베딩 인덱스의 테이블명·벡터 차원 (text-embedding-3-small=1536)
+    entity_description:
+      index_name: entity_description  # Local/DRIFT Search용 엔티티 설명 임베딩 테이블
+      vector_size: 1536               # 엔티티 설명 임베딩
+    text_unit_text:
+      index_name: text_unit_text      # Basic Search용 텍스트 유닛 임베딩 테이블
+      vector_size: 1536               # 텍스트 유닛 임베딩
+    community_full_content:
+      index_name: community_full_content  # DRIFT Search Primer용 커뮤니티 리포트 임베딩 테이블
+      vector_size: 1536               # 커뮤니티 리포트 임베딩
+
+###─────────────────────────────────────
+### 임베딩 대상 설정
+###─────────────────────────────────────
+embed_text:
+  embedding_model_id: default_embedding_model  # 임베딩에 사용할 모델 ID
+
+###─────────────────────────────────────
+### 그래프 추출 설정
+###─────────────────────────────────────
+extract_graph:
+  completion_model_id: default_completion_model  # 추출에 사용할 LLM 모델 ID
+  # prompt 키를 생략하면 GraphRAG 내장 기본 프롬프트를 사용함 (영어 프롬프트)
+  # 특허법 도메인(법률 문서)에 맞춘 엔티티 타입
+  # 영어 타입명 유지: MS GraphRAG 추출 프롬프트가 영어이므로 LLM이 영어 타입을 반환함
+  #   concept(법률 개념), legal_provision(조문/규정), right(권리), procedure(절차/처분),
+  #   organization(기관), requirement(요건), person(주체), period(기간/기한)
+  entity_types: [concept, legal_provision, right, procedure, organization, requirement, person, period]
+  max_gleanings: 0                    # 재추출 횟수 (0=비활성화, 속도 약 2배 향상)
+
+summarize_descriptions:
+  completion_model_id: default_completion_model  # 요약에 사용할 LLM 모델 ID
+  max_length: 500                     # 엔티티 설명 요약 최대 길이
+
+extract_graph_nlp:
+  text_analyzer:
+    extractor_type: regex_english     # NLP 추출기 (regex_english 또는 syntactic_parser)
+
+cluster_graph:
+  max_cluster_size: 10                # 커뮤니티 최대 크기 (작을수록 세분화)
+
+extract_claims:
+  enabled: false                      # 주장(claim) 추출 비활성화 (속도 향상)
+
+###─────────────────────────────────────
+### 커뮤니티 리포트 설정 (Global/DRIFT Search용)
+###─────────────────────────────────────
+# Groq LPU가 구조화된 JSON 응답을 지원하므로 활성화 (MUST)
+community_reports:
+  completion_model_id: default_completion_model  # 리포트 생성용 LLM
+  # graph_prompt/text_prompt 생략 시 GraphRAG 내장 기본 프롬프트 사용
+  max_length: 2000                    # 리포트 최대 길이
+  max_input_length: 8000              # 리포트 입력 최대 길이
+
+###─────────────────────────────────────
+### 스냅샷 설정
+###─────────────────────────────────────
+snapshots:
+  graphml: false                      # GraphML 시각화 파일 생성 비활성화 (속도 향상)
+  embeddings: true                    # 임베딩 스냅샷 저장 (검색에 필수)
+
+###─────────────────────────────────────
+### 검색 설정 - 쿼리 시 사용할 모델 (Groq LPU + OpenAI 임베딩)
+###─────────────────────────────────────
+local_search:                         # 특정 엔티티/관계 기반 검색
+  completion_model_id: default_completion_model
+  embedding_model_id: default_embedding_model
+
+global_search:                        # 전체 커뮤니티 요약 기반 검색
+  completion_model_id: default_completion_model
+
+drift_search:                         # Global + Local 결합 검색
+  completion_model_id: default_completion_model
+  embedding_model_id: default_embedding_model
+
+basic_search:                         # 벡터 유사도 기반 기본 검색
+  completion_model_id: default_completion_model
+  embedding_model_id: default_embedding_model

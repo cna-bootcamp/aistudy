@@ -1,0 +1,20 @@
+# MCP SDK (FastMCP + CLI 도구, Streamable HTTP 전송)
+mcp[cli]>=1.2.0
+
+# LangChain Core
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+
+# Neo4j 그래프 + GraphCypherQAChain + 벡터 프로시저 조회
+langchain-neo4j>=0.3.0
+neo4j>=5.0.0
+
+# 로컬 임베딩 (Ollama, qwen3-embedding 4096차원)
+langchain-ollama>=0.3.0
+
+# Groq LPU LLM (OpenAI 호환 API, llama-3.3-70b-versatile)
+langchain-openai>=0.3.0
+
+# 환경변수 로드
+python-dotenv>=1.0.0

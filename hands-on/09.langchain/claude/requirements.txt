@@ -1,0 +1,12 @@
+# LangChain framework core
+langchain-core>=0.3.0
+# Anthropic model wrapper for LangChain
+langchain-anthropic>=0.3.0
+# LangGraph prebuilt agent (create_react_agent)
+langgraph>=0.3.0
+# Streamlit web chat UI
+streamlit>=1.40.0
+# Environment variable loader
+python-dotenv>=1.0.0
+# HTTP requests library (used by travel tools)
+requests>=2.31.0

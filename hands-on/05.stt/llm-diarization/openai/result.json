@@ -1,0 +1,107 @@
+{
+  "generated_at": "2026-05-22 14:29:44",
+  "model": "gpt-audio-1.5",
+  "audio_file": "C:\\Users\\hiond\\workspace\\aistudy\\hands-on\\05.stt\\audio\\phone-with-wife.mp3",
+  "speaker_name_map": {
+    "화자A": "아내",
+    "화자B": "남편"
+  },
+  "segments": [
+    {
+      "id": 1,
+      "timestamp": "00:00",
+      "speaker": "아내",
+      "text": "여보세요? 차 여기 있어요."
+    },
+    {
+      "id": 2,
+      "timestamp": "00:03",
+      "speaker": "남편",
+      "text": "어, 지하층 내려왔어요."
+    },
+    {
+      "id": 3,
+      "timestamp": "00:05",
+      "speaker": "아내",
+      "text": "어디? 나 안 보이는데?"
+    },
+    {
+      "id": 4,
+      "timestamp": "00:07",
+      "speaker": "남편",
+      "text": "내려왔는데? GFC 맞잖아."
+    },
+    {
+      "id": 5,
+      "timestamp": "00:10",
+      "speaker": "아내",
+      "text": "어. 엘리베이터 타고 내려왔어요? 여기 에스컬레이터 앞에 있는데 나."
+    },
+    {
+      "id": 6,
+      "timestamp": "00:15",
+      "speaker": "남편",
+      "text": "에스컬레이터?"
+    },
+    {
+      "id": 7,
+      "timestamp": "00:17",
+      "speaker": "남편",
+      "text": "어. 엘리베이터 타고 내려왔지."
+    },
+    {
+      "id": 8,
+      "timestamp": "00:20",
+      "speaker": "아내",
+      "text": "엘리베이터면 어디 있는 거야? 주차장 앞에 있어요? 화장실 앞에 있어요?"
+    },
+    {
+      "id": 9,
+      "timestamp": "00:26",
+      "speaker": "남편",
+      "text": "주차장, 화장실 둘 다 안 보이고요."
+    },
+    {
+      "id": 10,
+      "timestamp": "00:30",
+      "speaker": "아내",
+      "text": "뭐가 보여요, 그럼?"
+    },
+    {
+      "id": 11,
+      "timestamp": "00:32",
+      "speaker": "남편",
+      "text": "여기 아이사라... 아이사가 보이네요, 아이사. 아이사구역."
+    },
+    {
+      "id": 12,
+      "timestamp": "00:38",
+      "speaker": "아내",
+      "text": "아, 주차장에 가 있어요?"
+    },
+    {
+      "id": 13,
+      "timestamp": "00:41",
+      "speaker": "남편",
+      "text": "어."
+    },
+    {
+      "id": 14,
+      "timestamp": "00:42",
+      "speaker": "아내",
+      "text": "아하, 알았어요."
+    },
+    {
+      "id": 15,
+      "timestamp": "00:46",
+      "speaker": "남편",
+      "text": "저기 나오는 게 당신이네."
+    },
+    {
+      "id": 16,
+      "timestamp": "00:48",
+      "speaker": "아내",
+      "text": "그러네."
+    }
+  ]
+}

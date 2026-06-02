@@ -1,0 +1,21 @@
+# Microsoft GraphRAG query API
+graphrag>=3.0,<4.0
+
+# GraphRAG 내장 LLM completion factory (graphrag의 고정 의존성이나, llm.py가 직접 import하므로 명시)
+graphrag-llm>=3.0,<4.0
+
+# Streamlit chat UI
+streamlit>=1.35.0
+
+# LanceDB vector search for GraphRAG and code-only indexes
+lancedb>=0.13.0
+
+# Parquet and data handling
+pandas>=2.0.0
+pyarrow>=15.0.0
+
+# Ollama embedding HTTP API and .env loading
+requests>=2.31.0
+python-dotenv>=1.0.0
+pyyaml>=6.0
+

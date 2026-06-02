@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>예제 설명 페이지로 이동…</title>
+  <script>
+    (function () {
+      var here = location.href.split(/[?#]/)[0];
+      var i = here.lastIndexOf("/hands-on/");
+      if (i === -1) {
+        document.addEventListener("DOMContentLoaded", function () {
+          document.body.textContent = "경로 오류: 이 파일은 hands-on/ 아래에 있어야 합니다.";
+        });
+        return;
+      }
+      var rel = here.slice(i + "/hands-on/".length);
+      var dir = rel.replace(/[^\/]*$/, "");
+      var depth = (dir.match(/\//g) || []).length;
+      var shell = "../".repeat(depth) + "explain-exam/index.html";
+      location.replace(shell + "?data=../" + dir + "data.js");
+    })();
+  </script>
+</head>
+<body style="font-family: system-ui, 'Malgun Gothic', sans-serif; padding: 28px; color: #333;">
+  설명 페이지로 이동 중입니다…
+  <noscript>
+    JavaScript가 꺼져 있어 자동 이동하지 못했습니다. 공용 셸 <code>hands-on/explain-exam/index.html</code> 에
+    <code>?data=&lt;이 폴더의 data.js 상대경로&gt;</code> 를 붙여 여세요.
+  </noscript>
+</body>
+</html>

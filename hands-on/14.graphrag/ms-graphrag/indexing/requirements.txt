@@ -1,0 +1,20 @@
+# Microsoft GraphRAG 3.x (graphrag CLI + graphrag.api, KG 인덱싱 파이프라인)
+graphrag>=3.0,<4.0
+
+# LanceDB 벡터 스토어 (교재 KG 임베딩 + 예제코드 벡터 인덱스)
+lancedb>=0.13.0
+
+# 데이터 처리 (Parquet 읽기/쓰기, 검증)
+pandas>=2.0.0
+
+# Ollama 임베딩 HTTP API 호출 (qwen3-embedding)
+requests>=2.31.0
+
+# 진행바 표시 (인덱싱/임베딩 진행률)
+tqdm>=4.65.0
+
+# settings.yaml 파싱
+pyyaml>=6.0
+
+# .env 환경변수 로드 (GROQ_API_KEY)
+python-dotenv>=1.0.0

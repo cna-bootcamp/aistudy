@@ -1,0 +1,14 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Logs and generated code outputs
+logs/
+output/
+
+# Local environment overrides
+.env

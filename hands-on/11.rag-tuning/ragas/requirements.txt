@@ -1,0 +1,41 @@
+# NOTE: ragas + the langchain family are pinned to EXACT versions verified to work together.
+# Unpinned ">=" floors resolve ragas and langchain independently, and current ragas hard-imports a
+# langchain path removed in langchain 1.x ("langchain_community.chat_models.vertexai"), breaking
+# "import ragas". These pins are the tested, mutually compatible set; evaluate_ragas.py additionally
+# installs a tiny import shim for that removed path (see the top of the script).
+
+# RAGAS evaluation framework (EvaluationDataset, SingleTurnSample, metrics)
+ragas==0.4.3
+
+# LangChain core primitives (ChatPromptTemplate, StrOutputParser, Runnable pipe)
+langchain-core==1.4.0
+
+# LangChain community loaders (PyPDFLoader, reused from indexing.py)
+langchain-community==0.4.2
+
+# Text splitters (RecursiveCharacterTextSplitter, parametrized per chunk_size)
+langchain-text-splitters==1.1.2
+
+# OpenAI integration (indexing/eval embeddings + RAGAS evaluator LLM gpt-4o-mini)
+langchain-openai==1.2.2
+
+# Groq LPU chat model integration (RAG generation LLM: openai/gpt-oss-120b)
+langchain-groq==1.1.2
+
+# Chroma vector store integration (temporary per-chunk-size index)
+langchain-chroma==1.1.0
+
+# Chroma vector database engine (local persistence backend)
+chromadb==1.5.9
+
+# PDF document loader backend (PyPDFLoader dependency)
+pypdf>=4.0.0
+
+# DataFrame handling for score aggregation and CSV export
+pandas>=2.0.0
+
+# Hugging Face datasets (RAGAS EvaluationDataset backend dependency)
+datasets>=2.0.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0
