@@ -1,52 +1,44 @@
-# 텍스트 요약  
+# 텍스트 요약
 
-## 1. 회사 개요  
+## 1. 회사 개요
 - **회사명**: 유니콘주식회사 (Unicorn Co., Ltd.)  
 - **설립일**: 2022‑02‑28  
 - **주요 사업**: 직원 역량 교육(AI, Agile, MSA, Cloud)· IT 컨설팅(CI/CD, Cloud)  
-- **업종**: 시스템·소프트웨어 개발·공급, 직원 훈련기관  
-- **핵심 가치**: Value‑Oriented, Interactive, Iterative (‘M’ 사상 기반)  
+- **업종**: 시스템·소프트웨어 개발·공급, 직원훈련기관  
+- **핵심 가치**: Value‑Oriented, Interactive, Iterative (‘M’ 사상 기반)
 
-## 2. 핵심 가치와 행동 원칙  
-- **Value‑Oriented** – “WHY First, Align”; 가치에 미치지 못하면 과감히 변경·폐기  
+## 2. 핵심 가치와 행동 원칙
+- **Value Oriented** – “WHY First, Align”; 가치에 부합하지 않으면 과감히 변경·폐기  
 - **Interactive** – “Believe Crew, Yes And”; 동료 신뢰와 긍정적 소통으로 집단지성 극대화  
-- **Iterative** – “Fast Fail, Learn & Pivot”; 빠른 실패·학습·전환을 통한 지속 개선  
+- **Iterative** – “Fast Fail, Learn & Pivot”; 빠른 실패·학습·유연한 방향 전환  
 
-## 3. 주요 수행 실적 (최근 3년)  
+## 3. 주요 수행 실적
 - **2024‑12 ~ 2025‑10**: KTDS Digital Garage (1~5기) – 애자일·AI 기반 현대화 역량 강화  
 - **2024‑11 ~ 2025‑10**: 연세대 AI 최고경영자 과정 (1~3기) – AI 활용·생성형 AI 기획 교육  
-- **2025‑07 ~ 2025‑11**: AI 활용 DT 서비스 기획자 멘토링 (3회) – 취·이직생 대상 혁신·AI 기획  
-- **2024‑08 ~ 2024‑10**: 비상교육 CNA 부트캠프 – 애자일·AI 기반 현대화 역량 강화  
-- **2023‑11 ~ 2023‑12**: KB DigiTech Bootcamp – 신입 행원 대상 애자일·클라우드 역량 강화  
-- **2023‑09 ~ 2023‑10**: 현대해상 U2C & AIOps PoC – Unix→Container 이관·AI 모니터링 구현  
-- **2023‑06 ~ 2023‑07**: KB PO 연수 Coaching – 신입 PO 대상 애자일 사상·기법 교육  
+- **2025‑07 ~ 2025‑11**: AI 활용 DT 서비스 기획자 멘토링 (3회) – 취·이직생 대상  
+- **2024‑08 ~ 2024‑10**: 비상교육 CNA 부트캠프 – 애자일·AI 기반 현대화 교육  
+- **2023‑11 ~ 2023‑12**: KB DigiTech Bootcamp – 신입행원 대상 애자일·클라우드 역량 강화  
+- **2023‑09 ~ 2023‑10**: 현대해상 U2C & AIOps PoC – Unix→Container 이관·AI 모니터링  
+- **2023‑06 ~ 2023‑07**: KB PO 연수 Coaching – 신입 PO 대상 애자일 교육  
 
-## 4. 운영 인원과 전문성  
-- **대표 강사**: 이해경 – IBM Certified Agile Coach, Professional Scrum Master 등 다수 인증 보유; 주요 프로젝트 다수 수행, 블로그 ‘온달의 해피클라우드’(2026‑01 약 80만 방문) 운영  
-- **핵심 코칭·전문가**  
-  - 김성한 – 전 쿠팡플레이 대표, 쿠팡 로켓배송 PO, 《프로덕트 오너》 저자  
+## 4. 운영 인원과 전문성
+- **대표 강사**: 이해경 – IBM Certified Agile Coach, Professional Scrum Master 등 다수 인증·다양한 프로젝트 수행  
+- **핵심 코칭팀**  
+  - 김성한 – 전 쿠팡플레이 대표, PO·프로덕트 오너 저자  
   - 박성준 – 토스·우아한형제들 애자일·스크럼 전문가, SAFe 5.0 SPC  
-- **개발·코칭팀**: 이미준(서비스기획), 강도윤(풀스택), 홍길동(테크니컬 아키텍트), 송주영(CI/CD 엔지니어) 등 10명 AI 에이전트와 협업  
-- **콘텐츠·전문가팀**: 한승우(AI 엔지니어), 최윤정(교육콘텐츠 전문가), 조현아(QA), 윤재호(교육심리학자) 등  
+- **개발·코칭팀**: 이미준(서비스기획), 강도윤(풀스택), 홍길동(아키텍트), 송주영(CI/CD 엔지니어) 등 10명 AI 에이전트와 협업  
+- **콘텐츠·전문팀**: 한승우(AI 엔지니어), 최윤정(교육콘텐츠 전문가), 조현아(QA), 윤재호(교육심리학자) 등  
 
-## 5. 교육 프로그램과 기대효과  
+## 5. 교육 프로그램과 기대효과
 - **정량적 기대효과** (KTDS 기준)  
   - 애자일 협업 만족도 ≥ 85점, 클라우드 역량 향상 ≥ 85% (평균 87.2%)  
   - 실무 즉시 적용 기대도 ≥ 85점 (평균 86점)  
   - 교육 만족도 ≥ 90점 (평균 93점)  
 - **정성적 기대효과**  
-  - AI·애자일 기반 업무 방식 내재화·생산성 향상  
-  - 사용자 중심 서비스 기획·DDD 기반 상위 설계 역량 강화  
-  - 마이크로서비스·클린 아키텍처·CI/CD 자동화 역량 향상  
-- **커리큘럼 흐름** (Think‑Design‑Develop‑Deploy)  
-  - **Phase 1 (기획)**: WHY‑HOW‑WHAT 프레임, Design Thinking, Event Storming, Figma·Claude Code 활용 프로토타입  
-  - **Phase 2 (설계)**: MSA·Cloud Design Pattern·AI‑지원 아키텍처·API·Data 설계  
-  - **Phase 3 (개발)**: Spring Boot·React·AI API 연계·TDD·AI‑지원 코드 리뷰  
-  - **Phase 4 (배포)**: Docker·Kubernetes 수동 배포 → Jenkins·GitHub Actions·ArgoCD CI/CD 자동화  
-- **운영 방식**  
-  - 스프린트 기반 학습 (1주 스프린트, DSU, Review, Retrospective)  
-  - Human + AI 협업 모델 (Think Human‑AI, Design AI‑Human, Develop AI‑Human, Deploy AI‑Human)  
-  - 학습 설계: 이론 30 % / 실습 70 % , 자기결정이론·인지부하 이론 적용, Daily Quiz·피드백·최종 프로젝트 발표  
-- **도구·스택**: Claude·Claude Code·Cursor, Figma, Mermaid, Spring Boot, React/Vue, Docker, Kubernetes, Helm, Jenkins, GitHub Actions, ArgoCD, Azure·AWS, Trello 등  
-- **예시 일정** (총 10일, 2‑5주 조정 가능)  
-  - Think 3일, Design 2일, Develop 3일, Deploy 2일 – 각 단계 독립 교육 가능
+  - AI·애자일 기반 업무 방식 내재화, 피드백 루프 강화  
+  - 사용자 중심 서비스 기획·DDD 기반 상위 설계 역량 향상  
+  - 마이크로서비스·클린 아키텍처·CI/CD 자동화 역량 강화  
+- **커리큘럼**: Think(기획) → Design(설계) → Develop(개발) → Deploy(배포) 4단계, AI‑지원 Hands‑On 진행  
+- **운영 방식**: 스프린트 기반 학습, Human + AI 협업, 이론 30% / 실습 70%, 자기결정·인지부하 이론 적용, 형성·총괄 평가 포함  
+- **주요 도구·스택**: Claude·Cursor·MCP, Figma, Spring Boot, React/Vue, Docker·Kubernetes·Helm, Jenkins·GitHub Actions·ArgoCD, Azure·AWS 등  
+- **교육 일정 예시**: 총 10일 (Think 3일, Design 2일, Develop 3일, Deploy 2일) – 고객 요구에 따라 2~5주 조정 가능, 단계별 독립 수강 가능.

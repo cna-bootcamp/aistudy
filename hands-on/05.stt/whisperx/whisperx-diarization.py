@@ -26,7 +26,7 @@ if hasattr(sys.stdout, "reconfigure"):
 SCRIPT_DIR = Path(__file__).resolve().parent
 STT_DIR = SCRIPT_DIR.parent
 AUDIO_DIR = STT_DIR / "audio"
-ENV_PATH = STT_DIR / ".env"
+ENV_PATH = STT_DIR.parent / ".env"
 
 HF_TOKEN_GUIDE = """
 [ERROR] HuggingFace Access Token(HF_TOKEN)이 설정되지 않았습니다.
@@ -40,17 +40,16 @@ HF_TOKEN_GUIDE = """
    - https://huggingface.co/pyannote/speaker-diarization-3.1
    - https://huggingface.co/pyannote/segmentation-3.0
 
-3. hands-on/05.stt/.env 파일에 HF_TOKEN 등록
+3. hands-on/.env 파일에 HF_TOKEN 등록
    HF_TOKEN=hf_xxxxxxxxxx
 """
 
 
 def load_hf_token() -> str:
     """.env에서 HF_TOKEN을 읽어 반환하고, 없으면 안내 메시지 출력 후 종료함."""
-    for env_path in [ENV_PATH, STT_DIR.parent / ".env"]:
-        if env_path.exists():
-            # .env 파일에서 API 키 등 환경변수를 로드함
-            load_dotenv(env_path)
+    if ENV_PATH.exists():
+        # .env 파일에서 API 키 등 환경변수를 로드함
+        load_dotenv(ENV_PATH)
 
     token = os.getenv("HF_TOKEN")
     if not token:
@@ -279,6 +278,10 @@ def parse_args() -> argparse.Namespace:
         "--device", type=str, default=None,
         help="디바이스 (cuda/cpu). 생략 시 CUDA 가용 여부 자동 감지",
     )
+    parser.add_argument(
+        "--diarize-model", type=str, default="pyannote/speaker-diarization-3.1",
+        help="화자 분리 모델 (기본값: pyannote/speaker-diarization-3.1)",
+    )
     return parser.parse_args()
 
 
@@ -312,6 +315,7 @@ def main() -> int:
     print(f"  compute_type : {compute_type}")
     print(f"  batch_size   : {args.batch_size}")
     print(f"  화자 수      : {args.num_speakers if args.num_speakers else '자동 감지'}")
+    print(f"  화자분리 모델: {args.diarize_model}")
     print(f"  출력 디렉터리: {output_dir}")
     print()
 
@@ -347,7 +351,7 @@ def main() -> int:
         print("      정렬 완료")
 
         print("[3/4] 화자 분리 중...")
-        diarize_pipeline = DiarizationPipeline(use_auth_token=hf_token, device=device)
+        diarize_pipeline = DiarizationPipeline(model_name=args.diarize_model, token=hf_token, device=device)
 
         diarize_kwargs: dict = {}
         if args.num_speakers is not None:

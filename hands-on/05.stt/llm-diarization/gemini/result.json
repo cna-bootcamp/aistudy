@@ -1,142 +1,148 @@
 {
-  "created_at": "2026-05-22T14:33:46",
-  "audio_file": "C:\\Users\\hiond\\workspace\\aistudy\\hands-on\\05.stt\\audio\\phone-with-wife.mp3",
+  "created_at": "2026-06-02T21:03:29",
+  "audio_file": "/Users/dreamondal/workspace/aistudy/hands-on/05.stt/audio/phone-with-wife.mp3",
   "model": "gemini-2.5-flash",
   "speaker_name_map": {
-    "화자A": "아내",
-    "화자B": "남편"
+    "화자A": "부인",
+    "화자B": "나"
   },
   "segments": [
     {
       "id": 1,
       "timestamp": "00:00",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "여보세요? 차 여기 있어요."
     },
     {
       "id": 2,
       "timestamp": "00:02",
-      "speaker": "남편",
+      "speaker": "나",
       "text": "어, 지하층 내려왔어요."
     },
     {
       "id": 3,
       "timestamp": "00:04",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "어디? 나 안 보이는데?"
     },
     {
       "id": 4,
       "timestamp": "00:06",
-      "speaker": "남편",
+      "speaker": "나",
       "text": "내려왔는데? GFC 맞잖아."
     },
     {
       "id": 5,
       "timestamp": "00:09",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "어."
     },
     {
       "id": 6,
       "timestamp": "00:11",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "엘리베이터 타고 내려왔어요? 여기 에스컬레이터 앞에 있는데 나?"
     },
     {
       "id": 7,
       "timestamp": "00:14",
-      "speaker": "남편",
+      "speaker": "나",
       "text": "에스컬레이터?"
     },
     {
       "id": 8,
       "timestamp": "00:15",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "어."
     },
     {
       "id": 9,
       "timestamp": "00:16",
-      "speaker": "남편",
+      "speaker": "나",
       "text": "엘리베이터 타고 내려왔지?"
     },
     {
       "id": 10,
       "timestamp": "00:18",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "엘리베이터면 어디 있는 거야?"
     },
     {
       "id": 11,
       "timestamp": "00:20",
-      "speaker": "남편",
+      "speaker": "나",
       "text": "어허."
     },
     {
       "id": 12,
       "timestamp": "00:21",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "주차장 앞에 있어요? 화장실 앞에 있어요?"
     },
     {
       "id": 13,
       "timestamp": "00:24",
-      "speaker": "남편",
+      "speaker": "나",
       "text": "주차장, 화장실 둘 다 안 보이고요."
     },
     {
       "id": 14,
       "timestamp": "00:29",
-      "speaker": "아내",
-      "text": "음."
+      "speaker": "부인",
+      "text": "으음."
     },
     {
       "id": 15,
       "timestamp": "00:30",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "뭐가 보여요, 그럼?"
     },
     {
       "id": 16,
       "timestamp": "00:32",
-      "speaker": "남편",
-      "text": "여기 I4라 I4가 보이네요. I4. I4 구역."
+      "speaker": "나",
+      "text": "여기 I4라 I4가 보이네요. I4."
     },
     {
       "id": 17,
-      "timestamp": "00:38",
-      "speaker": "아내",
-      "text": "I4 아 주차장에 가 있어요?"
+      "timestamp": "00:36",
+      "speaker": "나",
+      "text": "I4 구역."
     },
     {
       "id": 18,
-      "timestamp": "00:40",
-      "speaker": "남편",
-      "text": "어."
+      "timestamp": "00:38",
+      "speaker": "부인",
+      "text": "I4 아, 주차장에 가 있어요?"
     },
     {
       "id": 19,
-      "timestamp": "00:41",
-      "speaker": "아내",
-      "text": "아하."
+      "timestamp": "00:40",
+      "speaker": "나",
+      "text": "어."
     },
     {
       "id": 20,
-      "timestamp": "00:43",
-      "speaker": "아내",
-      "text": "알았어요."
+      "timestamp": "00:41",
+      "speaker": "부인",
+      "text": "아하."
     },
     {
       "id": 21,
-      "timestamp": "00:44",
-      "speaker": "남편",
-      "text": "저기 나오는 게 당신이네."
+      "timestamp": "00:43",
+      "speaker": "부인",
+      "text": "알았어요."
     },
     {
       "id": 22,
+      "timestamp": "00:44",
+      "speaker": "나",
+      "text": "저기 나오는 게 당신이네."
+    },
+    {
+      "id": 23,
       "timestamp": "00:47",
-      "speaker": "아내",
+      "speaker": "부인",
       "text": "그러네."
     }
   ]
