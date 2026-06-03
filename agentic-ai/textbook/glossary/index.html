@@ -194,6 +194,7 @@
     <div id="count"></div>
     <label>정렬:
       <select id="sort">
+        <option value="rel" selected>관련도순</option>
         <option value="az">가나다 / A–Z</option>
         <option value="cat">카테고리별</option>
       </select>
@@ -227,6 +228,7 @@ const isAllCho = s => s.length > 0 && [...s].every(c => CHO.includes(c));
 let TERMS = [];
 let activeCat = "전체";
 let query = "";
+let lastSort = "rel";   // 검색 종료 시 복귀할 사용자 선택 정렬 (기본: 관련도순)
 
 const el = {
   search: document.getElementById("search"),
@@ -293,33 +295,78 @@ function init() {
     });
   });
 
-  // 검색 입력
-  el.search.addEventListener("input", () => { query = el.search.value.trim(); render(); });
-  el.clear.addEventListener("click", () => { el.search.value = ""; query = ""; el.search.focus(); render(); });
-  el.sort.addEventListener("change", render);
+  // 검색 입력 — 검색어가 생기면 자동 관련도순, 지우면 이전 정렬로 복귀
+  el.search.addEventListener("input", () => { setQuery(el.search.value.trim()); render(); });
+  el.clear.addEventListener("click", () => { el.search.value = ""; setQuery(""); el.search.focus(); render(); });
+  el.sort.addEventListener("change", () => {
+    if (el.sort.value !== "rel") lastSort = el.sort.value;   // 사용자가 직접 고른 정렬 기억
+    render();
+  });
 
   // 미리 초성 인덱스 생성
   TERMS.forEach(t => {
     const hay = [t.term, t.fullName, t.definition, t.analogy, t.example, (t.related||[]).join(" ")].join(" ");
     t._hay = hay.toLowerCase();
     t._cho = toCho(hay).toLowerCase();
+    // 공백 무시 검색용 인덱스 (예: '복합mas' → '복합 MAS' 매칭)
+    t._hayNoSpace = t._hay.replace(/\s+/g, "");
+    t._choNoSpace = t._cho.replace(/\s+/g, "");
   });
 
   render();
 }
 
+/* ───────── 검색어 변경 (자동 관련도순 전환/복귀) ───────── */
+function setQuery(q) {
+  const had = query.length > 0;
+  const has = q.length > 0;
+  query = q;
+  if (has && !had && el.sort.value !== "rel") {
+    el.sort.value = "rel";          // 검색 시작 → 관련도순
+  } else if (!has && had && el.sort.value === "rel") {
+    el.sort.value = lastSort;       // 검색 종료 → 이전 정렬 복귀
+  }
+}
+
+/* ───────── 관련도 점수 (높을수록 위) ───────── */
+function relScore(t, q) {
+  const ql = q.toLowerCase().replace(/\s+/g, "");
+  if (!ql) return 0;
+  if (isAllCho(ql)) {               // 초성 검색
+    const tcho = toCho(t.term || "").toLowerCase().replace(/\s+/g, "");
+    if (tcho === ql) return 5;
+    if (tcho.startsWith(ql)) return 4;
+    if (tcho.includes(ql)) return 3;
+    if (toCho(t.fullName || "").toLowerCase().replace(/\s+/g, "").includes(ql)) return 2;
+    if (t._choNoSpace.includes(ql)) return 1;
+    return 0;
+  }
+  const term = (t.term || "").toLowerCase().replace(/\s+/g, "");
+  const full = (t.fullName || "").toLowerCase().replace(/\s+/g, "");
+  if (term === ql) return 5;        // 용어명 정확히 일치
+  if (term.startsWith(ql)) return 4;// 용어명이 검색어로 시작
+  if (term.includes(ql)) return 3;  // 용어명에 포함
+  if (full.includes(ql)) return 2;  // 영문명에 포함
+  if (t._hayNoSpace.includes(ql) || t._choNoSpace.includes(toCho(ql))) return 1; // 설명·연관어 등
+  return 0;
+}
+
 /* ───────── 필터/검색 ───────── */
 function matches(t, q) {
   if (!q) return true;
-  const ql = q.toLowerCase();
-  if (isAllCho(q)) return t._cho.includes(ql);   // 초성만 입력 시 초성 매칭
-  return t._hay.includes(ql) || t._cho.includes(toCho(ql));
+  const ql = q.toLowerCase().replace(/\s+/g, "");   // 검색어 공백 제거
+  if (!ql) return true;
+  if (isAllCho(ql)) return t._choNoSpace.includes(ql);   // 초성만 입력 시 초성 매칭
+  return t._hayNoSpace.includes(ql) || t._choNoSpace.includes(toCho(ql));
 }
 
 function render() {
   let list = TERMS.filter(t => (activeCat === "전체" || t.category === activeCat) && matches(t, query));
 
-  if (el.sort.value === "az") {
+  if (el.sort.value === "rel") {
+    list.forEach(t => { t._score = relScore(t, query); });
+    list.sort((a,b) => b._score - a._score || a.term.localeCompare(b.term, "ko"));
+  } else if (el.sort.value === "az") {
     list.sort((a,b) => a.term.localeCompare(b.term, "ko"));
   } else {
     list.sort((a,b) => a.category.localeCompare(b.category, "ko") || a.term.localeCompare(b.term, "ko"));
@@ -373,9 +420,12 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;",
 function escapeAttr(s){ return escapeHtml(s); }
 function highlight(s, q) {
   const safe = escapeHtml(s);
-  if (!q || isAllCho(q)) return safe;
+  const qNoSpace = q.replace(/\s+/g, "");
+  if (!qNoSpace || isAllCho(qNoSpace)) return safe;
   try {
-    const re = new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")", "gi");
+    // 글자 사이 공백을 허용하여 '복합mas'로도 '복합 MAS'를 강조
+    const pattern = [...qNoSpace].map(c => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s*");
+    const re = new RegExp("(" + pattern + ")", "gi");
     return safe.replace(re, "<mark>$1</mark>");
   } catch(e){ return safe; }
 }
