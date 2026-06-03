@@ -53,7 +53,10 @@ node hands-on/explain-exam/verify-data.js <예제 디렉터리>/explain/data.js
 ### 5. (권장) 실제 렌더 확인
 - 로컬 HTTP 또는 headless Chrome로 file:// 렌더를 확인함(아래 "테스트" 참고).
 
-### 6. 사용자 안내
+### 6. 실습 인덱스 추가
+- `hands-on/index.html` 의 적절한 위치에 `<예제 디렉터리>` 항목을 추가하여 교육생이 쉽게 찾도록 함.
+
+### 7. 사용자 안내
 - 가장 간단한 방법: **`<예제 디렉터리>/explain/index.html` 을 더블클릭** (launcher가 공용 셸로 자동 연결).
 - 또는 직접 열기: `hands-on/explain-exam/index.html?data=<예제 data.js 상대경로>`
   - 예: `hands-on/explain-exam/index.html?data=../09.langchain/claude/explain/data.js`
@@ -165,6 +168,7 @@ window.EXPLAIN_DATA = {
 - 좌측에 처리 흐름 + 함수가 파일별로 표시(메인 + 의존 모듈 전부).
 - 함수 클릭 시 중앙 소스 + 우측 요약·동작원리·줄별 풀이·용어가 표시되고, 줄별 풀이의 줄 번호가 코드와 일치.
 - `explain-exam/index.html?data=<상대경로>`로 열면 빈 화면·한글 깨짐 없이 렌더됨.
+- `hands-on/index.html` 의 적절한 위치에 `<예제 디렉터리>` 항목이 추가 되어 있음.
 
 ## 테스트 방법 (참고)
 로컬 HTTP:

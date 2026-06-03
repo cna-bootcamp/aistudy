@@ -62,8 +62,10 @@ except ModuleNotFoundError:
 # ---------------------------------------------------------------------------
 # 경로 설정 (이식성을 위해 모든 경로를 __file__ 기준으로 도출)
 # ---------------------------------------------------------------------------
-SCRIPT_DIR = Path(__file__).resolve().parent   # 이 파일이 위치한 디렉터리(ragas/)를 절대경로로 구함
-RAG_DIR = SCRIPT_DIR.parent                     # hands-on/10.rag/
+SCRIPT_DIR = Path(__file__).resolve().parent   # 이 파일이 위치한 디렉터리(11.rag-tuning/ragas/)를 절대경로로 구함
+# 인덱싱·생성 로직과 공용 벡터 DB는 10.rag/에 있으므로, RAG_DIR을 상위 챕터(10.rag)로 명시적으로 지정함
+# (11.rag-tuning/re-ranking/app.py와 동일한 cross-chapter 재사용 규칙)
+RAG_DIR = SCRIPT_DIR.parent.parent / "10.rag"   # hands-on/10.rag/ (공용 자산 위치)
 DATA_DIR = RAG_DIR / "data"                     # 인덱싱 대상 PDF 디렉터리
 INDEXING_DIR = RAG_DIR / "indexing"             # 인덱싱 파이프라인(전처리·분할 로직 재사용 대상)
 NAIVE_DIR = RAG_DIR / "naive"                   # naive RAG 예제(생성 파이프라인 재사용 대상)

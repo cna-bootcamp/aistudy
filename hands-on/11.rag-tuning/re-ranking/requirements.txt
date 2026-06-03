@@ -1,0 +1,33 @@
+# LangChain core framework (this example uses the langchain 1.x import layout)
+langchain>=1.0.0
+
+# LangChain 1.x classic retrievers — ContextualCompressionRetriever and CrossEncoderReranker
+# moved here from `langchain.retrievers...` in 1.x. `langchain` does NOT pull this in
+# transitively, so it must be declared explicitly or a fresh install raises ImportError.
+langchain-classic>=1.0.0
+
+# LangChain community integrations (HuggingFaceCrossEncoder wrapper)
+langchain-community>=0.3.0
+
+# OpenAI integration (query embedding: text-embedding-3-small, must match the indexed corpus)
+langchain-openai>=0.2.0
+
+# Groq integration (LLM: openai/gpt-oss-120b on Groq LPU)
+langchain-groq>=0.2.0
+
+# ChromaDB integration for LangChain (loads the shared vector DB)
+langchain-chroma>=0.1.4
+
+# ChromaDB vector database (local persistence backend)
+chromadb>=0.5.0
+
+# Cross-encoder backend used by HuggingFaceCrossEncoder (loads dragonkue/bge-reranker-v2-m3-ko).
+# Replaces FlagEmbedding from the 10.rag/re-ranking example: the LangChain Compressor path
+# routes through sentence-transformers' CrossEncoder instead of FlagReranker.
+# NOTE: Do NOT add `torch` here. On Windows the global CUDA build is shared via
+#       `python -m venv venv --system-site-packages`; pinning torch would pull a
+#       CPU-only wheel and break GPU acceleration.
+sentence-transformers>=3.0.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0
