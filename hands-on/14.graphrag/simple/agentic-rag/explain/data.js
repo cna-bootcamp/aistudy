@@ -80,7 +80,7 @@ window.EXPLAIN_DATA = {
         { at: "if not seed_ids:", text: "진입 엔티티가 하나도 없으면 빈 목록을 반환합니다. 불필요한 Cypher 실행을 막습니다." },
         { at: "\"MATCH (n:__Entity__)-[r]-(m:__Entity__) \"", text: "양쪽 끝(n, m)이 모두 __Entity__ 라벨인 관계만 찾습니다. 해시 id를 가진 원본 문서 노드가 결과에 섞이지 않게 합니다." },
         { at: "\"WHERE n.id IN $seed_ids AND type(r) <> 'MENTIONS' \"", text: "진입 엔티티에서 출발하는 관계만 고르되, 출처 연결용 MENTIONS 관계는 뺍니다. 의미 있는 법률 관계(REQUIRES, APPLIES_TO 등)만 남습니다." },
-        { at: "params={\"seed_ids\": seed_ids, \"limit\": GRAPH_EXPAND_LIMIT},", text: "Cypher에 진입 엔티티 목록과 최대 건수(20)를 안전하게 전달합니다. 값을 직접 문자열에 끼우지 않아 인젝션을 막습니다." }
+        { at: "params={\"seed_ids\": seed_ids, \"limit\": GRAPH_EXPAND_LIMIT},", text: "Cypher에 진입 엔티티 목록과 최대 건수(40)를 안전하게 전달합니다. 값을 직접 문자열에 끼우지 않아 인젝션을 막습니다." }
       ],
       code: `def _expand_graph(self, seed_ids: list[str]) -> list[dict[str, Any]]:
     """진입 엔티티의 1-hop 이웃 관계를 조회함 (그래프 기반 멀티홉 추론 근거).

@@ -94,9 +94,9 @@ NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD", "password")
 ENTITY_INDEX_NAME = "entity_embedding"       # KG 엔티티(id+description) 벡터 인덱스
 DOC_INDEX_NAME = "doc_embedding"             # 조문 청크 텍스트 벡터 인덱스
 
-ENTITY_TOP_K = 5                             # entity_embedding 진입 엔티티 검색 수
+ENTITY_TOP_K = 8                             # entity_embedding 진입 엔티티 검색 수 (멀티홉 커버리지 위해 5→8 상향)
 DOC_TOP_K = 5                                # doc_embedding 조문 청크 검색 수
-GRAPH_EXPAND_LIMIT = 20                      # 진입 엔티티의 1-hop 관계 확장 최대 건수
+GRAPH_EXPAND_LIMIT = 40                      # 진입 엔티티의 1-hop 관계 확장 최대 건수 (멀티홉 위해 20→40 상향)
 
 WEB_MAX_RESULTS = 5                          # 웹(DuckDuckGo) 검색 결과 수 (MUST: 최신 5개)
 YOUTUBE_MAX_RESULTS = 5                      # YouTube 검색 결과 수
@@ -699,6 +699,13 @@ class AgenticRAG:
             if not support.is_supported:
                 print("\n[Generate] 근거 부족 → 엄격 근거 기반으로 답변 재생성 중...")
                 answer = self._generate_answer(state, context, strict=True)
+                # 엄격 재생성한 답변(최종 반환 답변)을 다시 평가해 IsSup를 갱신함.
+                # 재평가하지 않으면 첫 답변 기준 False가 그대로 보고되어, '실제 반환되는 답변'과
+                # IsSup 토큰이 어긋남(Self-RAG의 IsSup는 반환되는 답변의 근거성을 기술해야 함).
+                print("\n[IsSup] 재생성 답변 근거성 재평가 중...")
+                support = self._grade_support(answer, context)
+                is_supported = support.is_supported
+                print(f"  → 재평가 근거 있음: {support.is_supported} ({support.reasoning})")
 
         # 출처 섹션을 코드에서 직접 구성해 URL 누락을 방지함 (MUST)
         sources_section = build_sources_section(state)
