@@ -1,0 +1,33 @@
+# LangGraph: StateGraph-based agent workflow orchestration
+langgraph>=0.2.0
+
+# LangChain core framework (Runnable, prompts, output parsers, Document)
+langchain-core>=0.3.0
+
+# Groq LPU chat model integration (ChatGroq, openai/gpt-oss-120b)
+langchain-groq>=0.2.0
+
+# OpenAI integration (query embeddings: text-embedding-3-small)
+langchain-openai>=0.2.0
+
+# Neo4j graph + vector index integration (GraphRAG retrieval backend)
+langchain-neo4j>=0.3.0
+neo4j>=5.0.0
+
+# LangChain community tools/utilities (DuckDuckGoSearchAPIWrapper)
+langchain-community>=0.3.0
+
+# DuckDuckGo web search backend (legacy package name, still imported by wrapper)
+duckduckgo-search>=6.0.0
+
+# DuckDuckGo search engine (new package; required after duckduckgo-search rename)
+ddgs>=6.0.0
+
+# Google API client for YouTube Data API v3 (date-filtered video search)
+google-api-python-client>=2.100.0
+
+# Structured output schemas for routing / reflection tokens
+pydantic>=2.0.0
+
+# Environment variable management (.env file support)
+python-dotenv>=1.0.0

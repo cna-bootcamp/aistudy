@@ -1,0 +1,21 @@
+# Python 가상환경 / 캐시
+indexing/venv/
+agentic-rag/venv/
+**/__pycache__/
+*.pyc
+
+# 인덱싱·챗봇 로그 (런타임 생성물)
+indexing/logs/*.log
+agentic-rag/logs/*.log
+
+# 로컬 오버라이드 환경변수 (커밋 금지)
+indexing/.env
+agentic-rag/.env
+
+# Neo4j 볼륨 데이터 (런타임 생성·대용량) — 디렉토리 구조는 .gitkeep으로 유지
+store/neo4j/data/*
+!store/neo4j/data/.gitkeep
+store/neo4j/logs/*
+!store/neo4j/logs/.gitkeep
+store/neo4j/plugins/*
+!store/neo4j/plugins/.gitkeep

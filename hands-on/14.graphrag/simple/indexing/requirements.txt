@@ -1,0 +1,24 @@
+# LangChain Core
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+
+# 엔티티/관계 추출 (LLMGraphTransformer)
+langchain-experimental>=0.3.0
+
+# Neo4j 그래프 + 벡터 인덱스 통합
+langchain-neo4j>=0.3.0
+neo4j>=5.0.0
+
+# OpenAI 임베딩 + Groq LPU LLM(OpenAI 호환 API) — 둘 다 langchain-openai 사용
+langchain-openai>=0.3.0
+
+# 텍스트 청킹
+langchain-text-splitters>=0.3.0
+
+# PDF 로드 (PyPDFLoader 백엔드)
+pypdf>=4.0.0
+
+# 유틸리티
+python-dotenv>=1.0.0
+tqdm>=4.65.0
