@@ -95,13 +95,13 @@ if str(COMMON_DIR) not in sys.path:
       name: "get_agent()",
       fileId: "main",
       summary: "Gemini 모델과 도구들을 묶어 ReAct 에이전트를 한 번만 만들어 두고 앱이 살아있는 동안 재사용함.",
-      how: "@st.cache_resource 덕분에 앱을 처음 시작할 때 딱 한 번만 실행되고 이후에는 캐시된 결과를 바로 돌려줌. Claude 버전과 달리 prompt=SYSTEM_PROMPT를 에이전트 생성 시 바로 주입함. 이렇게 하면 build_history()에서 SystemMessage를 따로 넣을 필요가 없음.",
-      terms: ["@st.cache_resource", "ChatGoogleGenerativeAI", "create_react_agent", "ReAct 루프", "temperature", "bind_tools"],
+      how: "@st.cache_resource 덕분에 앱을 처음 시작할 때 딱 한 번만 실행되고 이후에는 캐시된 결과를 바로 돌려줌. Claude 버전과 달리 system_prompt=SYSTEM_PROMPT를 에이전트 생성 시 바로 주입함. 이렇게 하면 build_history()에서 SystemMessage를 따로 넣을 필요가 없음.",
+      terms: ["@st.cache_resource", "ChatGoogleGenerativeAI", "create_agent", "ReAct 루프", "temperature", "bind_tools"],
       lines: [
         { at: "# @st.cache_resource: 앱 재시작 전까지", text: "★핵심★ 이 데코레이터 덕분에 앱 재시작 전까지 함수가 딱 한 번만 실행됨. 만든 에이전트를 저장해 두고 이후 호출에서 바로 꺼내 씀(캐싱)." },
         { at: "api_key = require_api_key(\"GEMINI_API_KEY\")", text: "require_api_key()로 Gemini API 키를 가져옴. 키가 없으면 친절한 오류를 냄." },
         { at: "llm = ChatGoogleGenerativeAI(model=MODEL_NAME, google_api_key=api_key, temperature=0)", text: "ChatGoogleGenerativeAI는 Gemini 모델을 LangChain에서 쓰기 쉽게 감싼 객체임. temperature=0은 '매번 일관된 답'을 내게 함." },
-        { at: "return create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)", text: "★핵심★ create_react_agent가 'AI + 도구목록 + 지침서'를 받아 ReAct 루프를 자동 처리하는 에이전트를 만들어 반환함. prompt=로 지침서를 에이전트에 직접 주입함." },
+        { at: "return create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)", text: "★핵심★ create_agent가 'AI + 도구목록 + 지침서'를 받아 ReAct 루프를 자동 처리하는 에이전트를 만들어 반환함. system_prompt=로 지침서를 에이전트에 직접 주입함." },
       ],
       code:
 `# @st.cache_resource: 앱 재시작 전까지 한 번만 실행하여 결과를 캐싱함
@@ -109,7 +109,7 @@ if str(COMMON_DIR) not in sys.path:
 def get_agent():
     """ChatGoogleGenerativeAI + TRAVEL_TOOLS로 ReAct 에이전트를 지연 생성 후 캐싱.
 
-    create_react_agent(llm, tools) 동작 원리:
+    create_agent(llm, tools) 동작 원리:
     1. llm.bind_tools(tools)로 LLM에 도구 스키마를 바인딩
     2. LLM 호출 → tool_calls 있으면 도구 실행 → 결과를 ToolMessage로 추가
     3. tool_calls가 없을 때까지 2번 반복 (ReAct 루프)
@@ -118,7 +118,7 @@ def get_agent():
     """
     api_key = require_api_key("GEMINI_API_KEY")
     llm = ChatGoogleGenerativeAI(model=MODEL_NAME, google_api_key=api_key, temperature=0)
-    return create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)`,
+    return create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)`,
     },
     {
       id: "initialize_session_state",
@@ -147,7 +147,7 @@ def get_agent():
       name: "build_history()",
       fileId: "main",
       summary: "화면에 쌓인 대화를 AI가 알아듣는 HumanMessage / AIMessage 배열로 변환함.",
-      how: "Claude 버전의 build_messages()와 달리 SystemMessage를 넣지 않음. 에이전트를 만들 때(get_agent) 이미 prompt=SYSTEM_PROMPT로 지침서를 주입했기 때문임. 비용 절약을 위해 최근 10개 대화만 포함하고, ToolMessage(도구 실행 결과)는 제외하고 사람-AI 대화만 전달함.",
+      how: "Claude 버전의 build_messages()와 달리 SystemMessage를 넣지 않음. 에이전트를 만들 때(get_agent) 이미 system_prompt=SYSTEM_PROMPT로 지침서를 주입했기 때문임. 비용 절약을 위해 최근 10개 대화만 포함하고, ToolMessage(도구 실행 결과)는 제외하고 사람-AI 대화만 전달함.",
       terms: ["HumanMessage", "AIMessage", "리스트(list)", "타입 힌트"],
       lines: [
         { at: "for message in st.session_state.messages[-10:]:", text: "[-10:]은 '뒤에서 10개만' 잘라오는 파이썬 문법임. 대화가 길어질수록 비용이 늘기 때문에 최근 것만 보냄." },
@@ -311,7 +311,7 @@ def get_agent():
         layout="centered",
     )
     st.title(APP_TITLE)
-    st.caption("LangChain + Gemini + create_react_agent + Streaming + Streamlit")
+    st.caption("LangChain + Gemini + create_agent + Streaming + Streamlit")
 
     initialize_session_state()
     display_sidebar()
@@ -603,8 +603,8 @@ def get_restaurants(
       name: "SYSTEM_PROMPT (상수)",
       fileId: "prompts",
       summary: "AI에게 '너는 여행 플래너야, 이렇게 행동해'라고 알려주는 지침서(시스템 프롬프트) 글임.",
-      how: "코드가 아니라 'AI에게 주는 규칙을 적은 긴 문장'임. Claude 버전과 달리 이 프롬프트는 build_history()가 아닌 get_agent()에서 create_react_agent(..., prompt=SYSTEM_PROMPT)로 주입됨. 에이전트 생성 시 이미 포함되므로 매 대화마다 따로 추가할 필요 없음.",
-      terms: ["create_react_agent", "SystemMessage"],
+      how: "코드가 아니라 'AI에게 주는 규칙을 적은 긴 문장'임. Claude 버전과 달리 이 프롬프트는 build_history()가 아닌 get_agent()에서 create_agent(..., system_prompt=SYSTEM_PROMPT)로 주입됨. 에이전트 생성 시 이미 포함되므로 매 대화마다 따로 추가할 필요 없음.",
+      terms: ["create_agent", "SystemMessage"],
       lines: [
         { at: "DEFAULT_MAX_RESULTS = 8", text: "DEFAULT_MAX_RESULTS = 8: 검색 결과 기본 개수. 도구들이 이 값을 기본값으로 사용함." },
         { at: "SYSTEM_PROMPT = \"\"\"당신은 여행 중인", text: "이 따옴표 세 개(\"\"\" \"\"\")로 둘러싼 긴 글 전체가 AI에게 주는 지침임." },
@@ -742,7 +742,7 @@ USAGE_GUIDE = """### 사용 예시
 
 TECH_GUIDE = """### LangChain ReAct 흐름
 1. 사용자 요청 → HumanMessage 변환
-2. create_react_agent가 LLM + 도구 루프 자동 실행
+2. create_agent가 LLM + 도구 루프 자동 실행
 3. LLM이 tool_calls 생성 → 도구 실행 → ToolMessage로 결과 추가
 4. tool_calls가 없을 때까지 3번 반복
 5. 최종 AIMessage를 스트리밍으로 렌더링
@@ -762,7 +762,7 @@ TECH_GUIDE = """### LangChain ReAct 흐름
     "@st.cache_resource": "함수 위에 붙이는 데코레이터. 앱이 시작된 뒤 처음 한 번만 함수를 실행하고 결과를 저장해 두어, 이후 호출에서 저장된 결과를 바로 꺼내 씀(캐싱). AI 모델·에이전트처럼 만드는 데 비용이 드는 객체에 적합함.",
     "LangChain": "여러 AI 모델과 도구를 한 방식으로 쉽게 다루게 해주는 인기 라이브러리. 모델이 바뀌어도 코드를 거의 그대로 쓸 수 있게 해줌.",
     "ChatGoogleGenerativeAI": "Google의 Gemini 모델을 LangChain에서 쓰기 쉽게 감싼 객체. llm.invoke()나 llm.stream()으로 대화를 요청함.",
-    "create_react_agent": "AI 모델과 도구 목록을 받아, '생각→도구 호출→결과 관찰'을 자동 반복하는 에이전트를 만들어 주는 함수. 개발자가 반복문을 직접 짤 필요가 없어짐.",
+    "create_agent": "AI 모델과 도구 목록을 받아, '생각→도구 호출→결과 관찰'을 자동 반복하는 에이전트를 만들어 주는 함수. 개발자가 반복문을 직접 짤 필요가 없어짐. LangChain 1.0의 표준 에이전트 생성자(langchain.agents)로, 이전의 create_react_agent를 대체함.",
     "ReAct 루프": "'Reasoning(추론) + Acting(행동)'의 줄임말. AI가 생각하고 → 도구를 호출하고 → 결과를 보고 → 다시 생각하는 과정을, 더 할 일이 없을 때까지 반복하는 것.",
     "bind_tools": "AI 모델에게 '네가 쓸 수 있는 도구는 이것들이야'라고 도구 설명을 붙여주는 작업. 이래야 AI가 도구를 호출할 수 있음.",
     "temperature": "AI 답변의 '창의성/무작위성' 정도(0~1 등). 0에 가까울수록 매번 비슷하고 일관된 답을, 높을수록 다양한 답을 냄.",

@@ -2,7 +2,7 @@
 
 [08.function-call 대비 핵심 변경 사항]
   Before: client.models.generate_content() → function_calls 감지 → Part.from_function_response() → 재호출 (수동 루프)
-  After : create_react_agent(llm, TRAVEL_TOOLS) → agent.invoke() 한 번으로 ReAct 루프 자동 처리
+  After : create_agent(llm, TRAVEL_TOOLS) → agent.invoke() 한 번으로 ReAct 루프 자동 처리
 """
 
 from __future__ import annotations  # 타입 힌트를 문자열로 평가해 순환 참조 없이 사용할 수 있게 함
@@ -12,7 +12,7 @@ from typing import Any
 
 import streamlit as st
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langgraph.prebuilt import create_react_agent
+from langchain.agents import create_agent
 # HumanMessage / AIMessage / SystemMessage / ToolMessage: LangChain 메시지 타입 (role을 객체로 표현)
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
@@ -44,7 +44,7 @@ def initialize_session_state() -> None:
 def get_agent():
     """ChatGoogleGenerativeAI + TRAVEL_TOOLS로 ReAct 에이전트를 지연 생성 후 캐싱.
 
-    create_react_agent(llm, tools) 동작 원리:
+    create_agent(llm, tools) 동작 원리:
     1. llm.bind_tools(tools)로 LLM에 도구 스키마를 바인딩
     2. LLM 호출 → tool_calls 있으면 도구 실행 → 결과를 ToolMessage로 추가
     3. tool_calls가 없을 때까지 2번 반복 (ReAct 루프)
@@ -55,8 +55,8 @@ def get_agent():
         api_key = require_api_key("GEMINI_API_KEY")
         # ChatGoogleGenerativeAI: LangChain Google Generative AI 채팅 모델 래퍼 (llm.invoke()로 대화 요청 전송)
         llm = ChatGoogleGenerativeAI(model=MODEL_NAME, google_api_key=api_key, temperature=0)
-        # create_react_agent: LLM + 도구 목록 → 컴파일된 ReAct 루프 그래프
-        st.session_state.agent = create_react_agent(llm, TRAVEL_TOOLS)
+        # create_agent: LLM + 도구 목록 → 컴파일된 ReAct 루프 그래프 (LangChain 1.0 표준 에이전트 생성자)
+        st.session_state.agent = create_agent(llm, TRAVEL_TOOLS)
     return st.session_state.agent
 
 
@@ -159,7 +159,7 @@ def main() -> None:
         layout="centered",
     )
     st.title(f"{APP_ICON} {APP_TITLE}")
-    st.caption("LangChain ChatGoogleGenerativeAI + create_react_agent + Streamlit")
+    st.caption("LangChain ChatGoogleGenerativeAI + create_agent + Streamlit")
 
     initialize_session_state()
     display_sidebar()

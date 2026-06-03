@@ -32,7 +32,7 @@ USAGE_GUIDE = """### 사용 예시
 
 TECH_GUIDE = """### LangChain ReAct 흐름
 1. 사용자 요청 → HumanMessage 변환
-2. create_react_agent가 LLM + 도구 루프 자동 실행
+2. create_agent가 LLM + 도구 루프 자동 실행
 3. LLM이 tool_calls 생성 → 도구 실행 → ToolMessage로 결과 추가
 4. tool_calls가 없을 때까지 3번 반복
 5. 최종 AIMessage를 스트리밍으로 렌더링

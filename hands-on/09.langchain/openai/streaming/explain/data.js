@@ -28,7 +28,7 @@ window.EXPLAIN_DATA = {
       detail: "프로그램의 '시작 버튼'이 main() 함수임. 가게 문을 열고 간판을 거는 단계에 비유할 수 있음. initialize_session_state()가 '대화 내용·도구 호출 기록·대화 횟수'를 담을 빈 상자를 만들어 둠. 이 버전은 @st.cache_resource로 에이전트를 앱 전체에서 한 번만 생성함." },
     { step: 2, title: "에이전트 준비",
       summary: "get_agent()가 ChatOpenAI와 도구를 묶어 ReAct 에이전트를 한 번만 만들고 캐싱함",
-      detail: "@st.cache_resource 덕분에 앱이 처음 실행될 때 한 번만 에이전트를 만들고, 이후 요청은 같은 에이전트를 재사용함. create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)로 도구 목록과 지침서까지 한 번에 주입함." },
+      detail: "@st.cache_resource 덕분에 앱이 처음 실행될 때 한 번만 에이전트를 만들고, 이후 요청은 같은 에이전트를 재사용함. create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)로 도구 목록과 지침서까지 한 번에 주입함." },
     { step: 3, title: "화면 구성",
       summary: "왼쪽 사이드바(사용법·도구 기록)와 환영 인사, 이전 대화를 화면에 그림",
       detail: "손님이 앉기 전 메뉴판과 안내문을 세팅하는 단계임. display_sidebar()는 왼쪽 도움말을, display_chat_history()는 지금까지 오간 대화를 다시 그려줌." },
@@ -40,7 +40,7 @@ window.EXPLAIN_DATA = {
       detail: "주문서를 받아 적고 손님에게 '주문 확인됐습니다'라고 보여주는 단계임. 입력은 messages 목록에 저장되어 다음 대화에서도 맥락으로 활용됨." },
     { step: 6, title: "히스토리 변환",
       summary: "build_history()가 최근 대화를 LangChain 메시지 객체로 변환함",
-      detail: "AI가 알아듣는 형식으로 이전 대화를 정리하는 단계임. 비용 절약을 위해 최근 10개만 포함하고 사람 말은 HumanMessage, AI 말은 AIMessage로 바꿈. 이 버전은 SystemMessage를 build_history()에서 넣지 않고 get_agent()에서 prompt= 인자로 미리 주입함." },
+      detail: "AI가 알아듣는 형식으로 이전 대화를 정리하는 단계임. 비용 절약을 위해 최근 10개만 포함하고 사람 말은 HumanMessage, AI 말은 AIMessage로 바꿈. 이 버전은 SystemMessage를 build_history()에서 넣지 않고 get_agent()에서 system_prompt= 인자로 미리 주입함." },
     { step: 7, title: "스트리밍 실행",
       summary: "stream_response()가 에이전트의 stream()을 호출해 텍스트를 실시간으로 yield함",
       detail: "주방장(AI)이 요리하면서 완성된 부분부터 즉시 내보내는 단계임. invoke() 방식은 답이 완성된 뒤 한꺼번에 보여주지만, stream()은 글자가 생성되는 즉시 화면에 표시함. AIMessageChunk로 텍스트가 조각조각 들어오고, ToolMessage로 도구 실행 결과가 들어옴." },
@@ -63,7 +63,7 @@ window.EXPLAIN_DATA = {
       fileId: "main",
       summary: "파일 맨 위에서 공통 모듈 경로를 등록하고, LangChain·Streamlit 관련 라이브러리를 import함.",
       how: "이 파일은 streaming/ 하위에 있어 common/ 디렉터리가 파이썬 검색 경로에 없음. sys.path.insert(0, ...)로 common/ 경로를 맨 앞에 추가해야 from llm import ... 같은 로컬 import가 동작함. from __future__ import annotations는 타입 힌트를 문자열로 평가해 순환 참조 없이 쓸 수 있게 하는 파이썬 관용구임.",
-      terms: ["from __future__ import annotations", "sys.path.insert", "ChatOpenAI", "AIMessageChunk", "create_react_agent", "Generator"],
+      terms: ["from __future__ import annotations", "sys.path.insert", "ChatOpenAI", "AIMessageChunk", "create_agent", "Generator"],
       lines: [
         { at: "from __future__ import annotations", text: "타입 힌트를 문자열로 평가해 순환 참조 없이 사용할 수 있게 하는 파이썬 관용구임. 파일 맨 위에 위치함." },
         { at: "CURRENT_DIR = Path(__file__).resolve().parent", text: "이 파일이 위치한 디렉터리 경로를 절대경로로 구함. 어디서 실행해도 경로가 어긋나지 않게 함." },
@@ -71,14 +71,14 @@ window.EXPLAIN_DATA = {
         { at: 'sys.path.insert(0, str(COMMON_DIR))', text: "파이썬이 모듈을 검색하는 경로 목록 맨 앞에 common/ 디렉터리를 추가함. 이 줄이 없으면 from llm import ... 가 실패함." },
         { at: "from langchain_openai import ChatOpenAI", text: "ChatOpenAI: LangChain OpenAI 채팅 모델 래퍼임. llm.invoke() 또는 stream()으로 대화 요청을 전송함." },
         { at: "from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage", text: "LangChain 메시지 타입들. AIMessageChunk는 스트리밍 시 텍스트 조각(청크) 하나를 담는 객체임." },
-        { at: "from langgraph.prebuilt import create_react_agent", text: "create_react_agent: LLM + 도구 목록 → 컴파일된 ReAct 루프 그래프를 만드는 함수임." },
+        { at: "from langchain.agents import create_agent", text: "create_agent: LLM + 도구 목록 → 컴파일된 ReAct 루프 그래프를 만드는 함수임 (LangChain 1.0 표준 에이전트 생성자)." },
       ],
       code:
 `"""LangChain + OpenAI 여행 플래너 (Streamlit 웹채팅) - Streaming 버전.
 
 [08.function-call 대비 핵심 변경 사항]
   Before: chat.completions.create(stream=True) → delta.tool_calls 누적 → finish_reason 감지 → 수동 루프
-  After : create_react_agent(llm, TRAVEL_TOOLS) → agent.stream() 한 번으로 루프 자동 처리
+  After : create_agent(llm, TRAVEL_TOOLS) → agent.stream() 한 번으로 루프 자동 처리
 """
 
 from __future__ import annotations  # 타입 힌트를 문자열로 평가해 순환 참조 없이 사용할 수 있게 함
@@ -104,8 +104,8 @@ if str(COMMON_DIR) not in sys.path:
 from langchain_openai import ChatOpenAI
 # HumanMessage / AIMessage / ToolMessage: LangChain 메시지 타입 (role을 객체로 표현)
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
-# create_react_agent: LLM + 도구 목록 → 컴파일된 ReAct 루프 그래프
-from langgraph.prebuilt import create_react_agent
+# create_agent: LLM + 도구 목록 → 컴파일된 ReAct 루프 그래프 (LangChain 1.0 표준 에이전트 생성자)
+from langchain.agents import create_agent
 
 from llm import require_api_key
 from prompts import SYSTEM_PROMPT
@@ -119,13 +119,13 @@ MODEL_NAME = "gpt-5.5"`,
       name: "get_agent()",
       fileId: "main",
       summary: "ChatOpenAI + 도구들을 묶어 ReAct 에이전트를 앱 전체에서 한 번만 만들어 캐싱함.",
-      how: "@st.cache_resource 덕분에 앱이 처음 실행될 때 한 번만 에이전트를 만들고 이후에는 저장된 것을 재사용함. claude 버전과 달리 create_react_agent에 prompt=SYSTEM_PROMPT를 직접 넣어, 에이전트가 항상 지침서를 갖고 동작하게 함. build_history()에서는 별도로 SystemMessage를 추가할 필요가 없음.",
-      terms: ["@st.cache_resource", "ChatOpenAI", "create_react_agent", "ReAct 루프", "temperature"],
+      how: "@st.cache_resource 덕분에 앱이 처음 실행될 때 한 번만 에이전트를 만들고 이후에는 저장된 것을 재사용함. claude 버전과 달리 create_agent에 system_prompt=SYSTEM_PROMPT를 직접 넣어, 에이전트가 항상 지침서를 갖고 동작하게 함. build_history()에서는 별도로 SystemMessage를 추가할 필요가 없음.",
+      terms: ["@st.cache_resource", "ChatOpenAI", "create_agent", "ReAct 루프", "temperature"],
       lines: [
         { at: "# @st.cache_resource: 앱 재시작 전까지", text: "★핵심★ @st.cache_resource는 앱 재시작 전까지 이 함수를 단 한 번만 실행해 결과를 캐싱함. 에이전트 생성 비용을 아끼는 Streamlit 전용 기법임." },
         { at: "api_key = require_api_key(\"OPENAI_API_KEY\")", text: "require_api_key()로 OpenAI API 키를 가져옴. 키가 없으면 여기서 친절한 오류를 냄." },
         { at: "llm = ChatOpenAI(model=MODEL_NAME, api_key=api_key, temperature=0)", text: "ChatOpenAI는 OpenAI 모델을 LangChain에서 쓰기 쉽게 감싼 객체임. temperature=0은 '매번 일관된 답'을 내게 함." },
-        { at: "return create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)", text: "★핵심★ prompt=SYSTEM_PROMPT를 함께 넘겨 에이전트 자체에 지침서를 내장함. claude 버전이 build_messages()에서 SystemMessage를 넣던 것과 다른 방식임." },
+        { at: "return create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)", text: "★핵심★ system_prompt=SYSTEM_PROMPT를 함께 넘겨 에이전트 자체에 지침서를 내장함. claude 버전이 build_messages()에서 SystemMessage를 넣던 것과 다른 방식임." },
       ],
       code:
 `# @st.cache_resource: 앱 재시작 전까지 한 번만 실행하여 결과를 캐싱함
@@ -133,7 +133,7 @@ MODEL_NAME = "gpt-5.5"`,
 def get_agent():
     """ChatOpenAI + TRAVEL_TOOLS로 ReAct 에이전트를 지연 생성 후 캐싱.
 
-    create_react_agent(llm, tools) 동작 원리:
+    create_agent(llm, tools) 동작 원리:
     1. llm.bind_tools(tools)로 LLM에 도구 스키마를 바인딩
     2. LLM 호출 → tool_calls 있으면 도구 실행 → 결과를 ToolMessage로 추가
     3. tool_calls가 없을 때까지 2번 반복 (ReAct 루프)
@@ -142,7 +142,7 @@ def get_agent():
     """
     api_key = require_api_key("OPENAI_API_KEY")
     llm = ChatOpenAI(model=MODEL_NAME, api_key=api_key, temperature=0)
-    return create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)`,
+    return create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)`,
     },
     {
       id: "initialize_session_state",
@@ -171,7 +171,7 @@ def get_agent():
       name: "build_history()",
       fileId: "main",
       summary: "화면에 쌓인 대화를, AI가 알아듣는 메시지 객체 목록으로 변환함.",
-      how: "AI에게 보낼 '이전 대화 요약본'을 정리하는 함수임. claude 버전의 build_messages()와 달리 SystemMessage를 넣지 않음(get_agent()에서 prompt=로 이미 주입됨). 비용 절약을 위해 최근 10개만 포함함. 새 user_input도 여기서 추가하지 않고 stream_response()에서 직접 붙임.",
+      how: "AI에게 보낼 '이전 대화 요약본'을 정리하는 함수임. claude 버전의 build_messages()와 달리 SystemMessage를 넣지 않음(get_agent()에서 system_prompt=로 이미 주입됨). 비용 절약을 위해 최근 10개만 포함함. 새 user_input도 여기서 추가하지 않고 stream_response()에서 직접 붙임.",
       terms: ["HumanMessage", "AIMessage", "리스트(list)", "타입 힌트"],
       lines: [
         { at: "for message in st.session_state.messages[-10:]:", text: "[-10:]은 '뒤에서 10개만' 잘라오는 파이썬 문법임. 대화가 길어질수록 비용이 늘기 때문에 최근 것만 보냄." },
@@ -335,7 +335,7 @@ def get_agent():
         layout="centered",
     )
     st.title(APP_TITLE)
-    st.caption("LangChain + OpenAI + create_react_agent + Streaming + Streamlit")
+    st.caption("LangChain + OpenAI + create_agent + Streaming + Streamlit")
 
     initialize_session_state()
     display_sidebar()
@@ -628,8 +628,8 @@ def get_restaurants(
       name: "SYSTEM_PROMPT (상수)",
       fileId: "prompts",
       summary: "AI에게 '너는 여행 플래너야, 이렇게 행동해'라고 알려주는 지침서(시스템 프롬프트) 글임.",
-      how: "코드가 아니라 'AI에게 주는 규칙을 적은 긴 문장'임. 요청 유형 판단법, 도시명 영문 변환 규칙, 날씨에 따른 추천 기준, 장소 표기 형식 등을 자연어로 적어 둠. 이 버전은 get_agent()의 prompt= 인자로 에이전트 자체에 주입되어 매 대화에 항상 적용됨.",
-      terms: ["create_react_agent"],
+      how: "코드가 아니라 'AI에게 주는 규칙을 적은 긴 문장'임. 요청 유형 판단법, 도시명 영문 변환 규칙, 날씨에 따른 추천 기준, 장소 표기 형식 등을 자연어로 적어 둠. 이 버전은 get_agent()의 system_prompt= 인자로 에이전트 자체에 주입되어 매 대화에 항상 적용됨.",
+      terms: ["create_agent"],
       lines: [
         { at: "DEFAULT_MAX_RESULTS = 8", text: "DEFAULT_MAX_RESULTS = 8: 검색 결과 기본 개수. 도구들이 이 값을 기본값으로 사용함." },
         { at: 'SYSTEM_PROMPT = """', text: "이 따옴표 세 개(\"\"\")로 둘러싼 긴 글 전체가 AI에게 주는 지침임." },
@@ -767,7 +767,7 @@ USAGE_GUIDE = """### 사용 예시
 
 TECH_GUIDE = """### LangChain ReAct 흐름
 1. 사용자 요청 → HumanMessage 변환
-2. create_react_agent가 LLM + 도구 루프 자동 실행
+2. create_agent가 LLM + 도구 루프 자동 실행
 3. LLM이 tool_calls 생성 → 도구 실행 → ToolMessage로 결과 추가
 4. tool_calls가 없을 때까지 3번 반복
 5. 최종 AIMessage를 스트리밍으로 렌더링
@@ -787,7 +787,7 @@ TECH_GUIDE = """### LangChain ReAct 흐름
     "@st.cache_resource": "Streamlit 앱 재시작 전까지 함수 결과를 한 번만 만들어 캐싱하는 데코레이터. 에이전트·모델처럼 생성 비용이 큰 객체에 씀.",
     "LangChain": "여러 AI 모델과 도구를 한 방식으로 쉽게 다루게 해주는 인기 라이브러리. 모델이 바뀌어도 코드를 거의 그대로 쓸 수 있게 해줌.",
     "ChatOpenAI": "OpenAI 모델을 LangChain에서 쓰기 쉽게 감싼 객체. llm.invoke()로 대화를 요청함.",
-    "create_react_agent": "AI 모델과 도구 목록을 받아, '생각→도구 호출→결과 관찰'을 자동 반복하는 똑똑한 일꾼(에이전트)을 만들어 주는 함수. 개발자가 반복문을 직접 짤 필요가 없어짐.",
+    "create_agent": "AI 모델과 도구 목록을 받아, '생각→도구 호출→결과 관찰'을 자동 반복하는 똑똑한 일꾼(에이전트)을 만들어 주는 함수. 개발자가 반복문을 직접 짤 필요가 없어짐. LangChain 1.0의 표준 에이전트 생성자(langchain.agents)로, 이전의 create_react_agent를 대체함.",
     "ReAct 루프": "'Reasoning(추론) + Acting(행동)'의 줄임말. AI가 생각하고 → 도구를 호출하고 → 결과를 보고 → 다시 생각하는 과정을, 더 할 일이 없을 때까지 반복하는 것.",
     "agent.stream": "에이전트 실행 결과를 한꺼번에 기다리지 않고, 생성되는 즉시 조각(청크)으로 받아오는 메서드. invoke()의 스트리밍 버전임.",
     "stream_mode=\"messages\"": "agent.stream() 옵션. 이걸 지정하면 (메시지 청크, 메타데이터) 튜플을 순서대로 받아볼 수 있음.",

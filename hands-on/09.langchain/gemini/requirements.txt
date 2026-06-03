@@ -1,9 +1,11 @@
+# LangChain core + agents (create_agent)
+langchain>=1.0
 # LangChain framework core
-langchain-core>=0.3.0
+langchain-core>=1.0
 # Google Generative AI model wrapper for LangChain
 langchain-google-genai>=2.0.0
-# LangGraph prebuilt agent (create_react_agent)
-langgraph>=0.3.0
+# LangGraph runtime (create_agent가 내부적으로 컴파일하는 그래프 엔진)
+langgraph>=1.0
 # Streamlit web chat UI
 streamlit>=1.40.0
 # Environment variable loader

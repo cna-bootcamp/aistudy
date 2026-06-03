@@ -229,5 +229,5 @@ def get_restaurants(
         return {"error": f"Google Places 맛집 검색 오류: {exc}", "city": city_en}
 
 
-# 에이전트에 전달할 도구 목록. create_react_agent(llm, TRAVEL_TOOLS)에 직접 사용함.
+# 에이전트에 전달할 도구 목록. create_agent(llm, TRAVEL_TOOLS)에 직접 사용함.
 TRAVEL_TOOLS = [get_weather, get_tourist_attractions, get_restaurants]

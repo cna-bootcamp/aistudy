@@ -40,7 +40,7 @@ window.EXPLAIN_DATA = {
       detail: "AI가 알아듣는 형식으로 주문서를 정리하는 단계임. 맨 앞에 시스템 지침(SYSTEM_PROMPT)을 넣고, 비용 절약을 위해 최근 10개 대화만 함께 담음. 사람 말은 HumanMessage, AI 말은 AIMessage 객체로 변환함." },
     { step: 6, title: "AI 에이전트 실행",
       summary: "get_agent()가 만든 ReAct 에이전트가 invoke() 한 번으로 '생각→도구 호출→관찰' 루프를 자동 수행",
-      detail: "주방장(AI)에게 주문서를 넘기는 핵심 단계임. 예전 방식(08단계)에서는 개발자가 '도구 호출이 필요한가?'를 직접 반복 확인했지만, create_react_agent를 쓰면 이 반복(ReAct 루프)을 라이브러리가 알아서 처리함. 개발자는 invoke() 한 번만 부르면 됨." },
+      detail: "주방장(AI)에게 주문서를 넘기는 핵심 단계임. 예전 방식(08단계)에서는 개발자가 '도구 호출이 필요한가?'를 직접 반복 확인했지만, create_agent를 쓰면 이 반복(ReAct 루프)을 라이브러리가 알아서 처리함. 개발자는 invoke() 한 번만 부르면 됨." },
     { step: 7, title: "도구 자동 호출",
       summary: "에이전트가 필요한 도구(get_weather·get_tourist_attractions·get_restaurants)를 스스로 골라 호출함",
       detail: "주방장이 필요한 재료(외부 정보)를 직접 가져오는 단계임. '날씨'를 물으면 날씨 도구만, '여행 루트'를 물으면 세 도구를 모두 호출함. 도구는 인터넷 API(날씨·구글 지도)를 불러 실제 데이터를 받아옴." },
@@ -87,20 +87,20 @@ window.EXPLAIN_DATA = {
       name: "get_agent()",
       fileId: "main",
       summary: "AI 모델과 도구들을 묶어 'ReAct 에이전트'를 한 번만 만들어 두고, 이후에는 저장해 둔 것을 재사용함.",
-      how: "에이전트를 만드는 일은 비용이 들기 때문에, 매번 만들지 않고 처음 한 번만 만들어 st.session_state.agent에 보관함(이를 '지연 생성 + 캐싱'이라 함). 핵심은 create_react_agent(llm, TRAVEL_TOOLS): 이 한 줄이 'AI가 도구를 호출하고 결과를 보고 다시 판단하는' 반복 과정을 자동으로 처리하는 똑똑한 일꾼을 만들어 줌.",
-      terms: ["지연 생성(lazy)", "캐싱(cache)", "LangChain", "LangGraph", "ChatOpenAI", "create_react_agent", "ReAct 루프", "bind_tools", "temperature", "tool_calls", "AIMessage", "ToolMessage"],
+      how: "에이전트를 만드는 일은 비용이 들기 때문에, 매번 만들지 않고 처음 한 번만 만들어 st.session_state.agent에 보관함(이를 '지연 생성 + 캐싱'이라 함). 핵심은 create_agent(llm, TRAVEL_TOOLS): 이 한 줄이 'AI가 도구를 호출하고 결과를 보고 다시 판단하는' 반복 과정을 자동으로 처리하는 똑똑한 일꾼을 만들어 줌.",
+      terms: ["지연 생성(lazy)", "캐싱(cache)", "LangChain", "LangGraph", "ChatOpenAI", "create_agent", "ReAct 루프", "bind_tools", "temperature", "tool_calls", "AIMessage", "ToolMessage"],
       lines: [
         { at: 'if st.session_state.agent is None:', text: "agent가 아직 없을(None) 때만 새로 만듦. 이미 있으면 이 블록을 건너뛰고 저장된 것을 그대로 씀(캐싱)." },
         { at: 'api_key = require_api_key("OPENAI_API_KEY")', text: "require_api_key()로 OpenAI API 키를 가져옴. 키가 없으면 여기서 친절한 오류를 냄." },
         { at: 'llm = ChatOpenAI(model=MODEL_NAME, api_key=api_key, temperature=0)', text: "ChatOpenAI는 OpenAI GPT 모델을 LangChain에서 쓰기 쉽게 감싼 객체임. temperature=0은 '매번 일관된(덜 창의적인) 답'을 내게 함." },
-        { at: 'st.session_state.agent = create_react_agent(llm, TRAVEL_TOOLS)', text: "★핵심★ create_react_agent가 'AI + 도구목록'을 받아, 도구를 호출하고 결과를 다시 판단하는 반복(ReAct 루프)을 자동 처리하는 에이전트를 만들어 저장(캐싱)함." },
+        { at: 'st.session_state.agent = create_agent(llm, TRAVEL_TOOLS)', text: "★핵심★ create_agent가 'AI + 도구목록'을 받아, 도구를 호출하고 결과를 다시 판단하는 반복(ReAct 루프)을 자동 처리하는 에이전트를 만들어 저장(캐싱)함." },
         { at: 'return st.session_state.agent', text: "준비된(또는 새로 만든) 에이전트를 돌려줌." },
       ],
       code:
 `def get_agent():
     """ChatOpenAI + TRAVEL_TOOLS로 ReAct 에이전트를 지연 생성 후 캐싱.
 
-    create_react_agent(llm, tools) 동작 원리:
+    create_agent(llm, tools) 동작 원리:
     1. llm.bind_tools(tools)로 LLM에 도구 스키마를 바인딩
     2. LLM 호출 → tool_calls 있으면 도구 실행 → 결과를 ToolMessage로 추가
     3. tool_calls가 없을 때까지 2번 반복 (ReAct 루프)
@@ -110,7 +110,7 @@ window.EXPLAIN_DATA = {
     if st.session_state.agent is None:
         api_key = require_api_key("OPENAI_API_KEY")
         llm = ChatOpenAI(model=MODEL_NAME, api_key=api_key, temperature=0)
-        st.session_state.agent = create_react_agent(llm, TRAVEL_TOOLS)
+        st.session_state.agent = create_agent(llm, TRAVEL_TOOLS)
     return st.session_state.agent`,
     },
     {
@@ -186,7 +186,7 @@ window.EXPLAIN_DATA = {
       fileId: "main",
       summary: "사용자 입력을 받아 에이전트를 실행하고, 최종 답변 텍스트를 돌려주는 '중심 함수'임.",
       how: "이 함수가 전체를 지휘함: ①에이전트 준비 → ②메시지 정리 → ③invoke()로 한 번에 실행(도구 호출 루프 포함) → ④도구 기록 추출 → ⑤마지막 메시지에서 텍스트 추출.",
-      terms: ["invoke()", "create_react_agent", "ReAct 루프", "AIMessage"],
+      terms: ["invoke()", "create_agent", "ReAct 루프", "AIMessage"],
       lines: [
         { at: 'agent = get_agent()', text: "준비된(또는 새로 만든) 에이전트를 가져옴." },
         { at: 'result = agent.invoke({"messages": messages})', text: "★핵심★ agent.invoke()를 단 한 번 호출하면, 내부에서 '판단→도구 호출→결과 반영'을 끝날 때까지 자동 반복함. 예전의 수동 반복문이 이 한 줄로 대체됨." },
@@ -290,7 +290,7 @@ window.EXPLAIN_DATA = {
         layout="centered",
     )
     st.title(f"{APP_ICON} {APP_TITLE}")
-    st.caption("LangChain ChatOpenAI + create_react_agent + Streamlit")
+    st.caption("LangChain ChatOpenAI + create_agent + Streamlit")
 
     initialize_session_state()
     display_sidebar()
@@ -581,7 +581,7 @@ def get_restaurants(
       fileId: "prompts",
       summary: "AI에게 '너는 여행 플래너야, 이렇게 행동해'라고 알려주는 지침서(시스템 프롬프트) 글임.",
       how: "코드가 아니라 'AI에게 주는 규칙을 적은 긴 문장'임. 요청 유형 판단법, 도시명 영문 변환 규칙, 날씨에 따른 추천 기준, 장소 표기 형식 등을 자연어로 적어 둠. build_messages()에서 SystemMessage로 맨 앞에 넣어 매 대화에 적용함. 도구 사용법을 코드로 강제하지 않고 '지침'으로 안내하는 점이 핵심임.",
-      terms: ["SystemMessage", "create_react_agent"],
+      terms: ["SystemMessage", "create_agent"],
       lines: [
         { at: 'DEFAULT_MAX_RESULTS = 8', text: "DEFAULT_MAX_RESULTS = 8: 검색 결과 기본 개수. 도구들이 이 값을 기본값으로 사용함." },
         { at: 'SYSTEM_PROMPT = """당신은 여행 중인', text: "이 따옴표 세 개(\"\"\")로 둘러싼 긴 글 전체가 AI에게 주는 지침임." },
@@ -719,7 +719,7 @@ USAGE_GUIDE = """### 사용 예시
 
 TECH_GUIDE = """### LangChain ReAct 흐름
 1. 사용자 요청 → HumanMessage 변환
-2. create_react_agent가 LLM + 도구 루프 자동 실행
+2. create_agent가 LLM + 도구 루프 자동 실행
 3. LLM이 tool_calls 생성 → 도구 실행 → ToolMessage로 결과 추가
 4. tool_calls가 없을 때까지 3번 반복
 5. 최종 AIMessage를 스트리밍으로 렌더링
@@ -737,9 +737,9 @@ TECH_GUIDE = """### LangChain ReAct 흐름
     "st.empty": "'나중에 채울 빈 자리'를 만들어 두는 기능. 먼저 '생각 중...'을 보여주고, 답이 오면 같은 자리를 답변으로 바꿀 수 있음.",
     "st.sidebar": "화면 왼쪽의 보조 패널. with st.sidebar 블록 안에서 출력한 것은 모두 왼쪽에 표시됨.",
     "LangChain": "여러 AI 모델과 도구를 한 방식으로 쉽게 다루게 해주는 인기 라이브러리. 모델이 바뀌어도 코드를 거의 그대로 쓸 수 있게 해줌.",
-    "LangGraph": "LangChain 계열 도구로, AI의 작업 흐름을 '그래프(순서도)'처럼 구성하게 해줌. create_react_agent가 이 위에서 동작함.",
+    "LangGraph": "LangChain 계열 도구로, AI의 작업 흐름을 '그래프(순서도)'처럼 구성하게 해줌. create_agent가 이 위에서 동작함.",
     "ChatOpenAI": "OpenAI의 GPT 모델을 LangChain에서 쓰기 쉽게 감싼 객체. llm.invoke()로 대화를 요청함.",
-    "create_react_agent": "AI 모델과 도구 목록을 받아, '생각→도구 호출→결과 관찰'을 자동 반복하는 똑똑한 일꾼(에이전트)을 만들어 주는 함수. 개발자가 반복문을 직접 짤 필요가 없어짐.",
+    "create_agent": "AI 모델과 도구 목록을 받아, '생각→도구 호출→결과 관찰'을 자동 반복하는 똑똑한 일꾼(에이전트)을 만들어 주는 함수. 개발자가 반복문을 직접 짤 필요가 없어짐. LangChain 1.0의 표준 에이전트 생성자(langchain.agents)로, 이전의 create_react_agent를 대체함.",
     "ReAct 루프": "'Reasoning(추론) + Acting(행동)'의 줄임말. AI가 생각하고 → 도구를 호출하고 → 결과를 보고 → 다시 생각하는 과정을, 더 할 일이 없을 때까지 반복하는 것.",
     "bind_tools": "AI 모델에게 '네가 쓸 수 있는 도구는 이것들이야'라고 도구 설명을 붙여주는 작업. 이래야 AI가 도구를 호출할 수 있음.",
     "invoke()": "'실행해!'에 해당하는 명령. 에이전트나 모델에게 입력을 주고 결과를 받을 때 invoke()를 부름.",

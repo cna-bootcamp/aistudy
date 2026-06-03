@@ -2,7 +2,7 @@
 
 [08.function-call 대비 핵심 변경 사항]
   Before: generate_content_stream() → function_call 청크 누적 → 수동 루프
-  After : create_react_agent(llm, TRAVEL_TOOLS) → agent.stream() 한 번으로 루프 자동 처리
+  After : create_agent(llm, TRAVEL_TOOLS) → agent.stream() 한 번으로 루프 자동 처리
 """
 
 from __future__ import annotations  # 타입 힌트를 문자열로 평가해 순환 참조 없이 사용할 수 있게 함
@@ -28,8 +28,8 @@ if str(COMMON_DIR) not in sys.path:
 from langchain_google_genai import ChatGoogleGenerativeAI
 # HumanMessage / AIMessage / ToolMessage: LangChain 메시지 타입 (role을 객체로 표현)
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
-# create_react_agent: LLM + 도구 목록 → 컴파일된 ReAct 루프 그래프
-from langgraph.prebuilt import create_react_agent
+# create_agent: LLM + 도구 목록 → 컴파일된 ReAct 루프 그래프 (LangChain 1.0 표준 에이전트 생성자)
+from langchain.agents import create_agent
 
 from llm import require_api_key
 from prompts import SYSTEM_PROMPT
@@ -48,7 +48,7 @@ MODEL_NAME = "gemini-3.5-flash"
 def get_agent():
     """ChatGoogleGenerativeAI + TRAVEL_TOOLS로 ReAct 에이전트를 지연 생성 후 캐싱.
 
-    create_react_agent(llm, tools) 동작 원리:
+    create_agent(llm, tools) 동작 원리:
     1. llm.bind_tools(tools)로 LLM에 도구 스키마를 바인딩
     2. LLM 호출 → tool_calls 있으면 도구 실행 → 결과를 ToolMessage로 추가
     3. tool_calls가 없을 때까지 2번 반복 (ReAct 루프)
@@ -57,7 +57,7 @@ def get_agent():
     """
     api_key = require_api_key("GEMINI_API_KEY")
     llm = ChatGoogleGenerativeAI(model=MODEL_NAME, google_api_key=api_key, temperature=0)
-    return create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)
+    return create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ def main() -> None:
         layout="centered",
     )
     st.title(APP_TITLE)
-    st.caption("LangChain + Gemini + create_react_agent + Streaming + Streamlit")
+    st.caption("LangChain + Gemini + create_agent + Streaming + Streamlit")
 
     initialize_session_state()
     display_sidebar()

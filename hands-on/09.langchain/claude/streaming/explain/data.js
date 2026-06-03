@@ -28,7 +28,7 @@ window.EXPLAIN_DATA = {
       detail: "프로그램의 '시작 버튼'이 main() 함수임. 식당으로 비유하면 가게 문을 열고 간판을 거는 단계임. initialize_session_state()가 대화 내용·도구 호출 기록·대화 횟수를 담을 빈 상자(기억 공간)를 만들어 둠." },
     { step: 2, title: "에이전트 준비 (캐싱)",
       summary: "@st.cache_resource가 붙은 get_agent()가 앱 기동 시 딱 한 번 실행되어 에이전트를 캐싱함",
-      detail: "에이전트를 만드는 일은 비용이 들기 때문에, 앱이 처음 뜰 때 한 번만 만들고 이후에는 저장된 것을 재사용함(@st.cache_resource). create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)가 AI·도구·지침을 묶어 스트리밍이 가능한 에이전트를 만들어 줌." },
+      detail: "에이전트를 만드는 일은 비용이 들기 때문에, 앱이 처음 뜰 때 한 번만 만들고 이후에는 저장된 것을 재사용함(@st.cache_resource). create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)가 AI·도구·지침을 묶어 스트리밍이 가능한 에이전트를 만들어 줌." },
     { step: 3, title: "화면 구성",
       summary: "왼쪽 사이드바(사용법·도구 기록)와 환영 인사, 이전 대화를 화면에 그림",
       detail: "손님이 앉기 전 메뉴판과 안내문을 세팅하는 단계임. display_sidebar()는 왼쪽 도움말을, display_chat_history()는 지금까지 오간 대화를 다시 그려줌. 아직 새 입력은 받기 전임." },
@@ -62,20 +62,20 @@ window.EXPLAIN_DATA = {
       name: "get_agent()",
       fileId: "main",
       summary: "AI 모델·도구·지침을 묶어 스트리밍 ReAct 에이전트를 만들고, 앱 생애 동안 딱 한 번만 실행되도록 캐싱함.",
-      how: "@st.cache_resource가 붙어 있어, 앱이 처음 뜰 때 한 번만 실행되고 이후 재호출 시에는 캐싱된 결과를 그냥 돌려줌. create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)에서 prompt=를 직접 넣으므로, 매 대화에서 SystemMessage를 별도로 조립하지 않아도 됨. 이 점이 claude 예제의 get_agent()와 다른 핵심 차이임.",
-      terms: ["@st.cache_resource", "create_react_agent", "ChatAnthropic", "ReAct 루프", "LangGraph", "temperature", "bind_tools"],
+      how: "@st.cache_resource가 붙어 있어, 앱이 처음 뜰 때 한 번만 실행되고 이후 재호출 시에는 캐싱된 결과를 그냥 돌려줌. create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)에서 system_prompt=를 직접 넣으므로, 매 대화에서 SystemMessage를 별도로 조립하지 않아도 됨. 이 점이 claude 예제의 get_agent()와 다른 핵심 차이임.",
+      terms: ["@st.cache_resource", "create_agent", "ChatAnthropic", "ReAct 루프", "LangGraph", "temperature", "bind_tools"],
       lines: [
         { at: "@st.cache_resource", text: "★핵심★ @st.cache_resource는 '앱 재시작 전까지 한 번만 실행'하는 캐싱 데코레이터임. st.session_state처럼 탭 단위가 아니라, 서버 전체에서 공유됨." },
         { at: "api_key = require_api_key(", text: "require_api_key()로 Claude API 키를 가져옴. 키가 없으면 여기서 친절한 오류를 냄." },
         { at: "llm = ChatAnthropic(", text: "ChatAnthropic은 Claude 모델을 LangChain에서 쓰기 쉽게 감싼 객체임. temperature=0은 '매번 일관된(덜 창의적인) 답'을 내게 함." },
-        { at: "return create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)", text: "★핵심★ prompt=SYSTEM_PROMPT를 여기에 넣으므로, 매 대화 때마다 SystemMessage를 별도로 조립할 필요가 없음. create_react_agent가 스트리밍도 지원하는 에이전트를 돌려줌." },
+        { at: "return create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)", text: "★핵심★ system_prompt=SYSTEM_PROMPT를 여기에 넣으므로, 매 대화 때마다 SystemMessage를 별도로 조립할 필요가 없음. create_agent가 스트리밍도 지원하는 에이전트를 돌려줌." },
       ],
       code:
 `@st.cache_resource
 def get_agent():
     """ChatAnthropic + TRAVEL_TOOLS로 ReAct 에이전트를 지연 생성 후 캐싱.
 
-    create_react_agent(llm, tools) 동작 원리:
+    create_agent(llm, tools) 동작 원리:
     1. llm.bind_tools(tools)로 LLM에 도구 스키마를 바인딩
     2. LLM 호출 → tool_calls 있으면 도구 실행 → 결과를 ToolMessage로 추가
     3. tool_calls가 없을 때까지 2번 반복 (ReAct 루프)
@@ -84,7 +84,7 @@ def get_agent():
     """
     api_key = require_api_key("CLAUDE_API_KEY")
     llm = ChatAnthropic(model=MODEL_NAME, api_key=api_key, temperature=0)
-    return create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)`,
+    return create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)`,
     },
     {
       id: "initialize_session_state",
@@ -276,7 +276,7 @@ def get_agent():
         layout="centered",
     )
     st.title(APP_TITLE)
-    st.caption("LangChain + Claude + create_react_agent + Streaming + Streamlit")
+    st.caption("LangChain + Claude + create_agent + Streaming + Streamlit")
 
     initialize_session_state()
     display_sidebar()
@@ -569,8 +569,8 @@ def get_restaurants(
       name: "SYSTEM_PROMPT (상수)",
       fileId: "prompts",
       summary: "AI에게 '너는 여행 플래너야, 이렇게 행동해'라고 알려주는 지침서(시스템 프롬프트) 글임.",
-      how: "코드가 아니라 'AI에게 주는 규칙을 적은 긴 문장'임. 요청 유형 판단법, 도시명 영문 변환 규칙, 날씨에 따른 추천 기준, 장소 표기 형식 등을 자연어로 적어 둠. 이 예제에서는 create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)에 직접 넣어 매 대화에 자동 적용됨.",
-      terms: ["SystemMessage", "create_react_agent"],
+      how: "코드가 아니라 'AI에게 주는 규칙을 적은 긴 문장'임. 요청 유형 판단법, 도시명 영문 변환 규칙, 날씨에 따른 추천 기준, 장소 표기 형식 등을 자연어로 적어 둠. 이 예제에서는 create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)에 직접 넣어 매 대화에 자동 적용됨.",
+      terms: ["SystemMessage", "create_agent"],
       lines: [
         { at: "DEFAULT_MAX_RESULTS = 8", text: "DEFAULT_MAX_RESULTS = 8: 검색 결과 기본 개수. 도구들이 이 값을 기본값으로 사용함." },
         { at: 'SYSTEM_PROMPT = """', text: "이 따옴표 세 개(\"\"\")로 둘러싼 긴 글 전체가 AI에게 주는 지침임." },
@@ -708,7 +708,7 @@ USAGE_GUIDE = """### 사용 예시
 
 TECH_GUIDE = """### LangChain ReAct 흐름
 1. 사용자 요청 → HumanMessage 변환
-2. create_react_agent가 LLM + 도구 루프 자동 실행
+2. create_agent가 LLM + 도구 루프 자동 실행
 3. LLM이 tool_calls 생성 → 도구 실행 → ToolMessage로 결과 추가
 4. tool_calls가 없을 때까지 3번 반복
 5. 최종 AIMessage를 스트리밍으로 렌더링
@@ -727,9 +727,9 @@ TECH_GUIDE = """### LangChain ReAct 흐름
     "st.write_stream": "제너레이터(yield로 조각을 내보내는 함수)를 받아, 조각이 올 때마다 화면을 업데이트하는 Streamlit 기능. 마지막에 누적된 전체 텍스트를 돌려줌. 스트리밍 응답을 실시간으로 표시할 때 씀.",
     "st.sidebar": "화면 왼쪽의 보조 패널. with st.sidebar 블록 안에서 출력한 것은 모두 왼쪽에 표시됨.",
     "LangChain": "여러 AI 모델과 도구를 한 방식으로 쉽게 다루게 해주는 인기 라이브러리. 모델이 바뀌어도 코드를 거의 그대로 쓸 수 있게 해줌.",
-    "LangGraph": "LangChain 계열 도구로, AI의 작업 흐름을 '그래프(순서도)'처럼 구성하게 해줌. create_react_agent가 이 위에서 동작함.",
+    "LangGraph": "LangChain 계열 도구로, AI의 작업 흐름을 '그래프(순서도)'처럼 구성하게 해줌. create_agent가 이 위에서 동작함.",
     "ChatAnthropic": "Anthropic의 Claude 모델을 LangChain에서 쓰기 쉽게 감싼 객체. llm.invoke()로 대화를 요청함.",
-    "create_react_agent": "AI 모델과 도구 목록을 받아, '생각→도구 호출→결과 관찰'을 자동 반복하는 똑똑한 일꾼(에이전트)을 만들어 주는 함수. 개발자가 반복문을 직접 짤 필요가 없어짐.",
+    "create_agent": "AI 모델과 도구 목록을 받아, '생각→도구 호출→결과 관찰'을 자동 반복하는 똑똑한 일꾼(에이전트)을 만들어 주는 함수. 개발자가 반복문을 직접 짤 필요가 없어짐. LangChain 1.0의 표준 에이전트 생성자(langchain.agents)로, 이전의 create_react_agent를 대체함.",
     "ReAct 루프": "'Reasoning(추론) + Acting(행동)'의 줄임말. AI가 생각하고 → 도구를 호출하고 → 결과를 보고 → 다시 생각하는 과정을, 더 할 일이 없을 때까지 반복하는 것.",
     "bind_tools": "AI 모델에게 '네가 쓸 수 있는 도구는 이것들이야'라고 도구 설명을 붙여주는 작업. 이래야 AI가 도구를 호출할 수 있음.",
     "temperature": "AI 답변의 '창의성/무작위성' 정도(0~1 등). 0에 가까울수록 매번 비슷하고 일관된 답을, 높을수록 다양한 답을 냄.",

@@ -1,6 +1,6 @@
 # 여행 플래너 — LangChain + OpenAI (Streaming)
 
-LangChain `create_react_agent`와 OpenAI `gpt-5.5`를 사용하는 스트리밍 여행 플래너 예제.  
+LangChain `create_agent`와 OpenAI `gpt-5.5`를 사용하는 스트리밍 여행 플래너 예제.  
 `@tool` 데코레이터와 ReAct 에이전트로 08.function-call의 수동 도구 루프를 대체함.
 
 ---
@@ -42,11 +42,11 @@ def get_weather(city: str) -> dict:
 @st.cache_resource
 def get_agent():
     llm = ChatOpenAI(model=MODEL_NAME, openai_api_key=api_key, temperature=0)
-    return create_react_agent(llm, TRAVEL_TOOLS, prompt=SYSTEM_PROMPT)
+    return create_agent(llm, TRAVEL_TOOLS, system_prompt=SYSTEM_PROMPT)
 ```
 
 - `@st.cache_resource`: 앱 재시작 전까지 에이전트를 한 번만 생성함
-- `create_react_agent`: LLM + 도구 목록으로 ReAct 루프 그래프를 컴파일함
+- `create_agent`: LLM + 도구 목록으로 ReAct 루프 그래프를 컴파일함 (`langchain.agents`, LangChain 1.0 표준)
 
 ### `stream_response()` — 스트리밍 제너레이터
 
@@ -132,6 +132,6 @@ streamlit run streaming/travel_planner.py
 | 도구 스키마 정의 | `TOOL_DEFINITIONS` JSON Schema 딕셔너리 | `@tool` 데코레이터 (자동 생성) |
 | 도구 디스패처 | `execute_function()` 화이트리스트 함수 | 불필요 (LangChain이 자동 실행) |
 | 모델별 변환 | `get_openai_tools()` 변환 함수 | 불필요 |
-| 도구 루프 | `for _ in range(MAX_TOOL_ROUNDS):` 수동 루프 | `create_react_agent` 내부 자동 처리 |
+| 도구 루프 | `for _ in range(MAX_TOOL_ROUNDS):` 수동 루프 | `create_agent` 내부 자동 처리 |
 | 스트리밍 | `chat.completions.create(stream=True)` + delta.tool_calls 누적 | `agent.stream(stream_mode="messages")` |
 | 메시지 타입 | `dict` (role/content) | `HumanMessage` / `AIMessage` / `ToolMessage` |
