@@ -61,8 +61,14 @@
   function start() {
     var path = getDataPath();
     if (!path) { showUsage(); return; }
+    // 캐시 무력화: data.js 수정 후에도 브라우저가 옛 버전을 쓰지 않도록 타임스탬프 쿼리를 덧붙임.
+    // file:// 더블클릭 실행 시에는 쿼리가 일부 브라우저의 경로 해석을 방해할 수 있어, http(s) 서빙일 때만 적용함.
+    var src = path;
+    if (location.protocol !== "file:") {
+      src += (path.indexOf("?") === -1 ? "?" : "&") + "t=" + Date.now();
+    }
     var s = document.createElement("script");
-    s.src = path;
+    s.src = src;
     s.charset = "utf-8"; // file:// 에서 한글이 깨지지 않도록 UTF-8 명시
     s.onload = boot;
     s.onerror = function () {
