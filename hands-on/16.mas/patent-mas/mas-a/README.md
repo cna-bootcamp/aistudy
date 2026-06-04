@@ -17,48 +17,59 @@
 
 ### 1.1 SAS 워크플로 (LangGraph StateGraph)
 
+```mermaid
+flowchart TD
+    Q(["질문 입력<br/>(question + mode)"]) --> SCH["① Scheduler · router<br/>검색 모드 결정<br/>패턴 매칭 + LLM 폴백"]
+    SCH --> AGT["② Agent<br/>결정된 1개 모드만 검색 실행<br/>vector → ChromaDB 조문 인용<br/>graphrag → MS GraphRAG 구조"]
+    AGT --> SUP{"③ Supervisor<br/>근거 충분성 평가<br/>(구조화 LLM)"}
+    SUP -->|"미흡: 보완 모드로 1회 재검색<br/>(Loop Guard max_reroutes=1)"| AGT
+    SUP -->|"2패스 발생: 근거 융합"| FUSE["④ Fuse<br/>조문 원문 + 관계·구조 근거 융합<br/>(단일 패스면 생략)"]
+    SUP -->|"충분 또는 한도 도달"| ANS(["답변 + 출처 + 근거 요약"])
+    FUSE --> ANS
 ```
-                          ┌──────────────────────────────────────────────┐
-   질문(question, mode)   │                  PatentLawMAS                  │
-        │                 │                                                │
-        ▼                 │   ┌───────────┐                                │
-   ┌─────────┐  라우팅    │   │ Scheduler │  검색 모드 결정                │
-   │  START  │──────────▶ │   │  (router) │  패턴 매칭 + LLM 폴백          │
-   └─────────┘            │   └─────┬─────┘  vector/local/global/drift     │
-                          │         ▼                                      │
-                          │   ┌───────────┐  결정된 모드로 검색 실행       │
-                          │   │   Agent   │  ├ vector  → ChromaDB 조문 인용 │
-                          │   │           │  └ graphrag→ MS GraphRAG 구조   │
-                          │   └─────┬─────┘                                │
-                          │         ▼                                      │
-                          │   ┌───────────┐  근거 충분성 평가(구조화 LLM)  │
-                          │   │Supervisor │──(미흡)─▶ 보완 모드로 재검색 ──┐│
-                          │   └─────┬─────┘   Loop Guard(max_reroutes=1)  ││
-                          │         │ (충분/한도)                          ││
-                          │         ▼                          ◀───────────┘│
-                          │   ┌───────────┐  2패스면 조문+구조 근거 융합   │
-                          │   │   Fuse    │  (단일 패스면 생략)            │
-                          │   └─────┬─────┘                                │
-                          └─────────┼──────────────────────────────────────┘
-                                    ▼
-                              답변 + 출처 + 근거 요약
-```
+
+**그림 읽는 법 (한 단계씩)**
+
+1. **Scheduler(스케줄러)** — 질문을 보고 "어떤 검색기를 쓸지" 정하는 교통정리 담당임. 특허법 도메인 키워드로
+   먼저 점수를 매기고(빠름·무료), 확신이 낮으면 LLM에게 분류를 맡기는 폴백을 둠. 결과는 `vector`(조문)·
+   `local`/`global`/`drift`(GraphRAG) 중 하나임.  
+2. **Agent(에이전트)** — 스케줄러가 고른 **딱 한 가지 모드**만 실행함. 두 검색기를 동시에 돌리지 않음(중복·비용
+   방지). `vector`면 ChromaDB에서 조문 원문을, `graphrag`면 지식그래프에서 관계·구조를 가져옴.  
+3. **Supervisor(감독자)** — 나온 답이 "근거로 충분한가"를 보수적으로 평가함. 충분하면 곧장 종료, 부족하면
+   **반대 성격의 검색기**(조문↔구조)로 **딱 한 번만** 더 검색하도록 되돌림. 이 "한 번만"이 **Loop Guard**(무한
+   재검색 방지, `max_reroutes=1`)임.  
+4. **Fuse(융합)** — 재검색이 일어나 2패스가 되면, 조문 원문 근거와 관계/구조 근거를 **하나의 답변으로 합침**.
+   처음 한 번에 끝났으면(단일 패스) 이 단계는 건너뜀.  
+
+> 핵심 아이디어: "**한 번에 한 검색기만, 부족할 때만 보완**" — 단순·저비용을 유지하면서 답변 품질을 끌어올리는
+> SAS 패턴임. 분기는 모두 Supervisor의 `next_step` 값(`agent`/`fuse`/`end`)으로 결정됨.
 
 ### 1.2 MCP 노출 (FastMCP / Streamable HTTP)
 
+```mermaid
+flowchart LR
+    subgraph CLIENT["MCP 클라이언트"]
+        APP["AI 앱 / Claude Code"]
+    end
+    subgraph SERVER["patent-law-mas · FastMCP 서버"]
+        direction TB
+        EP["http://host:8010/mcp<br/>(Streamable HTTP)"]
+        CORE["PatentLawMAS (SAS 워크플로)"]
+        EP --> CORE
+    end
+    APP -->|"tools/call ask_patent_law<br/>resources/read patent://kg/*<br/>prompts/get patent_law_advice"| EP
+    CORE --> VDB[("ChromaDB patent_law<br/>조문 245청크<br/>OpenAI 1536차원")]
+    CORE --> KG[("MS GraphRAG<br/>엔티티 1,122 / 관계 1,242<br/>Parquet + LanceDB")]
 ```
-   ┌──────────────┐   tools/call ask_patent_law      ┌──────────────────────┐
-   │  AI 앱 /     │ ───────────────────────────────▶ │  patent-law-mas       │
-   │  Claude Code │   resources/read patent://kg/*   │  FastMCP 서버         │
-   │  (MCP Client)│ ◀─────────────────────────────── │  http://host:8010/mcp │
-   └──────────────┘   prompts/get patent_law_advice  └──────────┬───────────┘
-                                                                 ▼
-                                                          PatentLawMAS(SAS)
-                                          ┌──────────────────────┴───────────────────────┐
-                                          ▼                                               ▼
-                            ChromaDB `patent_law` (조문 245청크)         MS GraphRAG (엔티티 1,122 / 관계 1,242)
-                            OpenAI text-embedding-3-small(1536d)         Parquet + LanceDB, Groq gpt-oss-120b
-```
+
+**그림 읽는 법**
+
+- 외부의 **MCP 클라이언트**(예: Claude Code)가 `http://host:8010/mcp` 한 곳으로 표준 MCP 메시지를 보냄.
+  - `tools/call ask_patent_law` : 특허법 질문 → SAS 워크플로 실행 → 근거 기반 한국어 답변  
+  - `resources/read patent://kg/*` : 지식그래프 통계·스키마 조회  
+  - `prompts/get patent_law_advice` : 자문 작성용 프롬프트 템플릿  
+- 서버 안의 `PatentLawMAS`가 위 §1.1 워크플로를 돌리며, 실제 데이터는 **ChromaDB(조문 벡터)** 와
+  **MS GraphRAG(지식그래프)** 두 저장소에서 가져옴. 두 저장소는 선행 인덱싱으로 미리 구축돼 있음.
 
 ### 1.3 기술 스택
 

@@ -56,53 +56,53 @@ korean-law MCP의 `verify_citations`는 사람이 읽는 텍스트를 반환함
 
 ## 2. 아키텍처
 
-```
-                          ┌──────────────────── 입력 ────────────────────┐
-                          │ question (+history)                          │
-                          │ provided_context (오케스트레이터 A·B fan-in)  │
-                          └───────────────────┬──────────────────────────┘
-                                              ▼
-                                     ┌──────────────────┐
-                                     │  gather_context  │  provided_context 있으면 그대로 사용,
-                                     │                  │  없으면 korean-law MCP로 자체 수집(A·B 프록시)
-                                     └────────┬─────────┘
-                                              ▼
-                                     ┌──────────────────┐
-                                     │   write_draft    │  컨텍스트 종합 → 의견서 초안
-                                     └────────┬─────────┘
-                                              ▼
-                ┌───────────────────►┌──────────────────┐
-                │                    │  grade_support   │  [IsSup] 근거성 (1콜, 정답 불필요)
-                │                    └────────┬─────────┘
-                │                             ▼
-                │                    ┌──────────────────┐
-                │                    │ verify_citations │  korean-law MCP 인용 환각 탐지
-                │                    └────────┬─────────┘
-                │                             ▼ decide_gate
-                │            ┌────────────────┼─────────────────┐
-                │      통과(approve)     미통과+여유(rewrite)   판정불가/소진(escalate)
-                │            │                │                  │
-                │            │         ┌──────────────┐   ┌────────────┐
-                └───────(재평가 루프)──│ rewrite_draft│   │  escalate  │ escalated=True
-                                       └──────────────┘   └─────┬──────┘
-                                              │                 │
-                                              └────────┬────────┘
-                                                       ▼
-                                          ┌──────────────────────┐
-                                  ╴╴╴╴╴╴╴╴│     human_review     │◄╴ interrupt_before (그래프 일시중단)
-                                  사람승인  └──────────┬───────────┘    update_state(approved,feedback)→재개
-                                                       ▼ decide_after_review
-                                          ┌────────────┴────────────┐
-                                    승인(finalize)            반려+여유(rewrite ↑)
-                                          ▼
-                                  ┌──────────────────┐
-                                  │     finalize     │  DLP 마스킹 + 출처(코드생성) + 고지문
-                                  └────────┬─────────┘
-                                           ▼
-                                       최종 의견서
+### 2.1 런타임 워크플로 (LangGraph StateGraph)
 
-  checkpointer = MemorySaver()  ·  interrupt_before = ['human_review']  ·  구조화 출력 = json_schema
+```mermaid
+flowchart TD
+    IN(["입력<br/>question + history<br/>provided_context (오케스트레이터 A·B fan-in)"]) --> GC["① gather_context<br/>주입분 있으면 그대로 사용<br/>없으면 korean-law MCP로 자체 수집"]
+    GC --> WD["② write_draft<br/>컨텍스트 종합 → 의견서 초안"]
+    WD --> GS["③ grade_support [IsSup]<br/>근거성 평가 (1콜, 정답 불필요)"]
+    GS --> VC["④ verify_citations<br/>korean-law MCP 인용 환각 탐지<br/>(조문-scoped, LLM 미사용)"]
+    VC --> GATE{"decide_gate<br/>게이트 = [IsSup]=True<br/>AND 인용 정상(✗=0)"}
+    GATE -->|"통과 (approve)"| HR
+    GATE -->|"미통과 + 재시도 여유 (rewrite)"| RW["⑤ rewrite_draft<br/>엄격 근거 기반 재작성"]
+    GATE -->|"판정 불가 / 소진 (escalate)"| ES["⑥ escalate<br/>escalated=True"]
+    RW -->|"재평가 루프"| GS
+    ES --> HR
+    HR{{"⑦ human_review<br/>interrupt_before로 일시중단<br/>사람 승인 대기 (HITL)"}}
+    HR -->|"승인 (finalize)"| FIN["⑧ finalize<br/>DLP 마스킹 + 출처 + 고지문"]
+    HR -->|"반려 + 재시도 여유 (rewrite)"| RW
+    FIN --> OUT(["최종 의견서"])
 ```
+
+> `checkpointer = MemorySaver()` · `interrupt_before = ['human_review']` · 구조화 출력 = `json_schema`
+> · 재작성 한도 `MAX_REWRITES=2` · `RECURSION_LIMIT=50`
+
+**그림 읽는 법 (한 단계씩)**
+
+1. **gather_context(컨텍스트 확보)** — 상위 오케스트레이터가 MAS A·B 검색 결과(`provided_context`)를
+   넣어줬으면 그대로 씀. 단독 실행이면 korean-law MCP를 A·B 대신(프록시) 호출해 컨텍스트를 자체 수집함.  
+2. **write_draft(초안 작성)** — 모인 컨텍스트를 종합해 의견서 초안을 1회 생성함.  
+3. **grade_support [IsSup]** — 초안이 **검색 컨텍스트에 실제로 근거하는지**(지어낸 내용이 없는지)를
+   1콜로 평가함. 정답지가 없어도 되는 reference-free 검사라 매 요청에 부담 없이 돌림.  
+4. **verify_citations(인용 검증)** — korean-law MCP로 본문의 **법령 조문 인용이 실존하는지** 확인함
+   (LLM이 아니라 실제 법령 DB 조회라 환각이 없음).  
+5. **decide_gate(게이트 판정)** — 이 분기가 **품질 방어선**임. `[IsSup]=True` **그리고** 인용 오류(`✗`)가
+   0건일 때만 **통과(approve)** 시켜 사람 승인으로 보냄. 그 외에는:  
+   - 검증 서비스가 **판정 불가**(연결 실패 등)거나 재시도를 **소진**했으면 → **escalate**(사람에게 승급).  
+   - 아직 재시도 여유가 있으면 → **rewrite_draft**로 보내 다시 쓰게 함.  
+6. **rewrite_draft(재작성)** — 근거 부족·인용 문제·사람 반려 사유를 모아 "엄격 근거 기반"으로 초안을
+   고쳐 쓰고, 다시 ③ grade_support부터 **재평가 루프**를 탐. 최대 2회(`MAX_REWRITES=2`)까지만 반복함.  
+7. **human_review(사람 승인, HITL)** — `interrupt_before` 설정 때문에 **이 노드 실행 직전에 그래프가
+   멈춤**. 앱이 사람의 승인/반려(+피드백)를 받아 상태를 갱신하고 재개하면 통과함. 승인이면 확정,
+   반려이고 재시도 여유가 있으면 다시 재작성으로 돌아감.  
+8. **finalize(확정·DLP)** — 개인정보(주민번호·전화·카드·이메일)를 정규식으로 마스킹하고, 코드가 만든
+   출처 섹션과 법적 책임 고지문을 붙여 **최종 의견서**를 출력함.  
+
+> 핵심 아이디어: "**검증을 따로 나중에**"가 아니라 **흐름 한가운데에 게이트를 박아**(인라인) 근거 부족·
+> 인용 환각이 **사람·다음 단계로 새어 나가는 것을 차단**함. 자동으로 못 고치는 문제는 버리지 않고
+> **사람에게 승급(escalate)** 해 최종 판단을 맡김.
 
 흐름 요약: `START → gather_context → write_draft → grade_support → verify_citations →`  
 `(approve→human_review / rewrite→rewrite_draft→grade_support / escalate→human_review) →`  

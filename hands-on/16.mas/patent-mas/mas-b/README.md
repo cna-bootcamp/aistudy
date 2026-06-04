@@ -12,39 +12,43 @@ LangGraph StateGraph로 Agent가 스스로 검색 소스를 고르고, 답변 �
 
 ### 1.1 워크플로우 (Self-RAG StateGraph)
 
+```mermaid
+flowchart TD
+    Q(["질문"]) --> RT{"① Route<br/>검색 필요? + 소스 선택<br/>(law / web / youtube)"}
+    RT -->|"검색 불필요<br/>(인사·잡담·특허 무관)"| DA["Direct Answer<br/>LLM 지식으로 직접 답변"]
+    RT -->|"검색 필요"| RE["② Retrieve<br/>law → korean-law MCP<br/>web → DuckDuckGo<br/>youtube → Data API + 자막"]
+    RE --> GD["③ Grade Documents [IsRel]<br/>검색 항목 관련성 일괄 평가 (1콜)"]
+    GD --> GE["④ Generate [IsSup]<br/>답변 생성 + 근거성 검증<br/>미흡 시 엄격 재생성<br/>+ 코드기반 출처 부착"]
+    GE --> GG{"⑤ Grade Generation [IsUse]<br/>답변 유용성 평가"}
+    GG -->|"유용 또는 재시도 소진<br/>(MAX_RETRIES=3)"| ANS(["답변 + 출처"])
+    GG -->|"유용 미달"| RW["⑥ Rewrite<br/>질문 재작성"]
+    RW -->|"재검색 루프"| RT
+    DA --> ANS
 ```
-                          ┌─────────────────────────────────────────────┐
-                          │                  MAS B (단위 SAS)             │
-                          │                                             │
-   질문 ──▶ [START] ──▶ ┌──────────┐  검색 필요 X   ┌───────────────┐    │
-                        │  Route   │───────────────▶│ Direct Answer │──┐ │
-                        │ (검색?·  │                └───────────────┘  │ │
-                        │  소스선택)│                                   │ │
-                        └────┬─────┘  검색 필요 O                       │ │
-                             ▼                                          │ │
-                        ┌──────────┐   law / web / youtube              │ │
-                        │ Retrieve │───┬─ law     → korean-law MCP      │ │
-                        │ (소스별  │   ├─ web     → DuckDuckGo          │ │
-                        │  쿼리최적)│   └─ youtube → Data API + 자막      │ │
-                        └────┬─────┘                                    │ │
-                             ▼                                          │ │
-                        ┌──────────────┐  [IsRel] 관련성 일괄 평가        │ │
-                        │ GradeDocuments│                                │ │
-                        └────┬─────────┘                                │ │
-                             ▼                                          │ │
-                        ┌──────────┐  [IsSup] 근거성 검증 → 미흡 시 재생성 │ │
-                        │ Generate │  + 코드기반 출처 부착                │ │
-                        └────┬─────┘                                    │ │
-                             ▼                                          │ │
-                        ┌────────────────┐  [IsUse] 유용성 평가          │ │
-                        │ GradeGeneration│                              │ │
-                        └────┬───────────┘                             │ │
-              유용 미달 ◀────┤ 유용 / 재시도 소진                        │ │
-              ┌──────────┐   └──────────────────────────────▶ [END] ◀──┘ │
-              │ Rewrite  │── 질문 재작성 후 Route로 복귀(재검색 루프) ──┐  │
-              └──────────┘ ◀───────────────────────────────────────────┘  │
-                          └─────────────────────────────────────────────┘
-```
+
+**Self-RAG가 무엇인가** — "스스로(Self) 자기 답을 점검하는 RAG"임. 일반 RAG는 "검색 → 답변"으로 끝나지만,
+Self-RAG는 중간중간 LLM이 **자기 작업을 검사하는 신호(Reflection 토큰)** 를 뽑아 "검색이 필요한가? 검색
+결과가 관련 있나? 답이 근거에 충실한가? 답이 쓸모 있나?"를 스스로 묻고, 미흡하면 다시 시도함.
+
+**그림 읽는 법 (한 단계씩)**
+
+1. **Route(라우팅)** — 질문을 보고 ① 검색이 필요한지, ② 필요하면 어떤 소스(`law`/`web`/`youtube`)를 쓸지,
+   ③ 소스별 검색어를 어떻게 다듬을지 한 번에 결정함. 인사·잡담·특허 무관 질문이면 검색 없이 곧장
+   **Direct Answer**로 빠짐.  
+2. **Retrieve(검색)** — 고른 소스에서만 실제 검색을 수행함. 한 소스가 실패해도 나머지로 답을 만들 수 있게
+   각 호출을 따로 감쌈. 결과는 `{출처, 제목, 본문, 인용}` 형태의 **통합 항목**으로 합쳐짐.  
+3. **Grade Documents [IsRel]** — 검색 항목들이 질문과 정말 관련 있는지 **한 번의 LLM 호출로 일괄 평가**해
+   관련 있는 것만 추림(비용 절약).  
+4. **Generate [IsSup]** — 추려진 자료로 답변을 생성한 뒤, **그 답이 자료에 실제로 근거하는지(환각이 없는지)**
+   를 검사함([IsSup]). 근거가 약하면 "자료에 있는 것만 쓰라"는 엄격 모드로 다시 생성함. 출처 링크는 LLM이
+   지어내지 못하도록 **코드가 직접** 붙임.  
+5. **Grade Generation [IsUse]** — 최종 답이 질문에 실제로 **쓸모 있는지** 평가함. 쓸모 있으면 종료.  
+6. **Rewrite(질문 재작성)** — 쓸모가 부족하면 질문을 더 나은 검색어로 고쳐 **다시 Route로 돌아가 재검색**함.
+   단, 무한 반복을 막기 위해 최대 3회(`MAX_RETRIES=3`)까지만 돌고, 소진되면 마지막 답을 그대로 반환함.  
+
+> 핵심 아이디어: "**검색하고 끝**"이 아니라 "**관련성·근거성·유용성을 스스로 채점하고, 부족하면 질문을
+> 고쳐 다시 검색**"하는 자기교정 루프임. 멀티턴 대화에서는 직전 맥락(history)을 참고해 "그럼 판례는?" 같은
+> 후속 질문의 의도까지 파악함.
 
 ### 1.2 Self-RAG Reflection 토큰
 
@@ -57,17 +61,27 @@ LangGraph StateGraph로 Agent가 스스로 검색 소스를 고르고, 답변 �
 
 ### 1.3 소스별 통신
 
+```mermaid
+flowchart LR
+    subgraph MASB["MAS B (MCP 클라이언트)"]
+        LC["law_client.py"]
+        WS["web_search.py"]
+        YS["youtube_search.py"]
+    end
+    LC -->|"Streamable HTTP"| KL["korean-law MCP<br/>(korean-law-mcp.fly.dev)<br/>search_decisions (판례·해석례)<br/>search_law → get_law_text<br/>chain_full_research (폴백)"]
+    WS --> DDG["DuckDuckGo<br/>(API 키 불필요, 최근 1년)"]
+    YS --> YT["YouTube Data API v3 (검색)<br/>+ LangChain YoutubeLoader (자막 로드)"]
 ```
-   MAS B (MCP 클라이언트)                         외부 소스
-   ─────────────────────                         ──────────────────────────────
-   law_client.py  ──[Streamable HTTP]──▶  korean-law MCP (korean-law-mcp.fly.dev)
-                                          · search_decisions(precedent / interpretation)
-                                          · search_law → get_law_text
-                                          · chain_full_research (폴백)
-   web_search.py  ─────────────────────▶  DuckDuckGo (API 키 불필요, 최근 1년)
-   youtube_search.py ──────────────────▶  YouTube Data API v3 (검색)
-                                          + LangChain YoutubeLoader (자막 로드)
-```
+
+**그림 읽는 법**
+
+- **법령 소스(law)** 만 외부 MCP 서버를 호출함. `law_client.py`가 원격 `korean-law MCP`에 Streamable HTTP로
+  접속해 판례·해석례(`search_decisions`), 법령 조문(`search_law`→`get_law_text`)을 가져오고, 키워드가
+  애매하면 종합검색(`chain_full_research`)으로 폴백함.  
+- **웹(web)** 은 `DuckDuckGo`(API 키 불필요)로 최근 1년 동향을, **YouTube** 는 Data API v3로 영상을 찾고
+  `YoutubeLoader`로 자막을 로드함.  
+- 동기 그래프(`.invoke`)와 비동기 MCP 호출 사이는 `run_law_search()`가 `asyncio.run()`으로 다리를 놓음
+  (한 번의 `retrieve` = 한 MCP 세션).
 
 ---
 

@@ -16,51 +16,90 @@
 
 ## 1. 분산 아키텍처 (2계층 SAS)
 
-```
-                         [사용자] ──질문 / 멀티턴(history)──┐
-                                                            ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ [상위 SAS] Orchestrator (LangGraph StateGraph, async)                          │
-│                                                                                │
-│   ┌───────────┐  의도 분류(패턴+LLM 폴백)                                       │
-│   │ Scheduler │  법령→A · 동향→B(+A) · 의견서→A∥B→C · 잡담→직접답변              │
-│   └─────┬─────┘                                                                │
-│         │ fan_out (Send API: 활성 단위만 선택 병렬 분기)                         │
-│   ┌─────┴───────────────┐                                                      │
-│   ▼                     ▼                                                      │
-│ ┌──────────┐        ┌──────────┐   run_unit (async, 분기별 asyncio.wait_for)    │
-│ │run_unit A│        │run_unit B│   결과 → Shared State (reducer=operator.add)   │
-│ └────┬─────┘        └────┬─────┘                                               │
-│      │ MCP(HTTP)         │ subprocess worker (API/FC)                          │
-│      └─────────┬─────────┘  ← fan-in join (모든 분기 완료 후)                    │
-│                ▼                                                                │
-│         ┌────────────┐  글로벌 Supervisor                                       │
-│         │ Supervisor │  Budget 분배·Kill-switch · 출력 검증 · Loop Guard         │
-│         └──────┬─────┘  (실패 단위 재디스패치 1회) / (예산부족 시 C 생략)          │
-│        needs_c │ to_c                                                           │
-│                ▼                                                                │
-│         ┌────────────┐  fan-in 취합: A∥B 컨텍스트 주입 → 의견서 작성·검증         │
-│         │ run_mas_c  │  (escalated 시) → human_review(글로벌 HITL, interrupt)    │
-│         └──────┬─────┘                                                          │
-│                ▼                                                                │
-│          ┌──────────┐  최종 답변 합성 + Supervisor 통제 메모(예산·열화·HITL)      │
-│          │ compose  │ → 사용자                                                  │
-│          └──────────┘                                                          │
-└───────┬───────────────────────┬────────────────────────┬──────────────────────┘
-        │ MCP Streamable HTTP    │ subprocess(mas-b venv)  │ subprocess(mas-c venv)
-        ▼                        ▼                         ▼
-┌────────────────┐      ┌────────────────────┐    ┌────────────────────────┐
-│ MAS A (하위 SAS)│      │ MAS B (하위 Self-RAG)│    │ MAS C (하위 SAS)         │
-│ FastMCP :8010  │      │ 워커 stdio JSON RPC  │    │ 워커 stdio JSON RPC      │
-│ GraphRAG+벡터  │      │ 판례·웹·YouTube      │    │ 작성→IsSup→verify→DLP    │
-└───────┬────────┘      └─────────┬──────────┘    └───────────┬────────────┘
-   사전 인덱싱             korean-law MCP(외부)          korean-law MCP(외부)
+**2계층 SAS란** — SAS(Scheduler–Agent–Supervisor) 패턴 안에 또 다른 SAS가 들어 있는 **중첩 구조**임.
+바깥(상위)의 Agent 자리에 "단위 MAS"가 통째로 들어가고, 그 단위 MAS도 내부에 자기만의 SAS/Self-RAG를
+가짐. 즉 **오케스트레이터가 큰 SAS, 그 부하 직원인 A·B·C가 각자 작은 SAS**인 회사 조직도 같은 모양임.
+
+### 1.1 상위 SAS 워크플로 (LangGraph StateGraph)
+
+```mermaid
+flowchart TD
+    U(["사용자 질문<br/>(+ 멀티턴 history)"]) --> SCH["① Scheduler<br/>의도 분류 (패턴 + LLM 폴백)<br/>법령→A · 동향→B(+A)<br/>의견서→A∥B→C · 잡담→직접"]
+    SCH -->|"활성 단위 없음 (잡담)"| DA["direct_answer<br/>단위 MAS 미호출, 직접 답변"]
+    SCH -->|"fan_out · Send API<br/>활성 단위(A·B)만 병렬 분기"| RUA["② run_unit: A"]
+    SCH -->|"fan_out · Send API"| RUB["② run_unit: B"]
+    RUA --> SUP
+    RUB --> SUP
+    SUP{"③ Supervisor (글로벌)<br/>fan-in join (1회)<br/>Budget·Kill-switch<br/>출력 검증·Loop Guard"}
+    SUP -->|"실패 단위 재디스패치<br/>(max_redispatch=1)"| RUA
+    SUP -->|"의견서 요청 (to_c)"| RC["④ run_mas_c<br/>A∥B 컨텍스트 주입<br/>→ 의견서 작성·검증"]
+    SUP -->|"그 외 (compose)"| CMP["⑤ compose<br/>최종 합성 + 통제 메모"]
+    RC -->|"escalated (게이트 미통과)"| HR{{"human_review<br/>글로벌 HITL (interrupt)"}}
+    RC -->|"정상"| CMP
+    HR --> CMP
+    DA --> ANS(["사용자에게 응답"])
+    CMP --> ANS
 ```
 
-**순서**: ① A∥B 병렬(fan-out) → ② C 취합(fan-in, 의견서 요청일 때만) → ③ 합성·응답
-※ 단순 질의는 A 또는 B 단독 실행, 잡담은 단위 MAS 미호출(직접 답변).
+**그림 읽는 법 (한 단계씩)**
 
-### 통신 구조 (교재 §2.3)
+1. **Scheduler(의도 분류)** — 질문이 무엇을 원하는지 분류함(키워드 패턴 우선, 애매하면 LLM 폴백).
+   법령지식이면 **A**, 판례·동향이면 **B**(필요 시 A 동반), 의견서면 **A∥B→C**, 잡담이면 단위 호출 없이
+   **direct_answer**로 직접 답함.  
+2. **fan_out → run_unit(병렬 분기)** — 활성 단위(A·B)만 골라 **Send API로 동시에** 디스패치함. A와 B는
+   입력이 질문 하나로 서로 독립이라 병렬이 안전함. 각 분기 결과는 Shared State에 **reducer(`operator.add`)**
+   로 안전하게 합쳐짐(경합 방지).  
+3. **Supervisor(글로벌 감독, fan-in join)** — 모든 분기가 끝난 뒤 **딱 한 번** 실행됨. 예산을 점검하고
+   (**Budget·Kill-switch**), 각 단위 결과가 쓸 만한지 **출력 검증**하고, 실패한 단위가 있으면 **Loop Guard**
+   규칙으로 **그 단위만 1회**(`max_redispatch=1`) 다시 보냄. 재시도해도 안 되면 부분 결과로 진행함
+   (graceful degradation).  
+4. **run_mas_c(의견서 취합)** — 의견서 요청일 때만 실행됨. A∥B가 모은 컨텍스트를 **C에 주입**해 의견서를
+   작성·검증함. C가 자체 게이트를 통과하지 못하면 `escalated=True`로 돌려보냄.  
+5. **human_review(글로벌 HITL)** — C가 승급(escalated)했을 때만 거치는 **사람 승인 게이트**임.
+   `interrupt_before`로 그래프가 멈추고, 사람이 승인/반려한 뒤 재개됨. (사람 승인은 시스템 전체에서 **여기
+   한 곳**에만 둠 — C 내부 승인은 워커가 자동 통과시킴.)  
+6. **compose(합성)** — 단위 결과를 하나의 답변으로 합치고, Supervisor의 통제 메모(예산·열화·HITL 여부)를
+   덧붙여 사용자에게 반환함.  
+
+> **순서 요약**: ① A∥B 병렬(fan-out) → ② C 취합(fan-in, 의견서 요청일 때만) → ③ 합성·응답.
+> ※ 단순 질의는 A 또는 B 단독 실행, 잡담은 단위 MAS 미호출(직접 답변).
+
+### 1.2 2계층 SAS 분산·통신 구조
+
+```mermaid
+flowchart TB
+    subgraph UPPER["상위 SAS — Orchestrator (async StateGraph)"]
+        ORCH["Scheduler → fan-out → Supervisor<br/>→ run_mas_c → (글로벌 HITL) → compose"]
+    end
+
+    UPPER -.->|"① MCP (Streamable HTTP :8010)"| MASA
+    UPPER -.->|"② subprocess 워커 (mas-b venv)"| MASB
+    UPPER -.->|"② subprocess 워커 (mas-c venv)"| MASC
+
+    subgraph LOWER["하위 단위 MAS — 각자 자기 SAS + 자기 venv (독립 프로세스)"]
+        MASA["MAS A — 하위 SAS<br/>FastMCP :8010<br/>GraphRAG + 조문 벡터"]
+        MASB["MAS B — 하위 Self-RAG<br/>워커 stdio JSON RPC<br/>판례·웹·YouTube"]
+        MASC["MAS C — 하위 SAS<br/>워커 stdio JSON RPC<br/>작성→IsSup→verify→DLP"]
+    end
+
+    MASA -.-> IDX[("사전 인덱싱<br/>벡터 + GraphRAG")]
+    MASB -.-> KL["korean-law MCP<br/>(외부 원격)"]
+    MASC -.-> KL
+```
+
+**그림 읽는 법**
+
+- **상위(UPPER)** 가 §1.1 워크플로를 돌리는 오케스트레이터임. 단위 MAS를 **직접 import 하지 않고** 두 가지
+  방식으로 **바깥에서** 호출함:  
+  - **① MAS A → MCP 클라이언트**: 미리 떠 있는 FastMCP 서버(`:8010`)에 Streamable HTTP로 `ask_patent_law`
+    를 호출함.  
+  - **② MAS B·C → 서브프로세스 워커**: 질의마다 **각 단위의 venv 파이썬**으로 워커 프로세스를 1회 띄워
+    stdin/stdout JSON으로 통신함. (B·C가 패키지명 `config`/`graph`/`sources`가 같아 한 프로세스에 함께
+    import 하면 충돌하므로, **프로세스를 분리**해 차단하고 오케스트레이터 venv도 가볍게 유지함.)  
+- **하위(LOWER)** 의 단위 MAS는 각자 **독립 프로세스·독립 venv**로 동작하는 "작은 SAS"임. A는 사전
+  인덱싱 산출물을, B·C는 외부 `korean-law MCP`를 사용함.  
+
+### 1.3 통신 구조 (교재 §2.3)
 
 | 대상 | 방식 | 구현 |
 |------|------|------|
