@@ -22,36 +22,47 @@ window.EXPLAIN_DATA = {
     {
       step: 1,
       title: "실행 시작",
+      label: "실행 시작",
+      refs: ["main"],
       summary: "python vlm.py 실행 → main()이 진입점으로 호출됨",
       detail: "이 예제는 웹이 아니라 '명령줄 프로그램'임. 터미널에서 실행하면 맨 아래 if __name__ == \"__main__\": 가 main()을 호출함. main()이 전체 작업을 순서대로 지휘함."
     },
     {
       step: 2,
       title: "명령줄 옵션 읽기",
+      label: "명령줄 옵션 읽기",
+      refs: ["parse_args"],
       summary: "parse_args()로 --input(이미지 경로)·--prompt·--device 등 옵션을 읽음",
       detail: "식당 주문서를 받는 단계와 비슷함. argparse가 'python vlm.py --input ./image.jpg' 같은 입력을 해석해, 어떤 이미지를 분석하고 어떤 프롬프트를 쓸지 정함. 옵션을 생략하면 기본값을 씀."
     },
     {
       step: 3,
       title: "이미지 경로 확정",
+      label: "이미지 경로 확정",
+      refs: ["get_image_path"],
       summary: "get_image_path()가 이미지 파일을 정하고 형식·존재 여부를 검증함",
       detail: "--input으로 파일을 직접 줬으면 그걸 쓰고, 없으면 터미널에 경로를 입력받음. 파일이 실제로 있는지, 지원 형식(.jpg·.png 등)인지 확인한 뒤 경로를 돌려줌."
     },
     {
       step: 4,
       title: "모델 로드",
+      label: "모델 로드",
+      refs: ["load_model"],
       summary: "load_model()이 Qwen3-VL 모델과 프로세서를 GPU(또는 CPU)에 올림",
       detail: "AI 요리사(모델)를 주방(GPU/CPU)으로 부르는 단계임. 첫 실행 시 인터넷에서 모델을 다운로드하므로 시간이 걸릴 수 있음. GPU가 있으면 GPU(CUDA)를, 없으면 CPU를 자동 선택함."
     },
     {
       step: 5,
       title: "이미지 분석",
+      label: "이미지 분석",
+      refs: ["analyze_image"],
       summary: "analyze_image()가 이미지와 프롬프트를 모델에 넣어 설명 텍스트를 생성함",
       detail: "이미지를 열어 'user' 역할 메시지로 구성한 뒤, 프로세서가 모델 입력 형태로 변환함. 모델이 새 토큰을 생성하고, 입력 부분을 제거해 실제 답변만 텍스트로 추출함."
     },
     {
       step: 6,
       title: "결과 출력",
+      label: "결과 출력",
       summary: "분석된 텍스트를 터미널에 출력하고 종료함",
       detail: "완성된 이미지 설명을 화면에 보여주는 마지막 단계임. 오류가 생기면 오류 메시지를 찍고 sys.exit(1)로 실패 종료함."
     },

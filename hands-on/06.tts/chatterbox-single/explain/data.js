@@ -20,37 +20,37 @@ window.EXPLAIN_DATA = {
 
   flow: [
     {
-      step: 1, title: "환경 초기화",
+      step: 1, title: "환경 초기화", label: "환경 초기화", refs: ["configure_console"],
       summary: "configure_console()로 Windows 터미널 UTF-8 설정, 상수·경로·데이터 구조 준비",
       detail: "프로그램이 시작되기 전 '무대 세팅' 단계임. Windows 환경에서 한글이 깨지지 않도록 출력 채널을 UTF-8로 바꾸고, 파일 경로·파라미터 기본값·오디오 확장자 목록 같은 고정값들을 미리 정의해 둠. RuntimeDeps·ToneDecision·TTSLine 같은 데이터 상자(dataclass)도 이 단계에서 정의됨.",
     },
     {
-      step: 2, title: "필수 패키지 검사",
+      step: 2, title: "필수 패키지 검사", label: "패키지 검사", refs: ["check_prerequisites"],
       summary: "check_prerequisites()가 PyTorch·torchaudio·ffmpeg·chatterbox-tts·groq 설치 여부를 확인하고 RuntimeDeps를 반환",
       detail: "주방을 열기 전 재료와 도구가 다 갖춰졌는지 점검하는 단계임. PyTorch·torchaudio(딥러닝 엔진), ffmpeg(음성 파일 변환 도구), chatterbox-tts(음성 합성 모델), groq(LLM 클라이언트)가 모두 설치돼 있어야 함. 하나라도 없으면 설치 방법을 안내하고 프로그램을 멈춤.",
     },
     {
-      step: 3, title: "참조 음성 준비",
+      step: 3, title: "참조 음성 준비", label: "참조 음성 준비", refs: ["prepare_reference_voices", "scan_voice_sources", "convert_to_wav", "select_reference_voice"],
       summary: "prepare_reference_voices()가 voices/ 폴더를 스캔하고 비-WAV 파일을 ffmpeg로 WAV로 변환",
       detail: "'누구의 목소리로 말할지' 결정하는 단계임. voices/ 폴더에 있는 오디오 파일을 찾아 목록을 만들고, WAV가 아닌 파일(mp3, m4a 등)은 ffmpeg를 불러 WAV로 자동 변환함. 변환된 WAV가 여러 개면 사용자가 번호를 골라 선택함.",
     },
     {
-      step: 4, title: "텍스트 입력 및 Groq 전처리",
+      step: 4, title: "텍스트 입력 및 Groq 전처리", label: "텍스트 입력·전처리", refs: ["read_user_inputs", "read_multiline_text", "preprocess_text_with_groq", "apply_tone_prompt"],
       summary: "read_user_inputs()가 합성할 텍스트와 톤 프롬프트를 입력받고, Groq LLM으로 TTS 스크립트로 전처리",
       detail: "'무엇을 어떤 톤으로 말할지' 정하는 단계임. 여러 줄로 텍스트를 입력받고, 차분하게·밝게 같은 톤 지시도 선택적으로 받음. 그 텍스트를 Groq의 LLM에 보내 (emotion_label|exaggeration=0.35|cfg_weight=0.60) 대사 형식의 희곡식 스크립트로 바꿔 받음. 숫자·영문 약어도 한글 발음으로 정규화됨.",
     },
     {
-      step: 5, title: "TTS 모델 로드",
+      step: 5, title: "TTS 모델 로드", label: "모델 로드",
       summary: "ChatterboxMultilingualTTS.from_pretrained()로 모델을 GPU(또는 CPU)에 올리고, denoiser 모델도 로드",
       detail: "'주방장(AI 모델)'을 불러오는 단계임. 첫 실행 시 약 500 MB의 모델 파일을 인터넷에서 받아 캐시에 저장함. GPU(CUDA)가 있으면 빠르게, 없으면 CPU로 느리게 실행함. 음성 잡음 제거용 denoiser(Facebook DNS 모델)도 함께 준비함.",
     },
     {
-      step: 6, title: "음성 합성·노이즈 제거·연결",
+      step: 6, title: "음성 합성·노이즈 제거·연결", label: "합성·노이즈·연결", refs: ["generate_and_save_segments", "script_to_tts_lines", "save_pcm16_wav"],
       summary: "generate_and_save_segments()가 TTS 스크립트를 세그먼트로 나눠 합성·노이즈 제거 후 ffmpeg로 연결",
       detail: "'요리(음성 생성)' 단계임. Groq 스크립트를 TTSLine 목록으로 파싱하고, 세그먼트별로 model.generate()를 호출해 음성을 만든 뒤 denoiser로 잡음을 제거함. 세그먼트 사이에 짧은 묵음을 끼워 ffmpeg concat demuxer로 하나의 WAV 파일로 이어 붙임.",
     },
     {
-      step: 7, title: "결과 저장 및 종료",
+      step: 7, title: "결과 저장 및 종료", label: "저장·종료",
       summary: "results/ 폴더에 타임스탬프 이름의 WAV 파일로 저장하고 경로·포맷·길이를 출력",
       detail: "완성된 요리를 접시에 담는 단계임. 합성된 음성 WAV를 results/result_YYYYMMDD_HHMMSS.wav 이름으로 저장함. Groq 전처리 스크립트도 scripts/ 폴더에 남겨 나중에 참고할 수 있게 함. 최종 출력 경로·포맷·길이를 화면에 안내하고 종료함.",
     },

@@ -5,11 +5,11 @@ window.EXPLAIN_DATA = {
     { id: "server", label: "server.py", role: "MCP 서버 — 허용 루트 검증 후 파일 읽기" }
   ],
   flow: [
-    { step: 1, title: "테스트 파일 생성", summary: "allowed/ 와 forbidden/ 디렉터리에 테스트 파일 생성", detail: "실험용 파일을 미리 만들어 둡니다. allowed/에는 열어봐도 되는 파일, forbidden/에는 접근이 금지된 파일을 넣습니다." },
-    { step: 2, title: "서버 연결 + Roots 콜백 등록", summary: "ClientSession에 list_roots_callback을 등록", detail: "콜백을 등록하면 클라이언트가 서버에 'Roots 기능을 지원합니다'라고 선언합니다. 서버가 나중에 어떤 디렉터리가 허용되는지 물어볼 수 있게 됩니다." },
-    { step: 3, title: "허용 경로 테스트", summary: "allowed/hello.txt 읽기 → 성공", detail: "허용 디렉터리 안의 파일이므로 내용을 그대로 반환합니다." },
-    { step: 4, title: "금지 경로 테스트", summary: "forbidden/secret.txt 읽기 → 차단", detail: "허용 루트(allowed/) 범위 밖이므로 서버가 권한 오류를 반환합니다. 파일을 열지도 않습니다." },
-    { step: 5, title: "경로 우회 테스트", summary: "allowed/../forbidden/secret.txt → 차단", detail: "'..'으로 상위 폴더로 나간 뒤 forbidden/에 접근하려는 시도입니다. 서버가 realpath로 정규화하므로 차단됩니다." }
+    { step: 1, title: "테스트 파일 생성", label: "테스트 파일 생성", refs: ["create_sample_data"], summary: "allowed/ 와 forbidden/ 디렉터리에 테스트 파일 생성", detail: "실험용 파일을 미리 만들어 둡니다. allowed/에는 열어봐도 되는 파일, forbidden/에는 접근이 금지된 파일을 넣습니다." },
+    { step: 2, title: "서버 연결 + Roots 콜백 등록", label: "Roots 콜백 등록", refs: ["main_client", "list_roots_callback"], summary: "ClientSession에 list_roots_callback을 등록", detail: "콜백을 등록하면 클라이언트가 서버에 'Roots 기능을 지원합니다'라고 선언합니다. 서버가 나중에 어떤 디렉터리가 허용되는지 물어볼 수 있게 됩니다." },
+    { step: 3, title: "허용 경로 테스트", label: "허용 경로 테스트", refs: ["read_file_tool", "is_path_allowed"], summary: "allowed/hello.txt 읽기 → 성공", detail: "허용 디렉터리 안의 파일이므로 내용을 그대로 반환합니다." },
+    { step: 4, title: "금지 경로 테스트", label: "금지 경로 테스트", refs: ["read_file_tool", "is_path_allowed"], summary: "forbidden/secret.txt 읽기 → 차단", detail: "허용 루트(allowed/) 범위 밖이므로 서버가 권한 오류를 반환합니다. 파일을 열지도 않습니다." },
+    { step: 5, title: "경로 우회 테스트", label: "경로 우회 테스트", refs: ["is_path_allowed", "get_allowed_roots"], summary: "allowed/../forbidden/secret.txt → 차단", detail: "'..'으로 상위 폴더로 나간 뒤 forbidden/에 접근하려는 시도입니다. 서버가 realpath로 정규화하므로 차단됩니다." }
   ],
   functions: [
     {

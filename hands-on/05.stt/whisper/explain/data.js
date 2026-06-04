@@ -20,42 +20,42 @@ window.EXPLAIN_DATA = {
 
   flow: [
     {
-      step: 1, title: "실행 시작",
+      step: 1, title: "실행 시작", label: "실행 시작",
       summary: "python whisper-large-v3-turbo.py 실행 → if __name__ == '__main__': 가 main()을 호출함",
       detail: "이 예제는 웹이 아니라 '명령줄 프로그램'임. 터미널에서 실행하면 파일 맨 아래 if __name__ == \"__main__\": 블록이 main()을 호출함. main()이 전체 작업을 순서대로 지휘함.",
     },
     {
-      step: 2, title: "환경 준비",
+      step: 2, title: "환경 준비", label: "환경 준비", refs: ["module_setup"],
       summary: "한글 출력 인코딩 설정, 경로 상수(SCRIPT_DIR·AUDIO_DIR), 모델 파라미터 상수를 파일 상단에서 정의함",
       detail: "프로그램이 시작될 때 한 번만 준비하는 값들임. 윈도우에서 한글이 깨지지 않도록 stdout/stderr 인코딩을 UTF-8로 맞추고, 이 파일 위치를 기준으로 audio 폴더 경로를 자동 계산함. MODEL_ID·LANGUAGE·CHUNK_LENGTH_S 같은 상수는 코드 안에 값을 직접 쓰지 않고 한 곳에 모아 관리함.",
     },
     {
-      step: 3, title: "오디오 파일 탐색",
+      step: 3, title: "오디오 파일 탐색", label: "오디오 탐색", refs: ["find_first_audio_file"],
       summary: "find_first_audio_file()이 audio 폴더에서 지원 형식의 파일 중 이름순 첫 번째를 찾음",
       detail: "audio 폴더가 없거나 지원 확장자 파일이 없으면 즉시 오류를 내어 문제를 빨리 알아채게 함. sorted()로 이름순 정렬해 항상 같은 파일을 선택하도록 일관성을 유지함. 찾은 파일 경로를 main()으로 돌려주면 이후 단계에서 사용함.",
     },
     {
-      step: 4, title: "GPU/CPU 감지",
+      step: 4, title: "GPU/CPU 감지", label: "GPU/CPU 감지", refs: ["detect_device"],
       summary: "detect_device()가 GPU 사용 가능 여부를 확인하여 (디바이스, dtype) 쌍을 반환함",
       detail: "GPU(NVIDIA 그래픽 카드)가 있으면 cuda+float16으로 빠르게, 없으면 cpu+float32로 느리게 실행함. dtype은 '숫자를 얼마나 정밀하게 저장할지'를 뜻함. GPU용 float16은 메모리를 절반만 써서 더 빠름.",
     },
     {
-      step: 5, title: "모델 로드",
+      step: 5, title: "모델 로드", label: "모델 로드", refs: ["load_pipeline"],
       summary: "load_pipeline()이 Hugging Face transformers로 Whisper ASR 파이프라인을 로드함",
       detail: "파이프라인(pipeline)은 '음성 → 텍스트' 변환 과정을 한 번에 처리하는 묶음 도구임. 처음 실행 시 모델 파일을 인터넷에서 받아 캐시에 저장하고, 이후엔 캐시를 재사용함. 모델 크기가 크기 때문에 로드에 시간이 걸릴 수 있음.",
     },
     {
-      step: 6, title: "음성 인식 (전사)",
+      step: 6, title: "음성 인식 (전사)", label: "음성 인식", refs: ["transcribe"],
       summary: "transcribe()가 파이프라인으로 오디오를 텍스트와 타임스탬프 청크로 변환함",
       detail: "오디오를 CHUNK_LENGTH_S(30초) 단위로 잘라 병렬 처리(batch_size=8)함. return_timestamps=True로 각 구간의 시작/종료 시간도 함께 받음. 결과 딕셔너리에 전체 텍스트(text)와 구간별 목록(chunks)이 들어 있음.",
     },
     {
-      step: 7, title: "결과 저장",
+      step: 7, title: "결과 저장", label: "결과 저장", refs: ["save_result_txt", "save_result_csv", "fmt_sec"],
       summary: "save_result_txt()와 save_result_csv()가 전사 결과를 result.txt와 result_chunks.csv로 저장함",
       detail: "result.txt에는 전사 전문과 메타정보(모델·파일명·생성시각)를 저장함. result_chunks.csv에는 청크별 시작/종료 시간과 텍스트를 '|' 구분자로 저장하여 스프레드시트에서 열어볼 수 있게 함. fmt_sec()가 초 단위 숫자를 '0.00s' 형식으로 보기 좋게 변환함.",
     },
     {
-      step: 8, title: "완료 출력",
+      step: 8, title: "완료 출력", label: "완료 출력",
       summary: "저장된 파일 경로·청크 수·전사 텍스트를 출력하고 종료 코드(0=성공)를 반환함",
       detail: "작업이 끝나면 어디에 저장했는지, 몇 개의 청크로 분리됐는지 알려주고 전사 텍스트도 화면에 출력함. 중간에 오류가 나면 except로 메시지를 출력하고 종료 코드 1(실패)을 돌려줌.",
     },

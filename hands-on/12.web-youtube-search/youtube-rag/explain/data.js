@@ -14,42 +14,56 @@ window.EXPLAIN_DATA = {
     {
       "step": 1,
       "title": "실행 & CLI 모드 분기",
+      "label": "실행·CLI 분기",
+      "refs": ["main", "setup"],
       "summary": "python app.py 뒤에 index / chat / ask / check-proxy 중 하나를 골라 실행함",
       "detail": "터미널에서 'python app.py index'(영상 검색→자막→벡터 DB 저장), 'python app.py chat'(대화형 챗봇), 'python app.py ask \"질문\"'(질문 1회), 'python app.py check-proxy URL'(자막 프록시 점검)로 시작함. 인자를 안 주면 기본은 index임. 시작과 동시에 load_dotenv() 가 hands-on/.env 의 YOUTUBE_API_KEY(검색)·OPENAI_API_KEY(임베딩)·GROQ_API_KEY(답변) 세 열쇠를 챙겨 둠. 비유하면, 식당에 들어온 손님이 '재료 준비(index)'·'주문 받기(chat/ask)'·'배달 경로 점검(check-proxy)' 중 무엇을 시킬지 먼저 고르고, 주방장은 세 개의 열쇠를 허리춤에 차는 단계."
     },
     {
       "step": 2,
       "title": "[1단계] Data API 멀티쿼리 검색 + 조건 필터 (+24h 캐시)",
+      "label": "영상 검색·필터",
+      "refs": ["search_all_topics", "search_topic_videos", "search_cache", "build_youtube_client", "parse_duration_chunked"],
       "summary": "한 토픽을 여러 관점으로 검색하고, 최근 90일·5분↑·조회수 1000회↑만 골라냄",
       "detail": "YouTube Data API v3 의 search.list 로 'Claude Code 특징', 'Claude Code 활용 방법'처럼 한 토픽을 여러 관점(ASPECTS)으로 검색해 후보를 넓게 모음(멀티쿼리=회수율↑). 그다음 videos.list 로 길이·조회수를 받아 '최근 90일·5분 이상·조회수 1000회 이상'만 남기고, 조회수 순으로 토픽당 10개를 뽑음. 같은 검색 조건의 결과는 24시간 동안 캐시 파일에 저장해 두어 API 할당량을 아낌. 비유하면, 한 주제를 여러 키워드로 도서관 검색대에 넣어 책을 잔뜩 뽑은 뒤, '최근에 나온·충분히 두껍고·많이 읽힌' 책만 골라 책상에 올리는 것. 같은 검색을 하루 안에 또 하면 어제 메모를 그대로 씀."
     },
     {
       "step": 3,
       "title": "[2단계] 자막 추출(프록시·백오프) + 120초 타임스탬프 청킹",
+      "label": "자막 추출·청킹",
+      "refs": ["load_transcripts", "fetch_transcript_pieces", "chunk_transcript", "transcript_cache", "build_transcript_client", "webshare_helpers"],
       "summary": "youtube-transcript-api로 자막을 받아 120초 단위로 자르고, 각 조각에 바로가기 URL을 붙임",
       "detail": "youtube-transcript-api 로 영상마다 자막(한국어→영어 우선)을 직접 가져옴. YouTube가 짧은 시간 대량 요청을 IP 차단하므로 프록시(Webshare 등)를 쓸 수 있고, 차단되면 3→6→12→24초로 기다리며 재시도함(지수 백오프). 가져온 자막은 120초(2분) 단위로 잘라(타임스탬프 청킹) 각 조각에 '몇 초부터 보면 되는지'를 알려 주는 &t=초 형식의 바로가기 URL과 제목·조회수 메타데이터를 붙임. 성공한 자막은 24시간 캐시에 저장함. 비유하면, 강연 녹취록을 2분짜리 토막으로 잘라 토막마다 '영상 12분 0초로 점프' 같은 북마크를 달아 두는 것. 문지기가 막으면 잠깐 기다렸다 다시 두드림."
     },
     {
       "step": 4,
       "title": "[3단계] ChromaDB 인덱싱 (최초/추가 자동 감지)",
+      "label": "ChromaDB 인덱싱",
+      "refs": ["vectorstore_build", "run_indexing"],
       "summary": "자막 토막을 숫자 벡터로 바꿔 ChromaDB에 저장함 — DB가 없으면 새로, 있으면 누적",
       "detail": "120초 토막들을 OpenAI 임베딩으로 숫자 벡터(1536차원)로 바꿔 ChromaDB 에 저장함. chroma_db 폴더가 없으면 from_documents() 로 새 컬렉션을 만들고, 이미 있으면 add_documents() 로 기존 컬렉션에 토막을 더함(자동 감지). --reset 을 주면 기존 DB를 지우고 처음부터 다시 함. 비유하면, 토막마다 '내용 지문'을 떠서 거대한 색인 서랍에 정리해 넣는 것. 서랍이 없으면 새로 짜고, 있으면 빈칸에 더 끼워 넣음."
     },
     {
       "step": 5,
       "title": "질의 시 MMR 검색",
+      "label": "MMR 검색",
+      "refs": ["rag_components"],
       "summary": "질문을 벡터로 바꿔 비슷하면서도 서로 겹치지 않는 자막 토막 10개를 골라옴",
       "detail": "chat/ask 모드에서 질문이 들어오면 같은 임베딩 모델로 질문을 벡터로 바꾼 뒤, MMR(Maximal Marginal Relevance) 방식으로 자막 토막을 회수함. 먼저 후보 30개(fetch_k)를 가져온 뒤 '질문과 관련 있으면서도 서로 내용이 겹치지 않는' 10개(k)를 고름. 한 영상에만 답이 쏠리지 않고 여러 영상의 다양한 시점을 골고루 모음. 비유하면, 서랍에서 비슷한 카드 30장을 꺼낸 뒤 '비슷하지만 똑같지는 않은' 10장만 추려 책상에 펴는 것."
     },
     {
       "step": 6,
       "title": "LLM 답변 (타임스탬프 URL 포함)",
+      "label": "LLM 답변",
+      "refs": ["formatters_chain", "query_run"],
       "summary": "고른 토막을 근거로 Groq LLM이 답을 쓰고, '몇 분부터 보세요' 시점 URL을 함께 제시함",
       "detail": "고른 자막 토막들을 제목·시점·바로가기 URL과 함께 컨텍스트 문자열로 묶어 시스템 프롬프트에 넣고, Groq LPU 의 gpt-oss-120b 가 한국어로 답함. 시스템 프롬프트가 '자막 내용만 근거로, 영상 제목과 &t=초 URL을 반드시 함께 제시하라'고 지시하므로 답에 '12:00부터 보세요' 같은 정확한 시점이 붙음. 비유하면, 추려낸 토막 카드만 보고 답을 쓰되 '이 내용은 어느 영상 몇 분에 있다'는 출처 쪽지를 꼭 같이 적어 주는 것."
     },
     {
       "step": 7,
       "title": "출력",
+      "label": "출력",
+      "refs": ["query_run"],
       "summary": "검색된 토막 미리보기와 최종 답변을 콘솔에 보여 줌",
       "detail": "answer_question 이 먼저 검색된 토막들을 '제목 @ 시점 / URL / 내용 미리보기' 형태로 보여 주고, 이어 LLM 답변을 구분선과 함께 출력함. ask 는 한 번 답하고 끝나고, chat 은 quit/q 를 입력할 때까지 질문을 계속 받는 루프를 돔. 비유하면, 손님에게 '이 답은 이 카드들에서 나왔어요'라며 근거 목록을 먼저 보여 주고 최종 답을 또박또박 읽어 주는 것."
     }

@@ -5,12 +5,12 @@ window.EXPLAIN_DATA = {
     { id: "server", label: "travel_server.py", role: "여행 플래너 MCP 서버 — 3단계 Elicitation + 서버 검증 + LLM 일정 생성" }
   ],
   flow: [
-    { step: 1, title: "서버 연결 + 콜백 등록", summary: "elicitation_callback을 ClientSession에 등록", detail: "콜백을 등록하면 클라이언트가 서버에 'Elicitation 기능을 지원합니다'라고 선언합니다." },
-    { step: 2, title: "plan_trip 도구 호출", summary: "call_tool('plan_trip') 실행", detail: "도구를 호출하면 서버가 일정 생성 전에 사용자에게 정보를 3번 역으로 요청합니다." },
-    { step: 3, title: "Step 1: 목적지 요청", summary: "서버가 ctx.elicit()로 국가/도시 입력 요청", detail: "서버가 DestinationSchema(국가·도시)를 JSON Schema로 변환해 클라이언트에 전달합니다. 클라이언트의 콜백이 CLI 폼을 렌더링합니다." },
-    { step: 4, title: "서버 비즈니스 검증", summary: "국가-도시 정합성·enum 방어 검증", detail: "클라이언트가 유효한 값을 보내도 서버가 교차필드 규칙(예: 일본+파리)을 검사합니다. 실패하면 오류 메시지를 붙여 재요청합니다." },
-    { step: 5, title: "Step 2·3 반복", summary: "기간/예산 → 스타일/동행자 순서로 요청", detail: "각 단계마다 elicit → 서버 검증 → (실패 시 재요청) 루프를 최대 3번까지 반복합니다." },
-    { step: 6, title: "LLM 일정 생성", summary: "검증된 정보로 Groq LLM 호출 → 여행 계획서 반환", detail: "모든 단계가 통과되면 수집된 정보를 Groq LPU에 보내 일차별 여행 일정을 생성합니다." }
+    { step: 1, title: "서버 연결 + 콜백 등록", label: "콜백 등록", refs: ["elicitation_callback"], summary: "elicitation_callback을 ClientSession에 등록", detail: "콜백을 등록하면 클라이언트가 서버에 'Elicitation 기능을 지원합니다'라고 선언합니다." },
+    { step: 2, title: "plan_trip 도구 호출", label: "도구 호출", refs: ["plan_trip"], summary: "call_tool('plan_trip') 실행", detail: "도구를 호출하면 서버가 일정 생성 전에 사용자에게 정보를 3번 역으로 요청합니다." },
+    { step: 3, title: "Step 1: 목적지 요청", label: "목적지 요청", refs: ["elicit_with_validation", "pydantic_schemas", "elicitation_callback"], summary: "서버가 ctx.elicit()로 국가/도시 입력 요청", detail: "서버가 DestinationSchema(국가·도시)를 JSON Schema로 변환해 클라이언트에 전달합니다. 클라이언트의 콜백이 CLI 폼을 렌더링합니다." },
+    { step: 4, title: "서버 비즈니스 검증", label: "서버 검증", refs: ["elicit_with_validation"], summary: "국가-도시 정합성·enum 방어 검증", detail: "클라이언트가 유효한 값을 보내도 서버가 교차필드 규칙(예: 일본+파리)을 검사합니다. 실패하면 오류 메시지를 붙여 재요청합니다." },
+    { step: 5, title: "Step 2·3 반복", label: "기간·스타일 요청", refs: ["elicit_with_validation", "pydantic_schemas"], summary: "기간/예산 → 스타일/동행자 순서로 요청", detail: "각 단계마다 elicit → 서버 검증 → (실패 시 재요청) 루프를 최대 3번까지 반복합니다." },
+    { step: 6, title: "LLM 일정 생성", label: "LLM 일정 생성", summary: "검증된 정보로 Groq LLM 호출 → 여행 계획서 반환", detail: "모든 단계가 통과되면 수집된 정보를 Groq LPU에 보내 일차별 여행 일정을 생성합니다." }
   ],
   functions: [
     {

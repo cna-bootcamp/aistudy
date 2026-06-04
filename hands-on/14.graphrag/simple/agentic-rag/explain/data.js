@@ -7,11 +7,11 @@ window.EXPLAIN_DATA = {
     { id: "graph",     label: "app.py · 그래프 조립",     role: "노드·엣지를 StateGraph로 연결해 실행 가능한 워크플로우로 컴파일" }
   ],
   flow: [
-    { step: 1, title: "Route (라우팅)",        summary: "질문을 보고 검색이 필요한지·어떤 소스를 쓸지 결정함",          detail: "LLM이 질문을 분석해 특허 질문이면 graphrag(법률)·web·youtube 중 필요한 소스를 고릅니다. 인사나 특허 외 주제는 검색 없이 바로 답합니다. 원본 챗봇의 'vectordb' 소스가 'graphrag'로 바뀐 것 외에는 동일합니다." },
-    { step: 2, title: "Retrieve (검색)",       summary: "법률은 Neo4j GraphRAG, 그 외는 웹·YouTube에서 검색함",        detail: "★ 바뀐 부분: 법률 검색이 ChromaDB 단순 유사도에서 Neo4j GraphRAG 하이브리드로 교체됐습니다. 조문 청크(doc_embedding)와 진입 엔티티(entity_embedding)+1-hop 그래프 관계를 함께 가져와 List[Document]로 반환합니다. 웹·YouTube는 그대로입니다." },
-    { step: 3, title: "IsRel (관련성 평가)",   summary: "검색된 문서가 질문과 관련 있는지 골라냄",                    detail: "GraphRAG가 가져온 조문 청크·그래프 관계 문서를 LLM이 한 번에 평가해 관련 있는 것만 남깁니다. '특허 요건' 질문에서는 조문 청크보다 '제29조(특허요건)' 관계 문서가 더 관련 있다고 선별되기도 합니다." },
-    { step: 4, title: "Generate + IsSup",      summary: "컨텍스트로 답을 만들고 근거가 있는지 검증함",                detail: "선별된 법률·웹·영상 컨텍스트로 답변을 생성하고, 그 답이 컨텍스트에 근거하는지(환각이 없는지) 검사합니다. 근거가 부족하면 컨텍스트만으로 엄격 재생성합니다. 출처 섹션은 코드가 직접 붙입니다." },
-    { step: 5, title: "IsUse + 재검색 루프",   summary: "답이 유용하지 않으면 질문을 고쳐 다시 검색함",                detail: "최종 답이 유용한지 평가해, 부족하면 질문을 더 검색 친화적으로 재작성하고 Route로 돌아갑니다(최대 3회). 이 Self-RAG 성찰 루프는 원본 챗봇과 완전히 동일합니다." }
+    { step: 1, title: "Route (라우팅)",        label: "Route 라우팅",       summary: "질문을 보고 검색이 필요한지·어떤 소스를 쓸지 결정함",          detail: "LLM이 질문을 분석해 특허 질문이면 graphrag(법률)·web·youtube 중 필요한 소스를 고릅니다. 인사나 특허 외 주제는 검색 없이 바로 답합니다. 원본 챗봇의 'vectordb' 소스가 'graphrag'로 바뀐 것 외에는 동일합니다." },
+    { step: 2, title: "Retrieve (검색)",       label: "Retrieve 검색",      refs: ["fn_node_retrieve", "fn_retrieve", "fn_expand_graph", "fn_build_kg_text"], summary: "법률은 Neo4j GraphRAG, 그 외는 웹·YouTube에서 검색함",        detail: "★ 바뀐 부분: 법률 검색이 ChromaDB 단순 유사도에서 Neo4j GraphRAG 하이브리드로 교체됐습니다. 조문 청크(doc_embedding)와 진입 엔티티(entity_embedding)+1-hop 그래프 관계를 함께 가져와 List[Document]로 반환합니다. 웹·YouTube는 그대로입니다." },
+    { step: 3, title: "IsRel (관련성 평가)",   label: "IsRel 관련성 평가",  refs: ["fn_grade_documents"], summary: "검색된 문서가 질문과 관련 있는지 골라냄",                    detail: "GraphRAG가 가져온 조문 청크·그래프 관계 문서를 LLM이 한 번에 평가해 관련 있는 것만 남깁니다. '특허 요건' 질문에서는 조문 청크보다 '제29조(특허요건)' 관계 문서가 더 관련 있다고 선별되기도 합니다." },
+    { step: 4, title: "Generate + IsSup",      label: "답변 생성·검증",     refs: ["fn_build_sources"], summary: "컨텍스트로 답을 만들고 근거가 있는지 검증함",                detail: "선별된 법률·웹·영상 컨텍스트로 답변을 생성하고, 그 답이 컨텍스트에 근거하는지(환각이 없는지) 검사합니다. 근거가 부족하면 컨텍스트만으로 엄격 재생성합니다. 출처 섹션은 코드가 직접 붙입니다." },
+    { step: 5, title: "IsUse + 재검색 루프",   label: "IsUse 재검색 루프",  summary: "답이 유용하지 않으면 질문을 고쳐 다시 검색함",                detail: "최종 답이 유용한지 평가해, 부족하면 질문을 더 검색 친화적으로 재작성하고 Route로 돌아갑니다(최대 3회). 이 Self-RAG 성찰 루프는 원본 챗봇과 완전히 동일합니다." }
   ],
   functions: [
     {

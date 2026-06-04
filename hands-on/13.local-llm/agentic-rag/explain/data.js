@@ -6,41 +6,56 @@ window.EXPLAIN_DATA = {
   flow: [
     {
       step: 1, title: "실행 진입 · 자원 준비",
+      label: "실행·자원 준비",
+      refs: ["main_fn", "check_ollama", "build_llm", "load_vectorstore", "rag_init"],
       summary: "main()이 Ollama 서버·벡터 DB·LLM을 준비하고 그래프를 컴파일함",
       detail: "카페를 열기 전 커피 머신을 점검하듯, main()은 Ollama 서버 접속·모델 존재 여부·특허법 ChromaDB를 차례로 확인합니다. 모두 준비되면 AgenticRAG 그래프를 생성합니다."
     },
     {
       step: 2, title: "라우팅 (Route)",
+      label: "라우팅",
+      refs: ["route_node"],
       summary: "route() 노드: LLM이 특허 질문인지 판단하고 검색 소스·소스별 쿼리를 결정함",
       detail: "LLM이 라우터 역할로 질문을 분석합니다. '특허 요건이 뭐야?'→vectordb+web, '안녕'→직접 답변. 소스마다 검색 엔진 특성이 달라 vectordb/web/YouTube 쿼리를 각각 따로 최적화합니다."
     },
     {
       step: 3, title: "검색 (Retrieve)",
+      label: "검색",
+      refs: ["retrieve_node"],
       summary: "retrieve() 노드: 선택된 소스에서 검색 실행 (벡터DB·DuckDuckGo·scrapetube)",
       detail: "선택된 소스에서만 소스별 최적화 쿼리로 검색합니다. 벡터DB는 코사인 유사도, 웹은 DuckDuckGo 무료 API, YouTube는 scrapetube 스크래핑 + oembed 유효성 검증입니다. 한 소스가 실패해도 나머지로 답변을 만들 수 있습니다."
     },
     {
       step: 4, title: "관련성 평가 (IsRel)",
+      label: "관련성 평가",
+      refs: ["grade_docs"],
       summary: "grade_documents() 노드: 벡터DB 문서를 LLM이 일괄 평가해 관련 없는 문서를 제거함",
       detail: "코사인 유사도로 뽑은 문서가 반드시 '좋은' 문서는 아닙니다. LLM이 각 문서를 보고 '이 질문에 직접 도움이 되는가?'를 판단해 관련 문서만 선별합니다. 1회 LLM 호출로 전체를 일괄 평가합니다."
     },
     {
       step: 5, title: "답변 생성 + 근거성 검증 (IsSup)",
+      label: "답변 생성·근거성",
+      refs: ["generate_node"],
       summary: "generate() 노드: 컨텍스트로 답변을 생성하고 환각 여부를 검증함",
       detail: "법률+웹+영상 결과를 하나의 컨텍스트로 합쳐 LLM에 답변을 요청합니다. 생성 후 '답변이 컨텍스트에 근거하는가?'(IsSup)를 검증하고, 근거 부족이면 '컨텍스트만 사용'하는 엄격 모드로 재생성합니다."
     },
     {
       step: 6, title: "유용성 평가 (IsUse)",
+      label: "유용성 평가",
+      refs: ["grade_gen"],
       summary: "grade_generation() 노드: 최종 답변이 질문에 실제로 유용한지 평가함",
       detail: "마지막 품질 관문입니다. LLM이 '답변이 질문을 회피하지 않고 실질적으로 답하는가?'를 평가합니다. 유용하지 않고 재시도 횟수가 남으면 rewrite → route 루프로 돌아갑니다."
     },
     {
       step: 7, title: "쿼리 재작성 (Rewrite)",
+      label: "쿼리 재작성",
+      refs: ["rewrite_node"],
       summary: "rewrite() 노드: 모호한 표현을 정확한 특허 용어로 바꿔 질문을 재작성함",
       detail: "'왜 유용하지 않았는가?'를 분석해 질문을 다시 씁니다. 예) '특허 어떻게 해요?' → '특허 출원 등록 요건 신규성 진보성 절차'. 재작성된 질문으로 route 노드부터 다시 실행합니다. 최대 3회까지 반복합니다."
     },
     {
       step: 8, title: "결과 출력",
+      label: "결과 출력",
       summary: "처리 요약(라우팅·검색·IsSup·IsUse)과 출처 포함 최종 답변을 콘솔에 출력함",
       detail: "어떤 소스에서 몇 건을 검색했는지, 근거성·유용성 평가 결과, 재작성 이력을 한눈에 보여주는 요약 박스와 함께 법령·웹 URL·YouTube URL 출처가 포함된 최종 답변을 출력합니다."
     }

@@ -14,36 +14,48 @@ window.EXPLAIN_DATA = {
     {
       "step": 1,
       "title": "실행 & 환경 준비",
+      "label": "실행·환경 준비",
+      "refs": ["setup", "main"],
       "summary": "python naive_rag.py 로 실행하고, .env 의 API 키를 불러옴",
       "detail": "터미널에서 'python naive_rag.py' 또는 'python naive_rag.py \"질문\"' 으로 실행함. 시작과 동시에 load_dotenv() 가 hands-on/.env 에 적어 둔 OPENAI_API_KEY(질의 임베딩용)와 GROQ_API_KEY(LLM용)를 읽어 둠. 한글 출력이 깨지지 않게 표준출력을 UTF-8로 맞추는 처리도 함. 비유하면, 사서(앱)가 출근해 책상에 두 개의 열쇠(임베딩 열쇠·답변 열쇠)를 챙겨 두는 단계."
     },
     {
       "step": 2,
       "title": "벡터 DB 로드 (검색기 만들기)",
+      "label": "벡터 DB 로드",
+      "refs": ["load_retriever"],
       "summary": "이미 만들어 둔 공용 벡터 DB를 '재임베딩 없이' 연결함",
       "detail": "이 예제는 PDF를 새로 읽거나 쪼개지 않음. 그 작업(인덱싱)은 ../indexing/indexing.py 가 미리 해 두었고, 여기서는 그 결과물인 공용 ChromaDB(컬렉션 patent_law)를 그냥 연결만 함. 연결된 벡터 DB를 검색기(retriever)로 바꿔, 질문이 오면 비슷한 청크를 찾을 준비를 함. 비유하면, 이미 정리된 서가에 사서가 그대로 접근 권한을 얻는 것 — 책을 다시 꽂지 않음."
     },
     {
       "step": 3,
       "title": "LLM 준비",
+      "label": "LLM 준비",
+      "refs": ["create_llm"],
       "summary": "답변을 생성할 Groq LLM(gpt-oss-120b)을 준비함",
       "detail": "검색한 근거를 바탕으로 실제 문장을 써 줄 LLM을 준비함. Groq LPU에서 서빙하는 openai/gpt-oss-120b 를 쓰며, 추론 과정이 답에 섞이지 않도록 reasoning_format=\"hidden\" 으로 최종 답변만 받음. temperature=0 이라 같은 질문엔 같은 답을 냄. 비유하면, 자료를 보고 답을 써 줄 '글쓰는 직원'을 부르는 단계."
     },
     {
       "step": 4,
       "title": "탐색 (Retrieve)",
+      "label": "탐색",
+      "refs": ["answer_query"],
       "summary": "질문을 임베딩해 의미가 비슷한 청크 5개(top-k)를 찾음",
       "detail": "사용자 질문도 문서와 똑같은 방식으로 숫자 벡터(임베딩)로 바꾼 뒤, 벡터 DB에서 가장 가까운(=의미가 비슷한) 청크 상위 5개를 꺼냄(유사도 검색). 'Naive'는 이 검색을 한 번만, 가공 없이 단순하게 한다는 뜻 — 질문을 바꿔보거나(Query Transformation) 재정렬(Re-ranking)하는 단계가 없음. 비유하면, 사서가 질문 카드와 좌표가 가장 가까운 서가 카드 5장을 그대로 뽑아 오는 것."
     },
     {
       "step": 5,
       "title": "생성 (Generate)",
+      "label": "생성",
+      "refs": ["answer_query", "format_docs"],
       "summary": "찾은 청크를 근거로 넣어 LLM이 답을 만듦",
       "detail": "찾아온 청크 5개를 [출처] 라벨과 함께 '컨텍스트'로 프롬프트에 채우고, LLM이 그 근거만 바탕으로 답을 생성함. 프롬프트에 '문서에 없으면 추측하지 말 것'이라는 규칙이 있어 지어내기(환각)를 줄임. 이 조립은 LCEL 파이프(prompt | llm | StrOutputParser)로 이뤄짐. 비유하면, 사서가 뽑아 온 5장의 카드만 보고 질문에 답을 적어 주는 것."
     },
     {
       "step": 6,
       "title": "결과 출력",
+      "label": "결과 출력",
+      "refs": ["print_result"],
       "summary": "생성된 답변과 '검색 출처'를 콘솔에 보기 좋게 표시",
       "detail": "최종 답변을 출력하고, 어떤 청크가 근거였는지(파일명·청크 번호·앞부분 미리보기)도 함께 보여 줌. 근거를 함께 보여 주는 것은 RAG의 핵심 장점 — 사람이 답의 출처를 검증할 수 있음. 비유하면, 답안과 함께 '참고한 카드 목록'을 같이 제출하는 것."
     }

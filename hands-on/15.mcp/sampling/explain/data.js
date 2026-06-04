@@ -6,12 +6,12 @@ window.EXPLAIN_DATA = {
     { id: "client", label: "client.py", role: "MCP 클라이언트 — sampling_callback으로 Groq LLM 호출 후 서버에 반환" }
   ],
   flow: [
-    { step: 1, title: "샘플 데이터 생성", summary: "generate_ticket.py 실행 → csr/*.json 생성", detail: "결제·배달·일반 3유형 × 3건 = 9건의 고객 문의 JSON 파일을 csr/ 디렉터리에 만듭니다." },
-    { step: 2, title: "서버 연결 + Sampling 콜백 등록", summary: "sampling_callback을 ClientSession에 등록", detail: "콜백을 등록하면 클라이언트가 서버에 'Sampling 기능을 지원합니다'라고 선언합니다. 등록하지 않으면 서버의 create_message() 요청이 오류로 실패합니다." },
-    { step: 3, title: "classify_inquiry 도구 호출", summary: "call_tool('classify_inquiry', ...) 실행", detail: "서버에 고객 문의 내용을 보내 분류를 요청합니다." },
-    { step: 4, title: "서버가 Sampling 요청", summary: "ctx.session.create_message() → sampling_callback 자동 실행", detail: "서버가 자체 LLM 없이 클라이언트의 LLM을 빌립니다. 이것이 Sampling의 핵심입니다." },
-    { step: 5, title: "클라이언트가 Groq 호출", summary: "sampling_callback이 Groq LLM을 호출하고 결과를 서버에 반환", detail: "클라이언트가 LLM을 대신 실행해 분류 결과(JSON)를 서버에 돌려줍니다." },
-    { step: 6, title: "티켓 생성 + Slack 발송", summary: "분류 결과로 JSON 티켓 저장 + 담당부서 채널에 알림", detail: "결제팀→#cs-결제, 배달팀→#cs-배달, 일반팀→#cs-일반 채널로 Slack 알림을 발송합니다." }
+    { step: 1, title: "샘플 데이터 생성", label: "샘플 데이터 생성", refs: ["write_inquiries"], summary: "generate_ticket.py 실행 → csr/*.json 생성", detail: "결제·배달·일반 3유형 × 3건 = 9건의 고객 문의 JSON 파일을 csr/ 디렉터리에 만듭니다." },
+    { step: 2, title: "서버 연결 + Sampling 콜백 등록", label: "Sampling 콜백 등록", refs: ["client_run", "sampling_callback"], summary: "sampling_callback을 ClientSession에 등록", detail: "콜백을 등록하면 클라이언트가 서버에 'Sampling 기능을 지원합니다'라고 선언합니다. 등록하지 않으면 서버의 create_message() 요청이 오류로 실패합니다." },
+    { step: 3, title: "classify_inquiry 도구 호출", label: "도구 호출", refs: ["client_run", "classify_inquiry_tool"], summary: "call_tool('classify_inquiry', ...) 실행", detail: "서버에 고객 문의 내용을 보내 분류를 요청합니다." },
+    { step: 4, title: "서버가 Sampling 요청", label: "Sampling 요청", refs: ["request_classification", "sampling_callback"], summary: "ctx.session.create_message() → sampling_callback 자동 실행", detail: "서버가 자체 LLM 없이 클라이언트의 LLM을 빌립니다. 이것이 Sampling의 핵심입니다." },
+    { step: 5, title: "클라이언트가 Groq 호출", label: "Groq 호출", refs: ["sampling_callback"], summary: "sampling_callback이 Groq LLM을 호출하고 결과를 서버에 반환", detail: "클라이언트가 LLM을 대신 실행해 분류 결과(JSON)를 서버에 돌려줍니다." },
+    { step: 6, title: "티켓 생성 + Slack 발송", label: "티켓·Slack 발송", refs: ["classify_inquiry_tool"], summary: "분류 결과로 JSON 티켓 저장 + 담당부서 채널에 알림", detail: "결제팀→#cs-결제, 배달팀→#cs-배달, 일반팀→#cs-일반 채널로 Slack 알림을 발송합니다." }
   ],
   functions: [
     {

@@ -9,12 +9,12 @@ window.EXPLAIN_DATA = {
     { id: "vector",   label: "vector_index.py",           role: "Neo4jVector로 엔티티·조문청크 임베딩 벡터 인덱스 생성 (OpenAI)" }
   ],
   flow: [
-    { step: 1, title: "설정 로드",         summary: "Settings가 경로·API 키·모델 정보를 초기화함",                detail: "config/settings.py의 Settings 클래스가 __file__ 위치 기준으로 모든 경로를 자동 계산하고 hands-on/.env에서 GROQ_API_KEY(추출용)·OPENAI_API_KEY(임베딩용)를 읽습니다. neo4j 예제와 달리 데이터소스는 특허법.pdf 1개이고, 임베딩은 OpenAI 1536차원을 씁니다." },
-    { step: 2, title: "PDF 로드·청킹",     summary: "특허법.pdf를 읽어 머리글을 지우고 조문 단위로 자름",         detail: "PyPDFLoader로 PDF를 페이지 단위로 읽은 뒤, 법제처 머리글·페이지번호 같은 노이즈를 정규식으로 제거합니다. 그다음 '제○조'·'①②③' 같은 법령 구조를 우선 경계로 삼아 800자 청크로 자릅니다. 같은 청크가 KG와 벡터 인덱스 양쪽에 쓰입니다." },
-    { step: 3, title: "Neo4j 연결",       summary: "컨테이너 지연을 고려해 지수 백오프로 3회 재시도함",           detail: "Docker 컨테이너(graphrag-simple-neo4j, 7688 포트)가 완전히 뜨기 전에 연결하면 실패합니다. 1초→2초→4초로 대기 시간을 늘리며 최대 3회 재시도해 일시 장애를 흡수합니다." },
-    { step: 4, title: "KG 구축",          summary: "LLMGraphTransformer가 조문 청크에서 엔티티·관계를 추출함",     detail: "Groq LPU의 gpt-oss-120b가 특허법 조문을 읽고 (요건, 관계, 절차) 삼중쌍을 뽑습니다. gpt-oss는 추론 모델이라 reasoning_effort='low'와 max_completion_tokens=8000을 설정해야 출력이 잘리지 않습니다. 추출된 노드·엣지는 Neo4j에 MERGE로 저장됩니다." },
-    { step: 5, title: "벡터 인덱스 생성", summary: "Neo4j 안에 entity_embedding과 doc_embedding 두 인덱스를 생성함", detail: "entity_embedding은 KG 엔티티 노드에 OpenAI 임베딩을 추가해 의미 검색 진입점으로 쓰고, doc_embedding은 조문 청크를 Chunk 노드로 저장해 원문 단위 검색을 지원합니다. 인덱싱·질의 임베딩이 같은 모델(1536차원)이어야 검색됩니다." },
-    { step: 6, title: "통계 확인",        summary: "노드·관계 수를 출력해 인덱싱 성공 여부를 판정함",              detail: "엔티티 추출 수가 0이면 LLM 추출 경로(reasoning_effort 미설정 등)에 문제가 있다는 명확한 경고를 냅니다. 정상이면 '인덱싱 완료!'를 출력합니다. 실측: 엔티티 842개·관계 2300건." }
+    { step: 1, title: "설정 로드",         label: "설정 로드",         refs: ["fn_settings"], summary: "Settings가 경로·API 키·모델 정보를 초기화함",                detail: "config/settings.py의 Settings 클래스가 __file__ 위치 기준으로 모든 경로를 자동 계산하고 hands-on/.env에서 GROQ_API_KEY(추출용)·OPENAI_API_KEY(임베딩용)를 읽습니다. neo4j 예제와 달리 데이터소스는 특허법.pdf 1개이고, 임베딩은 OpenAI 1536차원을 씁니다." },
+    { step: 2, title: "PDF 로드·청킹",     label: "PDF 로드·청킹",     refs: ["fn_load", "fn_clean_text"], summary: "특허법.pdf를 읽어 머리글을 지우고 조문 단위로 자름",         detail: "PyPDFLoader로 PDF를 페이지 단위로 읽은 뒤, 법제처 머리글·페이지번호 같은 노이즈를 정규식으로 제거합니다. 그다음 '제○조'·'①②③' 같은 법령 구조를 우선 경계로 삼아 800자 청크로 자릅니다. 같은 청크가 KG와 벡터 인덱스 양쪽에 쓰입니다." },
+    { step: 3, title: "Neo4j 연결",       label: "Neo4j 연결",        summary: "컨테이너 지연을 고려해 지수 백오프로 3회 재시도함",           detail: "Docker 컨테이너(graphrag-simple-neo4j, 7688 포트)가 완전히 뜨기 전에 연결하면 실패합니다. 1초→2초→4초로 대기 시간을 늘리며 최대 3회 재시도해 일시 장애를 흡수합니다." },
+    { step: 4, title: "KG 구축",          label: "KG 구축",           refs: ["fn_kg_init", "fn_build_async"], summary: "LLMGraphTransformer가 조문 청크에서 엔티티·관계를 추출함",     detail: "Groq LPU의 gpt-oss-120b가 특허법 조문을 읽고 (요건, 관계, 절차) 삼중쌍을 뽑습니다. gpt-oss는 추론 모델이라 reasoning_effort='low'와 max_completion_tokens=8000을 설정해야 출력이 잘리지 않습니다. 추출된 노드·엣지는 Neo4j에 MERGE로 저장됩니다." },
+    { step: 5, title: "벡터 인덱스 생성", label: "벡터 인덱스 생성",  refs: ["fn_entity_vector_index", "fn_doc_vector_index"], summary: "Neo4j 안에 entity_embedding과 doc_embedding 두 인덱스를 생성함", detail: "entity_embedding은 KG 엔티티 노드에 OpenAI 임베딩을 추가해 의미 검색 진입점으로 쓰고, doc_embedding은 조문 청크를 Chunk 노드로 저장해 원문 단위 검색을 지원합니다. 인덱싱·질의 임베딩이 같은 모델(1536차원)이어야 검색됩니다." },
+    { step: 6, title: "통계 확인",        label: "통계 확인",         summary: "노드·관계 수를 출력해 인덱싱 성공 여부를 판정함",              detail: "엔티티 추출 수가 0이면 LLM 추출 경로(reasoning_effort 미설정 등)에 문제가 있다는 명확한 경고를 냅니다. 정상이면 '인덱싱 완료!'를 출력합니다. 실측: 엔티티 842개·관계 2300건." }
   ],
   functions: [
     {

@@ -9,12 +9,12 @@ window.EXPLAIN_DATA = {
     { id: "vector",   label: "vector_index.py",              role: "Neo4jVector로 엔티티·문서 청크 임베딩 벡터 인덱스 생성" }
   ],
   flow: [
-    { step: 1, title: "설정 로드",         summary: "Settings가 경로·API 키·모델 정보를 초기화함",           detail: "config/settings.py의 Settings 클래스가 __file__ 위치 기준으로 모든 경로를 자동 계산하고 hands-on/.env에서 GROQ_API_KEY 등 민감 정보를 읽습니다. 실행 위치와 무관하게 경로가 항상 정확합니다." },
-    { step: 2, title: "문서 로드",         summary: "교재는 KG·Vector 양쪽, 예제코드는 Vector만 로드함",    detail: "DocumentLoader가 교재(마크다운)와 예제코드(파이썬)를 분리해 청킹합니다. 교재는 개념 관계가 풍부해 KG 구축 대상이 되고, 예제코드는 절차적이라 벡터 인덱스에만 들어갑니다." },
-    { step: 3, title: "Neo4j 연결",       summary: "컨테이너 지연을 고려해 지수 백오프로 3회 재시도함",      detail: "Docker 컨테이너가 완전히 뜨기 전에 연결하면 실패합니다. 1초→2초→4초로 대기 시간을 늘리며 최대 3회 재시도해 일시 장애를 흡수합니다." },
-    { step: 4, title: "KG 구축",          summary: "LLMGraphTransformer가 교재 청크에서 엔티티·관계를 추출함", detail: "Groq LPU의 gpt-oss-120b 모델이 교재 텍스트를 읽고 (주체, 관계, 대상) 삼중쌍을 뽑습니다. 추출된 노드와 엣지는 Neo4j에 MERGE로 저장되어 중복이 생기지 않습니다." },
-    { step: 5, title: "벡터 인덱스 생성", summary: "Neo4j 안에 entity_embedding과 doc_embedding 두 인덱스를 생성함", detail: "entity_embedding은 KG 엔티티 노드에 Ollama 임베딩을 추가해 의미 검색 진입점으로 쓰고, doc_embedding은 교재·코드 원문 청크를 Chunk 노드로 저장해 원문 단위 검색을 지원합니다." },
-    { step: 6, title: "통계 확인",        summary: "노드·관계 수를 출력해 인덱싱 성공 여부를 판정함",        detail: "엔티티 추출 수가 0이면 LLM 추출 경로에 문제가 있다는 명확한 경고를 냅니다. 정상이면 '인덱싱 완료!'를 출력합니다." }
+    { step: 1, title: "설정 로드",         label: "설정 로드",         refs: ["fn_settings"], summary: "Settings가 경로·API 키·모델 정보를 초기화함",           detail: "config/settings.py의 Settings 클래스가 __file__ 위치 기준으로 모든 경로를 자동 계산하고 hands-on/.env에서 GROQ_API_KEY 등 민감 정보를 읽습니다. 실행 위치와 무관하게 경로가 항상 정확합니다." },
+    { step: 2, title: "문서 로드",         label: "문서 로드",         refs: ["fn_load_for_kg", "fn_load_single_file", "fn_load_python"], summary: "교재는 KG·Vector 양쪽, 예제코드는 Vector만 로드함",    detail: "DocumentLoader가 교재(마크다운)와 예제코드(파이썬)를 분리해 청킹합니다. 교재는 개념 관계가 풍부해 KG 구축 대상이 되고, 예제코드는 절차적이라 벡터 인덱스에만 들어갑니다." },
+    { step: 3, title: "Neo4j 연결",       label: "Neo4j 연결",        refs: ["fn_connect_with_retry"], summary: "컨테이너 지연을 고려해 지수 백오프로 3회 재시도함",      detail: "Docker 컨테이너가 완전히 뜨기 전에 연결하면 실패합니다. 1초→2초→4초로 대기 시간을 늘리며 최대 3회 재시도해 일시 장애를 흡수합니다." },
+    { step: 4, title: "KG 구축",          label: "KG 구축",           refs: ["fn_kg_init", "fn_build_async"], summary: "LLMGraphTransformer가 교재 청크에서 엔티티·관계를 추출함", detail: "Groq LPU의 gpt-oss-120b 모델이 교재 텍스트를 읽고 (주체, 관계, 대상) 삼중쌍을 뽑습니다. 추출된 노드와 엣지는 Neo4j에 MERGE로 저장되어 중복이 생기지 않습니다." },
+    { step: 5, title: "벡터 인덱스 생성", label: "벡터 인덱스 생성",  refs: ["fn_entity_vector_index", "fn_doc_vector_index"], summary: "Neo4j 안에 entity_embedding과 doc_embedding 두 인덱스를 생성함", detail: "entity_embedding은 KG 엔티티 노드에 Ollama 임베딩을 추가해 의미 검색 진입점으로 쓰고, doc_embedding은 교재·코드 원문 청크를 Chunk 노드로 저장해 원문 단위 검색을 지원합니다." },
+    { step: 6, title: "통계 확인",        label: "통계 확인",         summary: "노드·관계 수를 출력해 인덱싱 성공 여부를 판정함",        detail: "엔티티 추출 수가 0이면 LLM 추출 경로에 문제가 있다는 명확한 경고를 냅니다. 정상이면 '인덱싱 완료!'를 출력합니다." }
   ],
   functions: [
     {

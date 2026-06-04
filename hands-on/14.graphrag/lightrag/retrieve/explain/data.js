@@ -13,12 +13,12 @@ window.EXPLAIN_DATA = {
     { id: "settings", label: "config/settings.py",    role: "경로·LLM·임베딩·Top-K 전역 설정 관리" }
   ],
   flow: [
-    { step: 1, title: "앱 초기화",    summary: "SearchService를 @st.cache_resource로 한 번만 생성",   detail: "Streamlit은 사용자가 질문을 보낼 때마다 스크립트를 재실행합니다. @st.cache_resource를 붙이면 LightRAG 객체·코드 벡터 DB·LLM 클라이언트가 처음 한 번만 만들어지고, 이후 재실행에서는 캐시된 인스턴스를 재사용합니다." },
-    { step: 2, title: "모드 선택",    summary: "사이드바에서 auto/naive/local/global/hybrid/mix/code 선택", detail: "auto를 고르면 QueryRouter가 질문 내용을 보고 검색 모드를 자동 결정합니다. 그 외 모드는 사용자 지정 값이 그대로 사용됩니다." },
-    { step: 3, title: "쿼리 라우팅",  summary: "패턴 점수 → 임계값 비교 → LLM fallback 순서로 모드 결정", detail: "키워드 패턴으로 각 모드에 점수를 매깁니다. 최고 점수가 임계값(0.72) 이상이면 확정, 낮으면 Groq LPU few-shot으로 보정합니다. 두 단계 모두 실패하면 hybrid를 기본값으로 씁니다." },
-    { step: 4, title: "교재 검색",    summary: "LightRAGRetriever가 QueryParam(mode=...)으로 KG+Vector 쿼리 실행", detail: "store/kg 폴더의 GraphML·KV Store·nano-vectordb를 읽어 답변과 출처(엔티티·관계·청크·레퍼런스)를 반환합니다. Windows 호환을 위해 하나의 영속 이벤트 루프를 재사용합니다." },
-    { step: 5, title: "코드 검색",    summary: "CodeVectorSearch가 vdb_code.json에서 유사 코드 청크 탐색", detail: "질문을 임베딩해 코드 전용 벡터 DB에서 코사인 유사도로 가장 가까운 청크를 찾습니다. LightRAG KG를 전혀 거치지 않고 단독으로 동작합니다." },
-    { step: 6, title: "결과 표시",    summary: "답변·모드·라우팅 근거·출처를 채팅 UI에 렌더링",          detail: "st.expander 안에 모드, 라우팅 전략, 신뢰도, 소요 시간, 출처 테이블을 보여줍니다. 어떤 근거로 어떤 모드가 선택됐는지 학습자가 직접 확인할 수 있습니다." }
+    { step: 1, title: "앱 초기화",    label: "앱 초기화", refs: ["fn_get_service"],   summary: "SearchService를 @st.cache_resource로 한 번만 생성",   detail: "Streamlit은 사용자가 질문을 보낼 때마다 스크립트를 재실행합니다. @st.cache_resource를 붙이면 LightRAG 객체·코드 벡터 DB·LLM 클라이언트가 처음 한 번만 만들어지고, 이후 재실행에서는 캐시된 인스턴스를 재사용합니다." },
+    { step: 2, title: "모드 선택",    label: "모드 선택", summary: "사이드바에서 auto/naive/local/global/hybrid/mix/code 선택", detail: "auto를 고르면 QueryRouter가 질문 내용을 보고 검색 모드를 자동 결정합니다. 그 외 모드는 사용자 지정 값이 그대로 사용됩니다." },
+    { step: 3, title: "쿼리 라우팅",  label: "쿼리 라우팅", refs: ["fn_route", "fn_pattern_route", "fn_llm_route"], summary: "패턴 점수 → 임계값 비교 → LLM fallback 순서로 모드 결정", detail: "키워드 패턴으로 각 모드에 점수를 매깁니다. 최고 점수가 임계값(0.72) 이상이면 확정, 낮으면 Groq LPU few-shot으로 보정합니다. 두 단계 모두 실패하면 hybrid를 기본값으로 씁니다." },
+    { step: 4, title: "교재 검색",    label: "교재 검색", refs: ["fn_service_search", "fn_retriever_search", "fn_get_rag", "fn_extract_sources"], summary: "LightRAGRetriever가 QueryParam(mode=...)으로 KG+Vector 쿼리 실행", detail: "store/kg 폴더의 GraphML·KV Store·nano-vectordb를 읽어 답변과 출처(엔티티·관계·청크·레퍼런스)를 반환합니다. Windows 호환을 위해 하나의 영속 이벤트 루프를 재사용합니다." },
+    { step: 5, title: "코드 검색",    label: "코드 검색", refs: ["fn_code_search", "fn_format_context"], summary: "CodeVectorSearch가 vdb_code.json에서 유사 코드 청크 탐색", detail: "질문을 임베딩해 코드 전용 벡터 DB에서 코사인 유사도로 가장 가까운 청크를 찾습니다. LightRAG KG를 전혀 거치지 않고 단독으로 동작합니다." },
+    { step: 6, title: "결과 표시",    label: "결과 표시", refs: ["fn_render_sources"],          summary: "답변·모드·라우팅 근거·출처를 채팅 UI에 렌더링",          detail: "st.expander 안에 모드, 라우팅 전략, 신뢰도, 소요 시간, 출처 테이블을 보여줍니다. 어떤 근거로 어떤 모드가 선택됐는지 학습자가 직접 확인할 수 있습니다." }
   ],
   functions: [
     {

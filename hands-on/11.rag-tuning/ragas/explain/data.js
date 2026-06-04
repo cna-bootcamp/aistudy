@@ -19,42 +19,54 @@ window.EXPLAIN_DATA = {
     {
       "step": 1,
       "title": "실행 & 준비 (키·경로·재사용 모듈)",
+      "label": "실행·준비",
+      "refs": ["setup", "main"],
       "summary": "python evaluate_ragas.py 로 실행하고, .env 키와 다른 예제의 검증된 로직을 불러옴",
       "detail": "터미널에서 'python evaluate_ragas.py' 로 실행함. 시작과 함께 .env 의 OPENAI_API_KEY(임베딩·평가자 LLM)와 GROQ_API_KEY(생성 LLM)를 읽음. 이 예제의 핵심은 '한 번에 하나의 변수만 바꿔 공정하게 비교'하는 것이라, 인덱싱(쪼개기)·생성(답하기) 로직은 옆 예제(indexing.py·naive_rag.py)에서 그대로 import 해 조건을 통일함. 비유하면, 요리 대결에서 '오븐 온도'만 바꿔 비교하려고 재료·레시피·접시는 전부 똑같이 맞춰 두는 준비 단계."
     },
     {
       "step": 2,
       "title": "평가 데이터셋 로드 (질문·정답)",
+      "label": "데이터셋 로드",
       "summary": "특허법 조문으로 손수 만든 질문 22개와 정답(ground truth)을 가져옴",
       "detail": "test_dataset.py 안에 사람이 특허법 원문을 직접 대조해 적어 둔 '질문 + 정답' 22쌍이 들어 있음. RAG가 내놓은 답을 채점하려면 '모범 답안'이 필요한데, 그게 바로 ground truth 임. 메인은 get_test_dataset() 으로 이 목록을 통째로 받아 질문 리스트와 정답 리스트로 나눠 둠. 비유하면, 시험을 치르기 전에 '문제지와 정답지'를 먼저 손에 쥐는 단계."
     },
     {
       "step": 3,
       "title": "PDF 1회 로드·전처리",
+      "label": "PDF 로드·전처리",
       "summary": "특허법 PDF를 한 번만 읽고 머리글·페이지번호 같은 노이즈를 제거함",
       "detail": "PDF를 읽고 다듬는 일은 청킹 사이즈와 상관없으므로 후보마다 반복하지 않고 딱 한 번만 함(낭비 제거). indexing.py 의 load_pdfs·preprocess_documents 를 재사용해 다른 예제와 똑같이 전처리함. 비유하면, 여러 번 자를 종이를 우선 한 번 깨끗이 펴 두는 것."
     },
     {
       "step": 4,
       "title": "후보별 반복 ① 재청킹 + 임시 인덱싱",
+      "label": "재청킹·임시 인덱싱",
+      "refs": ["split_documents_with", "build_temp_index"],
       "summary": "각 chunk_size(400/800/1200)로 문서를 다시 쪼개 임시 벡터 DB에 임베딩함",
       "detail": "후보 크기마다 같은 구분자(LAW_SEPARATORS)로 문서를 다시 잘게 쪼갬(오버랩은 크기의 20% 고정). 쪼갠 청크를 OS 임시 폴더의 ChromaDB에 임베딩해 넣는데, 공용 벡터 DB(../vectordb)는 절대 건드리지 않음 (다른 예제가 쓰므로 보호). 평가가 끝나면 임시 DB는 지움. 비유하면, 똑같은 책을 '큰 조각/중간 조각/작은 조각'으로 따로따로 잘라 임시 서가 3개를 차리는 것."
     },
     {
       "step": 5,
       "title": "후보별 반복 ② RAG 실행 (검색 → 생성)",
+      "label": "RAG 실행",
+      "refs": ["build_rag_chain", "run_rag_pipeline", "invoke_with_retry"],
       "summary": "질문마다 임시 DB에서 청크를 검색하고 Groq LLM으로 답을 생성함",
       "detail": "각 질문을 임베딩해 유사한 청크 Top-K를 검색하고(탐색), 그 청크를 근거로 넣어 Groq LLM이 답을 만듦(생성). 생성 조건은 naive 예제와 똑같이 맞춰(같은 프롬프트·모델) 청킹 크기 외 변수가 섞이지 않게 함. 분당 호출 한도 같은 일시 오류는 잠깐 기다렸다 다시 시도함(지수 백오프). 비유하면, 같은 시험관·같은 채점 기준으로 서가 3개에서 각각 답안을 작성해 보는 것."
     },
     {
       "step": 6,
       "title": "후보별 반복 ③ RAGAS 평가",
+      "label": "RAGAS 평가",
+      "refs": ["select_metrics", "evaluate_chunk_size"],
       "summary": "질문·검색 청크·답변·정답을 묶어 RAGAS가 6개 지표 점수를 계산함",
       "detail": "한 질문의 (질문·검색된 청크·생성 답변·정답)을 SingleTurnSample 로 묶고, 묶음을 EvaluationDataset 으로 만들어 evaluate() 에 넘김. 그러면 평가자 LLM(gpt-4o-mini)이 검색 지표 3종(문맥 정밀도·재현율·엔티티 재현율)과 생성 지표 3종(충실도·답변 관련성·사실 정확도)을 0~1 점수로 매김(LLM-as-judge). 비유하면, 사람 대신 또 다른 똑똑한 채점관이 '근거를 잘 찾았나/근거대로 답했나'를 항목별로 채점하는 것."
     },
     {
       "step": 7,
       "title": "집계 · 최적값 선정 · 저장",
+      "label": "집계·선정·저장",
+      "refs": ["extract_scores", "compute_selection_score", "save_results"],
       "summary": "후보별 종합 점수를 비교해 최적 chunk_size를 고르고 결과를 파일로 저장함",
       "detail": "각 후보의 점수를 평균 내 종합 점수를 만들고(검색 품질이 청킹의 핵심 효과라 검색 지표 평균을 기준으로 씀), 가장 높은 chunk_size 를 '최적값'으로 표시함. 비교 표를 콘솔에 출력하고 results/{시각}/ 폴더에 후보별 summary.json·detail.csv 와 전체 comparison.json·comparison.csv 로 저장함. 비유하면, 채점이 끝난 답안들의 점수표를 모아 '우승 레시피'를 발표하고 성적표를 파일로 보관하는 것."
     }

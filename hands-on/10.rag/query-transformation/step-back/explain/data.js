@@ -14,42 +14,56 @@ window.EXPLAIN_DATA = {
     {
       "step": 1,
       "title": "실행 & 환경 준비",
+      "label": "실행·환경 준비",
+      "refs": ["setup", "main"],
       "summary": "python app.py 로 실행하고, .env 의 API 키를 불러옴",
       "detail": "터미널에서 'python app.py'(대화형), 'python app.py --demo'(기본 질의어), 'python app.py --query \"질문\"'(지정 질의어) 중 하나로 실행함. 시작과 동시에 load_dotenv() 가 hands-on/.env 의 OPENAI_API_KEY(질의 임베딩용)와 GROQ_API_KEY(LLM용)를 읽어 둠. 한글 출력이 깨지지 않게 표준출력을 UTF-8로 맞추는 처리도 함. 비유하면, 사서(앱)가 출근해 책상에 두 개의 열쇠(임베딩 열쇠·답변 열쇠)를 챙겨 두는 단계."
     },
     {
       "step": 2,
       "title": "벡터 DB 로드 & LLM 준비",
+      "label": "벡터 DB·LLM 준비",
+      "refs": ["load_vectorstore", "get_llm", "create_llm_chain"],
       "summary": "이미 만들어 둔 공용 벡터 DB를 재인덱싱 없이 연결하고, Groq LLM도 준비함",
       "detail": "이 예제는 PDF를 새로 읽거나 쪼개지 않음. 그 작업(인덱싱)은 ../../indexing 이 미리 해 두었고, 여기서는 결과물인 공용 ChromaDB(컬렉션 patent_law, 246개 벡터)를 그냥 연결만 함(load_vectorstore). 그리고 추상화 질문 생성과 최종 답변을 맡을 Groq LLM(gpt-oss-120b)도 함께 준비함(get_llm). 비유하면, 정리된 서가에 접근 권한을 얻고, 글을 써 줄 직원도 부르는 단계."
     },
     {
       "step": 3,
       "title": "한 걸음 물러난 질문 생성 (Step-Back)",
+      "label": "상위 질문 생성",
+      "refs": ["step_back"],
       "summary": "LLM이 구체적 질문을 더 일반적·근본적인 '상위 질문'으로 추상화함",
       "detail": "이 예제의 핵심임. 사용자의 구체적 질문(예: '특허 어떻게 받어?')을 LLM에게 주고, 한 단계 뒤로 물러난 더 일반적인 질문(예: '특허 취득에 필요한 절차와 요건은?')으로 바꿔 달라고 함(step_back). 구체 사례만 좁게 찾으면 배경 지식이 빠지기 쉬운데, 상위 개념 질문을 함께 던지면 기본 원칙이 담긴 문서까지 끌어올 수 있음. 비유하면, '이 가게 영수증 어디서 떼?'를 묻기 전에 '환불·증빙 절차가 어떻게 되지?'라는 큰 그림을 먼저 묻는 것."
     },
     {
       "step": 4,
       "title": "두 질문 모두로 검색 (Retrieve x2)",
+      "label": "두 질문 검색",
+      "refs": ["retrieve_with_transformation", "get_retriever"],
       "summary": "상위 질문과 원본 질문을 각각 임베딩해, 각자 비슷한 청크 5개씩 찾음",
       "detail": "추상화한 상위 질문(배경 지식)과 원래 질문(구체 정보)을 각각 같은 검색기로 검색함. 두 질문 모두 숫자 벡터(임베딩)로 바뀌어 벡터 DB에서 의미가 가까운 청크 상위 5개씩(유사도 검색)을 가져옴. Naive RAG가 한 번만 검색하는 것과 달리, 여기서는 관점이 다른 두 검색으로 폭을 넓힘. 비유하면, 큰 질문 카드와 작은 질문 카드로 서가를 두 번 훑어 더 다양한 자료를 모으는 것."
     },
     {
       "step": 5,
       "title": "결과 병합 & 중복 제거",
+      "label": "병합·중복 제거",
+      "refs": ["retrieve_with_transformation", "deduplicate_docs"],
       "summary": "두 검색 결과를 합치고, 본문이 같은 청크는 한 번만 남겨 상위 5개를 추림",
       "detail": "두 검색에서 겹치는 청크가 나올 수 있으므로, 본문 내용으로 중복을 걸러 고유 청크만 남김(deduplicate_docs). 그 후 상위 TOP_K(5)개만 잘라 최종 근거 묶음을 만듦. 비유하면, 두 번 훑어 모은 카드 더미에서 똑같은 카드를 골라내고 가장 쓸모 있는 5장만 추리는 것."
     },
     {
       "step": 6,
       "title": "컨텍스트 주입 & 답변 생성 (Generate)",
+      "label": "답변 생성",
+      "refs": ["answer_question", "format_docs"],
       "summary": "추린 청크를 근거로 넣어 LLM이 최종 답을 만듦",
       "detail": "추린 청크 5개를 [문서 N] 라벨과 함께 '컨텍스트'로 프롬프트에 채우고(format_docs), LLM이 그 근거만 바탕으로 답을 생성함(llm_chain.invoke). 프롬프트에 '문서에 없으면 찾을 수 없다고 답하라'는 규칙이 있어 지어내기(환각)를 줄임. 조립은 LCEL 파이프(prompt | llm | StrOutputParser)로 이뤄짐. 비유하면, 추린 5장의 카드만 보고 질문에 답을 적어 주는 것."
     },
     {
       "step": 7,
       "title": "결과 출력",
+      "label": "결과 출력",
+      "refs": ["display_transform_info", "format_chunks_for_display"],
       "summary": "원본·상위 질문, 검색된 청크, 최종 답변을 콘솔에 보기 좋게 표시",
       "detail": "원본 질문과 추상화한 Step-Back 질문을 함께 보여 주고(display_transform_info), 근거로 쓴 청크 목록(파일명·청크 번호·앞부분 미리보기)과 최종 답변을 출력함. 어떤 상위 질문으로 무엇을 찾아 답했는지 과정을 드러내 사람이 검증할 수 있게 함. 비유하면, 답안과 함께 '어떤 큰 질문을 떠올렸고 어떤 카드를 참고했는지'를 같이 제출하는 것."
     }

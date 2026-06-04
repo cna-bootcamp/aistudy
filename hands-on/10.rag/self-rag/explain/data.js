@@ -14,42 +14,56 @@ window.EXPLAIN_DATA = {
     {
       "step": 1,
       "title": "실행 & 환경 준비",
+      "label": "실행·환경 준비",
+      "refs": ["setup"],
       "summary": "python app.py 로 실행하고, .env 의 API 키를 불러옴",
       "detail": "터미널에서 'python app.py'(대화형 챗봇) 또는 'python app.py --demo'(검증 질의 3건 자동 실행)로 시작함. 시작과 동시에 load_dotenv() 가 hands-on/.env 에 적어 둔 GROQ_API_KEY(LLM용)와 OPENAI_API_KEY(질의 임베딩용)를 읽어 둠. 한글 출력이 깨지지 않게 표준출력을 UTF-8로 맞추는 처리도 함. 비유하면, 똑똑한 사서(앱)가 출근해 두 개의 열쇠(답변 열쇠·검색 열쇠)를 책상에 챙겨 두는 단계."
     },
     {
       "step": 2,
       "title": "벡터 DB·LLM·체인 준비",
+      "label": "벡터 DB·체인 준비",
+      "refs": ["load_vectorstore", "build_llm", "init"],
       "summary": "공용 벡터 DB를 검색 전용으로 연결하고, LLM과 Self-RAG 체인을 만듦",
       "detail": "이 예제는 PDF를 새로 읽거나 쪼개지 않음. 그 작업(인덱싱)은 ../indexing 이 미리 해 두었고, 여기서는 결과물인 공용 ChromaDB(컬렉션 patent_law)를 연결만 함. 그다음 답변을 써 줄 Groq LLM(gpt-oss-120b)을 만들고, 이 둘을 SelfRAGChain 에 넣어 '스스로 점검하는' 처리 엔진을 조립함. 비유하면, 정리된 서가에 접근 권한을 얻고, 글 쓰는 직원과 '품질 검사관' 역할을 한 사람에게 모두 맡기는 것."
     },
     {
       "step": 3,
       "title": "[Retrieve] 검색 필요 여부 판단",
+      "label": "검색 필요 판단",
+      "refs": ["check_retrieval_need"],
       "summary": "질문을 보고 '문서를 찾아봐야 하나?'를 LLM이 스스로 결정함",
       "detail": "Self-RAG의 첫 자기성찰 단계임. 인사말이나 특허법 외 주제(예: 개인정보보호법)는 굳이 검색하지 않고 LLM 일반 지식으로 바로 답함. 특허법 관련 질문일 때만 검색을 켬. 이것이 '항상 검색'하는 Naive RAG 와 가장 큰 차이임. 비유하면, 손님 질문을 듣고 '이건 서가를 뒤져야 할 질문'인지 '그냥 대답해도 되는 질문'인지 먼저 가려내는 것."
     },
     {
       "step": 4,
       "title": "검색 + [IsRel] 관련성 일괄 평가",
+      "label": "검색·관련성 평가",
+      "refs": ["grade_relevance_batch"],
       "summary": "비슷한 청크 5개를 찾고, 그중 정말 관련된 것만 1회 호출로 골라냄",
       "detail": "검색이 필요하면 질문을 임베딩해 의미가 가까운 청크 상위 5개(top-k)를 꺼냄. 그다음 [IsRel] 단계에서 5개를 한 프롬프트에 묶어 1회 LLM 호출로 '관련 있음/없음'을 일괄 채점하고 관련 문서만 추림(호출 수·비용 절감). 관련 문서가 하나도 없으면 검색 결과를 버리고 LLM 지식으로 답함. 비유하면, 검색으로 뽑은 5장의 카드를 한 번에 훑어보며 진짜 쓸 카드만 남기는 것."
     },
     {
       "step": 5,
       "title": "답변 생성 + [IsSup] 근거성 검증",
+      "label": "답변 생성·근거 검증",
+      "refs": ["generators", "grade_support"],
       "summary": "관련 문서로 답을 쓰고, 그 답이 문서에 근거하는지(환각 없는지) 점검함",
       "detail": "추려낸 관련 문서를 컨텍스트로 넣어 답변을 생성함. 이어 [IsSup] 단계에서 '이 답이 문서로 뒷받침되는가, 지어낸 내용은 없는가'를 LLM이 검사함. 근거가 부족하면 '컨텍스트에 있는 내용만 써라'는 엄격한 프롬프트로 답을 다시 생성함(환각 방지). 비유하면, 직원이 쓴 답안을 검사관이 카드와 대조해 '근거 없는 문장'을 걸러내는 것."
     },
     {
       "step": 6,
       "title": "[IsUse] 유용성 평가 → 재시도 루프",
+      "label": "유용성 평가·재시도",
+      "refs": ["grade_usefulness", "rewrite_query", "invoke"],
       "summary": "최종 답이 질문에 정말 쓸모 있는지 보고, 미흡하면 질문을 고쳐 처음부터 다시 함",
       "detail": "마지막 자기성찰 단계임. [IsUse] 에서 답이 질문에 직접·명확하게 답하는지 평가함. 유용하면 그대로 출력하고, 유용하지 않으면 rewrite_query 로 질문을 검색에 더 좋게 고친 뒤 [Retrieve]부터 통째로 다시 실행함(최대 3회). 이 자기교정 루프가 Self-RAG 의 핵심임. 비유하면, 답이 부실하면 질문 자체를 더 정확히 바꿔 다시 서가를 뒤지는 끈질긴 사서."
     },
     {
       "step": 7,
       "title": "결과 요약 & 출력",
+      "label": "결과 요약·출력",
+      "refs": ["output_run"],
       "summary": "각 Reflection 판단(검색/관련/근거/유용)과 재시도 이력을 요약해 답변과 함께 보여 줌",
       "detail": "format_reflection_summary 가 [Retrieve]·[IsRel]·[IsSup]·[IsUse] 판단 결과와 재작성 이력을 한눈에 보이게 표로 만들고, print_result 가 요약과 최종 답변을 콘솔에 출력함. 어떤 자기점검을 거쳤는지 투명하게 보여 주는 것이 Self-RAG 의 신뢰성 장점임. 비유하면, 답안과 함께 '어떤 검사를 통과했는지' 체크리스트를 같이 제출하는 것."
     }

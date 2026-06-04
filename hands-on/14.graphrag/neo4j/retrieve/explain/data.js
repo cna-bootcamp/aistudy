@@ -13,36 +13,46 @@ window.EXPLAIN_DATA = {
     {
       step: 1,
       title: "서비스 초기화",
+      label: "서비스 초기화",
+      refs: ["fn_load_services", "fn_connect_with_retry"],
       summary: "Settings·Neo4jConnection·QueryEngine·QueryRouter를 앱 시작 시 1회만 생성",
       detail: "@st.cache_resource로 감싸서 Streamlit이 페이지를 재실행할 때마다 Neo4j 연결을 새로 만들지 않습니다. Neo4jConnection은 연결 실패 시 최대 3회 재시도해서 Docker 컨테이너 기동 지연을 흡수합니다."
     },
     {
       step: 2,
       title: "질문 재작성(선택)",
+      label: "질문 재작성",
+      refs: ["fn_condense_question"],
       summary: "대화 이력이 있으면 후속 질문을 독립 질문으로 변환",
       detail: "\"그건 몇 개야?\" 같은 타원형 질문을 그대로 임베딩하면 벡터 검색 정확도가 크게 떨어집니다. condense_question()이 최근 6턴 이력을 LLM에 보내 완전한 문장으로 재작성합니다. Cypher Direct 모드는 Cypher를 그대로 전달하므로 재작성을 건너뜁니다."
     },
     {
       step: 3,
       title: "모드 라우팅",
+      label: "모드 라우팅",
+      refs: ["fn_route", "fn_score_patterns", "fn_llm_fallback"],
       summary: "수동 선택이면 그대로, Auto면 패턴 점수 → LLM 폴백으로 검색 모드 결정",
       detail: "QueryRouter가 정규식 키워드 점수를 먼저 계산합니다. 최고 점수가 2 이상이고 2위를 명확히 앞서면 패턴 결과를 사용하고, 애매하면 LLM Few-shot 분류를 호출합니다. Cypher 문법으로 시작하는 입력(MATCH, RETURN 등)은 즉시 cypher 모드로 단락합니다."
     },
     {
       step: 4,
       title: "Neo4j 검색",
+      label: "Neo4j 검색",
+      refs: ["fn_vector_search", "fn_graph_qa", "fn_hybrid_search", "fn_validate_readonly_cypher"],
       summary: "결정된 모드에 따라 Vector·Graph QA·Hybrid·Cypher Direct 중 하나 실행",
       detail: "Vector는 Ollama qwen3-embedding으로 질문을 벡터화해 entity_embedding·doc_embedding 인덱스에서 유사 노드를 찾습니다. Graph QA는 GraphCypherQAChain이 자연어 질문을 Cypher로 변환해 실행합니다. Hybrid는 벡터로 시드 엔티티를 찾은 뒤 1-hop 그래프 관계까지 확장합니다. Cypher Direct는 읽기 전용 검증 후 사용자 쿼리를 그대로 실행합니다."
     },
     {
       step: 5,
       title: "답변 생성",
+      label: "답변 생성",
       summary: "검색 컨텍스트를 Groq LLM에 전달해 한국어 답변 생성",
       detail: "RESPONSE_PROMPT가 검색 결과를 컨텍스트로 넣고 Groq LPU LLM을 호출합니다. 최근 4턴의 대화 이력을 HumanMessage·AIMessage로 변환해 함께 전달해 다중 턴 대화를 지원합니다."
     },
     {
       step: 6,
       title: "결과 렌더링",
+      label: "결과 렌더링",
       summary: "답변·Cypher·출처·벡터 히트·그래프 관계를 Streamlit UI에 표시",
       detail: "display_result()가 모드·라우팅 이유를 캡션으로 보여주고, 답변 아래 접이식 영역(expander)에 Cypher·출처·벡터 점수·그래프 관계를 정리합니다. 교육생이 어떤 근거로 답변이 만들어졌는지 직접 확인할 수 있습니다."
     }

@@ -59,7 +59,8 @@ node hands-on/explain-exam/verify-data.js hands-on/<예제>/explain/data.js
 window.EXPLAIN_DATA = {
   meta:  { title: "페이지 제목", entry: "메인 파일명" },
   files: [ { id: "main", label: "파일명.py", role: "한 줄 역할" } ],
-  flow:  [ { step: 1, title: "단계명", summary: "중앙 한 줄", detail: "우측 상세(비유)" } ],
+  flow:  [ { step: 1, title: "단계명", summary: "중앙 한 줄", detail: "우측 상세(비유)",
+             label: "좌측용 짧은 제목", refs: ["get_agent"] } ],  // label·refs는 선택: 처리 흐름↔함수 점프 연결
   functions: [
     {
       id: "get_agent",        // 고유 식별자

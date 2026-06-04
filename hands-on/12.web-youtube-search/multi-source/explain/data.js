@@ -14,36 +14,48 @@ window.EXPLAIN_DATA = {
     {
       "step": 1,
       "title": "실행 & 환경 준비",
+      "label": "실행·환경 준비",
+      "refs": ["setup"],
       "summary": "python app.py 로 실행하고, .env 의 API 키를 불러옴",
       "detail": "터미널에서 'python app.py'(기본 질의) 또는 'python app.py \"질문\"'(직접 질문)으로 시작함. 시작과 동시에 load_dotenv() 가 hands-on/.env 의 OPENAI_API_KEY(벡터DB 질의 임베딩용)·GROQ_API_KEY(LLM용)·YOUTUBE_API_KEY(YouTube 검색용)를 읽어 둠. 한글이 깨지지 않게 표준출력을 UTF-8로 맞추는 처리도 함. 비유하면, 안내 데스크 직원(앱)이 출근해 세 개의 출입증(임베딩·LLM·유튜브 열쇠)을 미리 챙겨 두는 단계."
     },
     {
       "step": 2,
       "title": "[1단계] Query Router: 소스 선택 + 소스별 검색어 생성",
+      "label": "Query Router",
+      "refs": ["route_query", "create_router_llm"],
       "summary": "질문을 보고 어떤 소스를 검색할지 LLM이 스스로 고르고, 소스마다 맞는 검색어를 함께 만듦",
       "detail": "멀티소스 RAG의 핵심임. route_query 가 LLM을 with_structured_output 으로 감싸 RouteDecision 양식(JSON)으로 답하게 함. 한 번의 호출로 ① 검색할 소스 목록(법률→vectorstore, 최신정보→web, 강의→youtube, 복수 선택 가능)과 ② 소스별로 최적화한 검색어(웹은 연도 빼고, 유튜브는 쉼표 없는 짧은 키워드)를 동시에 얻음. 비유하면, 손님 질문을 듣고 '이건 법전 서가, 이건 최신 신문, 이건 강의 영상관에 물어봐야겠다'고 분류하면서 각 창구에 맞는 질문지까지 같이 써 주는 안내원."
     },
     {
       "step": 3,
       "title": "[2단계] 멀티소스 검색 (선택된 소스만)",
+      "label": "멀티소스 검색",
+      "refs": ["dispatch_searches", "source_registry", "search_vectorstore", "search_web", "search_youtube"],
       "summary": "라우팅이 고른 소스만, 그 소스용으로 재작성된 검색어로 각각 검색함",
       "detail": "dispatch_searches 가 선택된 소스를 하나씩 돌며 SOURCE_REGISTRY 에서 해당 검색 함수와 검색어 속성을 찾아 실행함. 벡터DB는 특허법 청크를, 웹은 DuckDuckGo로 최근 1년 문서를, YouTube는 Data API v3로 최근 1년 영상을 가져옴. 웹·유튜브는 실패해도 빈 결과로 넘어가(graceful degradation) 전체가 멈추지 않음. 비유하면, 분류한 창구마다 각자의 질문지를 들고 가서 답을 받아 오되, 한 창구가 닫혀 있어도 나머지 창구의 답은 그대로 모으는 것."
     },
     {
       "step": 4,
       "title": "검색 결과 → 컨텍스트로 합치기",
+      "label": "컨텍스트 합치기",
+      "refs": ["format_context"],
       "summary": "소스별 검색 결과를 출처와 함께 하나의 글 덩어리로 묶음",
       "detail": "format_context 가 각 소스를 헤더로 구분하고, 항목마다 제목·본문·링크(출처)를 붙여 LLM이 인용하기 쉬운 단일 컨텍스트 문자열을 만듦. 소스가 서로 달라도 title/snippet/link 공통 형식으로 정규화해 두었기 때문에 일관되게 다룰 수 있음. 비유하면, 여러 창구에서 받아 온 답안지를 '법률 / 최신정보 / 강의'로 칸을 나눠 한 장의 종합 보고용지에 정리하는 것."
     },
     {
       "step": 5,
       "title": "[3단계] Synthesis: 종합 답변 생성",
+      "label": "종합 답변 (Synthesis)",
+      "refs": ["synthesize_answer", "create_synthesis_llm"],
       "summary": "모은 컨텍스트만 근거로, 소스를 구분하면서도 하나의 답으로 통합함",
       "detail": "synthesize_answer 가 reasoning_format=\"hidden\" 으로 사고 과정을 숨긴 Groq LLM에 (prompt | llm | StrOutputParser) 체인으로 컨텍스트·질문을 넣어 답을 만듦. '검색 결과에 있는 내용만 근거로, 특허법은 조문·웹/유튜브는 URL을 함께 제시'하라고 제약해 환각을 줄임. 검색 결과가 전부 비면 LLM을 부르지 않고 안내 문구를 돌려줌. 비유하면, 종합 보고용지만 보고 보고서를 쓰되 출처를 또박또박 달아 주는 작성자."
     },
     {
       "step": 6,
       "title": "결과 출력",
+      "label": "결과 출력",
+      "refs": ["print_result"],
       "summary": "선택 소스·라우팅 이유·종합 답변·소스별 출처를 보기 좋게 콘솔에 보여 줌",
       "detail": "print_result 가 질문, 라우팅이 고른 소스와 그 이유, 종합 답변, 그리고 소스별로 몇 건을 어디서 가져왔는지(제목·링크)를 한눈에 출력함. 어떤 소스를 왜 골랐고 무엇을 근거로 답했는지 투명하게 보이는 것이 멀티소스 RAG의 신뢰성 장점임. 비유하면, 보고서와 함께 '어느 창구에서 무슨 자료를 받았는지' 출처 목록을 같이 제출하는 것."
     }

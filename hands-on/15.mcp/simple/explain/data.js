@@ -6,12 +6,12 @@ window.EXPLAIN_DATA = {
     { id: "client", label: "client.py", role: "MCP 클라이언트 — 서버 연결 후 Tools·Resources·Prompts 호출 데모" }
   ],
   flow: [
-    { step: 1, title: "서버 프로세스 실행", summary: "calc_server.py를 자식 프로세스로 실행", detail: "전화를 거는 것처럼 클라이언트가 서버를 직접 켜고 stdin/stdout 파이프로 연결합니다. 서버를 따로 실행할 필요가 없어요." },
-    { step: 2, title: "연결 초기화", summary: "session.initialize()로 프로토콜 버전·기능 교환", detail: "악수처럼 클라이언트와 서버가 서로 지원하는 기능(capability)을 교환합니다. 이 단계 이후에만 도구 호출이 가능합니다." },
-    { step: 3, title: "목록 조회", summary: "list_tools / list_resources / list_prompts 확인", detail: "메뉴판을 받는 것처럼, 서버가 어떤 도구·리소스·프롬프트를 제공하는지 확인합니다." },
-    { step: 4, title: "도구 호출", summary: "call_tool('add'), call_tool('divide') 실행", detail: "서버의 함수를 원격으로 호출합니다. LLM이 어떤 도구를 쓸지 결정하고, AI 앱(클라이언트)이 실제로 호출합니다." },
-    { step: 5, title: "리소스 읽기", summary: "read_resource('calc://history') 조회", detail: "calc://history라는 URI로 계산 이력을 읽어옵니다. URL로 파일을 여는 것처럼 URI로 데이터를 가져옵니다." },
-    { step: 6, title: "프롬프트 조회", summary: "get_prompt('math_prompt') 조회", detail: "수학 문제를 단계별로 풀도록 유도하는 프롬프트 템플릿을 받아옵니다. LLM 실행이 아니라 프롬프트 문자열 자체를 반환합니다." }
+    { step: 1, title: "서버 프로세스 실행", label: "서버 프로세스 실행", summary: "calc_server.py를 자식 프로세스로 실행", detail: "전화를 거는 것처럼 클라이언트가 서버를 직접 켜고 stdin/stdout 파이프로 연결합니다. 서버를 따로 실행할 필요가 없어요." },
+    { step: 2, title: "연결 초기화", label: "연결 초기화", summary: "session.initialize()로 프로토콜 버전·기능 교환", detail: "악수처럼 클라이언트와 서버가 서로 지원하는 기능(capability)을 교환합니다. 이 단계 이후에만 도구 호출이 가능합니다." },
+    { step: 3, title: "목록 조회", label: "목록 조회", summary: "list_tools / list_resources / list_prompts 확인", detail: "메뉴판을 받는 것처럼, 서버가 어떤 도구·리소스·프롬프트를 제공하는지 확인합니다." },
+    { step: 4, title: "도구 호출", label: "도구 호출", refs: ["tool_add", "tool_divide"], summary: "call_tool('add'), call_tool('divide') 실행", detail: "서버의 함수를 원격으로 호출합니다. LLM이 어떤 도구를 쓸지 결정하고, AI 앱(클라이언트)이 실제로 호출합니다." },
+    { step: 5, title: "리소스 읽기", label: "리소스 읽기", refs: ["resource_history"], summary: "read_resource('calc://history') 조회", detail: "calc://history라는 URI로 계산 이력을 읽어옵니다. URL로 파일을 여는 것처럼 URI로 데이터를 가져옵니다." },
+    { step: 6, title: "프롬프트 조회", label: "프롬프트 조회", refs: ["prompt_math"], summary: "get_prompt('math_prompt') 조회", detail: "수학 문제를 단계별로 풀도록 유도하는 프롬프트 템플릿을 받아옵니다. LLM 실행이 아니라 프롬프트 문자열 자체를 반환합니다." }
   ],
   functions: [
     {

@@ -9,12 +9,12 @@ window.EXPLAIN_DATA = {
     { id: "settings", label: "config/settings.py",    role: "경로·LLM·임베딩·청킹 전역 설정 관리" }
   ],
   flow: [
-    { step: 1, title: "설정 로드",       summary: "경로·API키·모델 설정 초기화",          detail: "Settings 클래스가 __file__ 위치를 기준으로 모든 경로를 자동 계산하고, hands-on/.env에서 API 키를 읽습니다. GPS가 현재 위치로 목적지 경로를 계산하는 것과 같습니다." },
-    { step: 2, title: "사전 점검",       summary: "Groq API키·Ollama·임베딩 차원 검증",  detail: "인덱싱 전 3가지를 미리 확인합니다: ① Groq API 키가 있는지, ② Ollama 서버가 실행 중인지, ③ 임베딩이 기대 차원(4096)을 반환하는지. 문제가 있으면 대량 작업 전에 즉시 중단합니다." },
-    { step: 3, title: "문서 로드",       summary: "교재·예제코드 파일 목록 수집",         detail: "DocumentLoader가 교재(.md)와 예제코드(.py)를 분리해서 읽습니다. venv·캐시·explain 폴더는 자동으로 제외합니다." },
-    { step: 4, title: "Phase 1: KG 구축", summary: "교재 → LightRAG insert → GraphML + 벡터 + KV", detail: "KGBuilder가 LightRAG ainsert()를 호출합니다. 한 번의 호출로 ① LLM(Groq)으로 개념·관계 추출 → GraphML 저장, ② 청크/개체 임베딩 → nano-vectordb 저장, ③ 원문 → KV Store 저장을 모두 수행합니다." },
-    { step: 5, title: "Phase 2: 코드 벡터", summary: "예제코드 → 청킹 → 임베딩 → nano-vectordb", detail: "CodeVectorIndexer가 예제코드를 1200자 단위로 잘라(청킹), Ollama qwen3-embedding으로 벡터화한 뒤 JSON 파일(vdb_code.json)에 저장합니다. KG는 생성하지 않습니다." },
-    { step: 6, title: "결과 요약",       summary: "성공/스킵/노드 수 로그 출력",          detail: "각 단계의 통계를 출력합니다. KG 노드가 0개면 LLM 추출 실패 경고를, 정상이면 validate_index.py 실행을 안내합니다." }
+    { step: 1, title: "설정 로드",       label: "설정 로드", refs: ["fn_settings"],       summary: "경로·API키·모델 설정 초기화",          detail: "Settings 클래스가 __file__ 위치를 기준으로 모든 경로를 자동 계산하고, hands-on/.env에서 API 키를 읽습니다. GPS가 현재 위치로 목적지 경로를 계산하는 것과 같습니다." },
+    { step: 2, title: "사전 점검",       label: "사전 점검", refs: ["fn_check_ollama", "fn_smoke"],  summary: "Groq API키·Ollama·임베딩 차원 검증",  detail: "인덱싱 전 3가지를 미리 확인합니다: ① Groq API 키가 있는지, ② Ollama 서버가 실행 중인지, ③ 임베딩이 기대 차원(4096)을 반환하는지. 문제가 있으면 대량 작업 전에 즉시 중단합니다." },
+    { step: 3, title: "문서 로드",       label: "문서 로드", refs: ["fn_load_kg", "fn_load_vector", "fn_collect_code"],         summary: "교재·예제코드 파일 목록 수집",         detail: "DocumentLoader가 교재(.md)와 예제코드(.py)를 분리해서 읽습니다. venv·캐시·explain 폴더는 자동으로 제외합니다." },
+    { step: 4, title: "Phase 1: KG 구축", label: "Phase 1: KG 구축", refs: ["fn_kg_build_async", "fn_create_rag"], summary: "교재 → LightRAG insert → GraphML + 벡터 + KV", detail: "KGBuilder가 LightRAG ainsert()를 호출합니다. 한 번의 호출로 ① LLM(Groq)으로 개념·관계 추출 → GraphML 저장, ② 청크/개체 임베딩 → nano-vectordb 저장, ③ 원문 → KV Store 저장을 모두 수행합니다." },
+    { step: 5, title: "Phase 2: 코드 벡터", label: "Phase 2: 코드 벡터", refs: ["fn_code_build_async", "fn_chunk_code", "fn_chunk_id"], summary: "예제코드 → 청킹 → 임베딩 → nano-vectordb", detail: "CodeVectorIndexer가 예제코드를 1200자 단위로 잘라(청킹), Ollama qwen3-embedding으로 벡터화한 뒤 JSON 파일(vdb_code.json)에 저장합니다. KG는 생성하지 않습니다." },
+    { step: 6, title: "결과 요약",       label: "결과 요약",       summary: "성공/스킵/노드 수 로그 출력",          detail: "각 단계의 통계를 출력합니다. KG 노드가 0개면 LLM 추출 실패 경고를, 정상이면 validate_index.py 실행을 안내합니다." }
   ],
   functions: [
     {

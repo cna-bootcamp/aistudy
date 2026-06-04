@@ -14,42 +14,56 @@ window.EXPLAIN_DATA = {
     {
       "step": 1,
       "title": "실행 & 환경 준비",
+      "label": "실행·환경 준비",
+      "refs": ["setup"],
       "summary": "python app.py 로 실행하고, .env 의 API 키 3종을 불러옴",
       "detail": "터미널에서 'python app.py'(대화형 챗봇) 또는 'python app.py --demo'(검증 질의 3건 자동 실행)로 시작함. 시작과 동시에 load_dotenv() 가 hands-on/.env 에 적어 둔 GROQ_API_KEY(LLM용)·OPENAI_API_KEY(질의 임베딩용)·YOUTUBE_API_KEY(영상 검색용)를 읽어 둠. 한글 출력이 깨지지 않게 표준출력을 UTF-8로 맞추는 처리도 함. 비유하면, 똑똑한 특허 상담원(앱)이 출근해 세 개의 열쇠(답변·검색·영상 열쇠)를 책상에 챙겨 두는 단계."
     },
     {
       "step": 2,
       "title": "LangGraph 그래프 조립",
+      "label": "그래프 조립",
+      "refs": ["build_llm", "init", "build_graph"],
       "summary": "공용 벡터 DB·LLM·검색 도구를 준비하고, 노드와 엣지를 연결한 실행 그래프를 미리 컴파일함",
       "detail": "이 예제는 PDF를 새로 읽거나 쪼개지 않음. 그 작업(인덱싱)은 10.rag/indexing 이 미리 해 두었고, 여기서는 결과물인 공용 ChromaDB(컬렉션 patent_law)를 연결만 함. 그다음 답변·평가를 맡을 Groq LLM(gpt-oss-120b)을 만들고, AgenticRAG 가 7개의 노드(route·retrieve·grade_documents·generate·grade_generation·rewrite·direct_answer)와 그 사이를 잇는 엣지를 _build_graph 로 연결해 '실행 가능한 그래프'로 컴파일함. 비유하면, 작업 공정도(노드=작업장, 엣지=컨베이어)를 미리 그려 두고 전원을 켜 두는 것. Self-RAG가 재귀 함수로 흐름을 제어했다면, 여기서는 그 흐름을 눈에 보이는 그래프로 그린 것이 핵심 차이."
     },
     {
       "step": 3,
       "title": "[Route] 검색 필요 여부 + 소스 판단",
+      "label": "라우팅 (Route)",
+      "refs": ["route"],
       "summary": "질문을 보고 '검색이 필요한가? 어떤 소스로?'를 LLM이 스스로 결정하고 소스별 쿼리까지 만듦",
       "detail": "그래프의 첫 노드임. 인사말이나 특허 외 주제(예: Claude Code)는 검색하지 않고 LLM 지식으로 바로 답함(direct_answer 경로). 특허/지식재산권 질문이면 검색을 켜되, 어떤 소스(vectordb=법률 근거·web=최신/비용·youtube=영상)를 쓸지 복수 선택하고, 웹/유튜브 각각에 최적화된 검색어(web_query·youtube_query)까지 생성함. 멀티턴 대화 맥락을 참고해 '그럼 비용은?' 같은 후속 질문의 의도도 파악함. 비유하면, 손님 질문을 듣고 어느 서가(법전·신문·영상자료실)를 뒤질지 고르고, 각 자료실에 맞는 검색어를 미리 적어 두는 안내데스크."
     },
     {
       "step": 4,
       "title": "[Retrieve] 멀티소스 검색",
+      "label": "멀티소스 검색",
+      "refs": ["retrieve", "search_web", "search_youtube"],
       "summary": "라우터가 고른 소스에서만 검색하고, 한 소스가 실패해도 나머지로 진행함",
       "detail": "route 가 고른 소스에서만 검색함. vectordb 는 질문을 임베딩해 의미가 가까운 청크 상위 5개(top-k)를 꺼내고, web 은 DuckDuckGo로 최근 1년 문서를, youtube 는 YouTube Data API v3로 최근 1년 영상을 가져옴. 외부 API(웹·유튜브)는 각각 try/except로 감싸 한 소스가 실패해도 나머지 소스로 답변을 만들 수 있게 함(graceful degradation). 비유하면, 여러 자료실에 동시에 사람을 보내되, 한 자료실이 문을 닫았어도 나머지가 가져온 자료로 보고서를 쓰는 것."
     },
     {
       "step": 5,
       "title": "[IsRel] 관련성 일괄 평가",
+      "label": "관련성 평가 (IsRel)",
+      "refs": ["grade_documents"],
       "summary": "벡터DB 문서 5개를 1회 호출로 묶어 채점해 정말 관련된 것만 골라냄",
       "detail": "벡터DB 검색 문서를 한 프롬프트에 묶어 1회 LLM 호출로 '관련 있음/없음'을 일괄 채점하고 관련 문서만 추림(호출 수·비용 절감). 웹·유튜브 결과는 검색 자체가 키워드 기반이라 별도 관련성 평가 없이 그대로 사용함. 비유하면, 법전 서가에서 뽑아 온 5장의 카드를 한 번에 훑어보며 진짜 쓸 카드만 남기는 것."
     },
     {
       "step": 6,
       "title": "답변 생성 + [IsSup] 근거성 검증",
+      "label": "답변 생성·근거성 (IsSup)",
+      "refs": ["generate"],
       "summary": "멀티소스 컨텍스트로 답을 쓰고, 그 답이 근거에 충실한지(환각 없는지) 점검 후 출처를 자동 부착함",
       "detail": "벡터DB·웹·유튜브 결과를 하나의 컨텍스트로 합쳐 답변을 생성함. 이어 [IsSup] 단계에서 '이 답이 컨텍스트로 뒷받침되는가, 지어낸 내용은 없는가'를 LLM이 검사하고, 근거가 부족하면 '컨텍스트에 있는 내용만 써라'는 엄격한 프롬프트로 다시 생성함(환각 방지). 마지막으로 출처 섹션을 LLM이 아닌 코드에서 직접 만들어 붙여 URL 누락을 막음. 비유하면, 직원이 쓴 답안을 검사관이 자료와 대조해 근거 없는 문장을 걸러내고, 참고문헌 목록은 자료 담당이 직접 정확히 붙이는 것."
     },
     {
       "step": 7,
       "title": "[IsUse] 유용성 평가 → 재검색 루프 → 출력",
+      "label": "유용성 평가·출력 (IsUse)",
+      "refs": ["grade_generation", "rewrite", "edges", "output_run"],
       "summary": "답이 쓸모 있는지 보고, 미흡하면 질문을 고쳐 route 부터 다시 돌리고(최대 3회), 결과를 요약해 출력함",
       "detail": "[IsUse] 에서 답이 질문에 직접·명확하게 답하는지 평가함. 유용하면 종료(END)하고, 유용하지 않으면 rewrite 노드가 질문을 검색에 더 좋게 고친 뒤 route 로 되돌아가 처음부터 다시 검색함(최대 3회). 이 분기는 decide_after_generation 조건부 엣지가 결정함. 끝나면 format_summary 가 라우팅·검색·평가 결과를 표로 요약하고 print_result 가 답변과 함께 출력함. 비유하면, 답이 부실하면 질문 자체를 더 정확히 바꿔 안내데스크로 돌아가 다시 자료를 뒤지는 끈질긴 상담원, 그리고 마지막에 '어떤 검사를 통과했는지' 체크리스트를 함께 제출하는 것."
     }

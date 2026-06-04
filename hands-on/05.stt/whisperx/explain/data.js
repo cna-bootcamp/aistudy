@@ -20,52 +20,52 @@ window.EXPLAIN_DATA = {
 
   flow: [
     {
-      step: 1, title: "실행 시작",
+      step: 1, title: "실행 시작", label: "실행 시작",
       summary: "터미널에서 python whisperx-diarization.py 실행 → main()이 진입점으로 호출됨",
       detail: "이 예제는 웹이 아니라 명령줄(터미널) 프로그램임. 맨 아래 if __name__ == \"__main__\": 가 main()을 호출함. main()이 전체 작업 흐름을 순서대로 지휘함."
     },
     {
-      step: 2, title: "명령줄 옵션 읽기",
+      step: 2, title: "명령줄 옵션 읽기", label: "옵션 읽기", refs: ["parse_args"],
       summary: "parse_args()로 --input·--model·--language 등 옵션을 읽음",
       detail: "식당 주문서를 받는 단계와 비슷함. argparse가 'python whisperx-diarization.py --input a.mp3' 같은 입력을 해석해 어떤 파일을 처리하고 어떤 모델을 쓸지 정함. 옵션을 생략하면 기본값(large-v3-turbo, ko 등)을 씀."
     },
     {
-      step: 3, title: "HF 토큰 확인",
+      step: 3, title: "HF 토큰 확인", label: "HF 토큰 확인", refs: ["load_hf_token"],
       summary: "load_hf_token()이 .env에서 HuggingFace 토큰을 읽어 화자 분리 모델 접근권을 확인함",
       detail: "pyannote 화자 분리 모델은 HuggingFace 계정과 사용 약관 동의가 필요함. 토큰이 없으면 상세한 안내 메시지를 출력하고 프로그램을 바로 종료함."
     },
     {
-      step: 4, title: "오디오 파일 확정",
+      step: 4, title: "오디오 파일 확정", label: "오디오 확정", refs: ["resolve_audio", "find_audio_files"],
       summary: "resolve_audio()가 --input 인수나 audio 폴더 첫 번째 파일로 오디오 경로를 확정함",
       detail: "--input 으로 파일을 직접 줬으면 그 파일이 실제로 있는지 확인해 사용함. 없으면 audio 폴더에서 파일을 자동으로 찾아 첫 번째 파일을 사용함."
     },
     {
-      step: 5, title: "디바이스·정밀도 설정",
+      step: 5, title: "디바이스·정밀도 설정", label: "디바이스 설정", refs: ["detect_device"],
       summary: "detect_device()로 CUDA/CPU를 감지하고, CPU면 compute_type을 int8로 자동 변경함",
       detail: "GPU(CUDA)가 있으면 float16으로 빠르게 처리하고, CPU만 있으면 int8로 자동 변환해 속도를 보완함. 사용자가 --device를 직접 지정하면 감지 없이 그 값을 씀."
     },
     {
-      step: 6, title: "[1/4] 전사",
+      step: 6, title: "[1/4] 전사", label: "전사",
       summary: "whisperx.load_model()로 Whisper 모델을 불러와 음성을 텍스트 세그먼트로 변환함",
       detail: "주방에 요리사(Whisper 모델)를 고용하는 단계임. 큰 모델(large-v3-turbo)일수록 정확하지만 느림. transcribe()는 오디오를 세그먼트(문장 조각) 단위로 받아쓰기 함."
     },
     {
-      step: 7, title: "[2/4] 단어 정렬",
+      step: 7, title: "[2/4] 단어 정렬", label: "단어 정렬",
       summary: "whisperx.load_align_model()·align()으로 각 단어의 정확한 시작·끝 시각을 부착함",
       detail: "기본 Whisper는 세그먼트 단위 시각만 줌. 정렬 단계에서 단어 하나하나에 타임스탬프를 붙여, 나중에 화자를 단어 수준으로 정확히 배정할 수 있게 함."
     },
     {
-      step: 8, title: "[3/4] 화자 분리",
+      step: 8, title: "[3/4] 화자 분리", label: "화자 분리",
       summary: "DiarizationPipeline으로 '언제 누가 말했는지'를 구간별로 분리한 뒤 각 단어에 화자를 배정함",
       detail: "이 단계가 이 예제의 핵심임. pyannote 모델이 오디오를 분석해 화자(SPEAKER_00·SPEAKER_01…)가 말한 구간을 찾고, assign_word_speakers()가 단어별로 화자 태그를 붙여 줌."
     },
     {
-      step: 9, title: "[4/4] 결과 저장",
+      step: 9, title: "[4/4] 결과 저장", label: "결과 저장", refs: ["save_outputs", "build_dialog_lines", "build_chunks_df", "build_rttm_lines", "to_serializable"],
       summary: "save_outputs()가 result.json·result_dialog.txt·result_chunks.csv·result.rttm 네 파일을 저장함",
       detail: "완성된 결과를 네 가지 형식으로 저장함. JSON은 원본 데이터, dialog.txt는 사람이 읽기 좋은 대화록, CSV는 분석용 표, RTTM은 화자 분리 표준 형식임."
     },
     {
-      step: 10, title: "종료",
+      step: 10, title: "종료", label: "종료",
       summary: "완료 메시지를 출력하고 종료 코드(0=성공)를 반환함",
       detail: "오류가 없으면 main()이 0을 반환해 성공을 알림. ImportError(패키지 미설치)나 KeyboardInterrupt(Ctrl+C) 등 오류 유형별로 다른 종료 코드(1·130)를 반환함."
     },

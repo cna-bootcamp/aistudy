@@ -5,11 +5,11 @@ window.EXPLAIN_DATA = {
     { id: "service", label: "search_service.py", role: "검색 오케스트레이터 — 4단계 파이프라인(접수→라우팅→검색→LLM 답변)" }
   ],
   flow: [
-    { step: 1, title: "서버 기동", summary: "python server.py → http://127.0.0.1:8000/mcp", detail: "STDIO가 아닌 Streamable HTTP로 실행합니다. Claude Code 같은 MCP 클라이언트가 이 URL로 연결합니다." },
-    { step: 2, title: "클라이언트 연결", summary: "Claude Code 등이 /mcp 엔드포인트에 연결", detail: "서버를 자식 프로세스로 띄우는 STDIO 방식과 달리, HTTP URL만 설정하면 원격에서도 연결할 수 있습니다." },
-    { step: 3, title: "SearchService 지연 초기화", summary: "첫 도구 호출 시 Neo4j·임베딩 모델 연결", detail: "서버 기동을 빠르게 유지하기 위해 무거운 초기화(DB 연결, 모델 로드)는 첫 호출 시까지 미룹니다." },
-    { step: 4, title: "ask_dev_ai 도구 호출", summary: "질문 → 검색 방법 결정 → KG/벡터 검색 → LLM 답변", detail: "auto 모드에서는 질문 패턴을 분석해 vector·graph_qa·hybrid·cypher 중 최적 검색 방법을 자동 선택합니다." },
-    { step: 5, title: "리소스·프롬프트 조회", summary: "graphrag://stats, graphrag://schema, dev_assist 사용 가능", detail: "KG 통계·스키마를 URI로 조회하거나, 구현 가이드 작성을 돕는 프롬프트 템플릿을 사용할 수 있습니다." }
+    { step: 1, title: "서버 기동", label: "서버 기동", refs: ["server_init"], summary: "python server.py → http://127.0.0.1:8000/mcp", detail: "STDIO가 아닌 Streamable HTTP로 실행합니다. Claude Code 같은 MCP 클라이언트가 이 URL로 연결합니다." },
+    { step: 2, title: "클라이언트 연결", label: "클라이언트 연결", summary: "Claude Code 등이 /mcp 엔드포인트에 연결", detail: "서버를 자식 프로세스로 띄우는 STDIO 방식과 달리, HTTP URL만 설정하면 원격에서도 연결할 수 있습니다." },
+    { step: 3, title: "SearchService 지연 초기화", label: "지연 초기화", refs: ["get_service"], summary: "첫 도구 호출 시 Neo4j·임베딩 모델 연결", detail: "서버 기동을 빠르게 유지하기 위해 무거운 초기화(DB 연결, 모델 로드)는 첫 호출 시까지 미룹니다." },
+    { step: 4, title: "ask_dev_ai 도구 호출", label: "도구 호출", refs: ["ask_dev_ai", "search_service_answer"], summary: "질문 → 검색 방법 결정 → KG/벡터 검색 → LLM 답변", detail: "auto 모드에서는 질문 패턴을 분석해 vector·graph_qa·hybrid·cypher 중 최적 검색 방법을 자동 선택합니다." },
+    { step: 5, title: "리소스·프롬프트 조회", label: "리소스·프롬프트", refs: ["kg_resources", "dev_assist_prompt"], summary: "graphrag://stats, graphrag://schema, dev_assist 사용 가능", detail: "KG 통계·스키마를 URI로 조회하거나, 구현 가이드 작성을 돕는 프롬프트 템플릿을 사용할 수 있습니다." }
   ],
   functions: [
     {

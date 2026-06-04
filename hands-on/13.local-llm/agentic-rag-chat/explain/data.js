@@ -10,41 +10,56 @@ window.EXPLAIN_DATA = {
   flow: [
     {
       step: 1, title: "PDF 인덱싱 (1회 실행)",
+      label: "PDF 인덱싱",
+      refs: ["clean_text", "split_documents", "build_vectordb"],
       summary: "indexing.py: PDF → 전처리 → 청킹 → KaLM 4-bit 임베딩 → ChromaDB 저장",
       detail: "특허법 PDF를 읽어 노이즈(머리글·페이지 번호)를 제거하고, 법령 조문 구조(조→항)를 우선으로 800자 청크로 분할합니다. KaLM 12B 모델을 4-bit 양자화(~7GB VRAM)로 적재해 1024차원 벡터로 변환하고 ChromaDB에 영속 저장합니다. 앱 실행 전 1회만 수행합니다."
     },
     {
       step: 2, title: "앱 초기화 (최초 1회)",
+      label: "앱 초기화",
+      refs: ["get_retriever", "load_reranker"],
       summary: "app.py: @st.cache_resource로 임베더·리랭커·그래프를 1회만 적재해 캐싱함",
       detail: "Streamlit 앱이 처음 실행될 때 무거운 자원을 적재합니다. CrossEncoder(BGE 리랭커)를 먼저 CUDA에 올린 뒤 ChromaDB를 로드해야 segfault를 방지할 수 있습니다(적재 순서 중요). 워밍업 질의 1회로 KaLM 임베더도 미리 적재합니다."
     },
     {
       step: 3, title: "라우팅 (check_retrieval)",
+      label: "라우팅",
+      refs: ["check_retrieval_node"],
       summary: "graph.py: 법률 DB 검색 필요 여부·소스·소스별 최적 쿼리를 결정함",
       detail: "사용자 질문과 이전 대화를 보고 LLM이 '특허 질문인가?'를 판단합니다. 법률 DB가 필요하면 vectordb/web/YouTube 중 적합한 소스를 고르고 소스별로 검색 쿼리를 최적화합니다. 법률 DB가 불필요한 질문도 웹 검색으로 보강합니다."
     },
     {
       step: 4, title: "2-Stage 검색 (search)",
+      label: "2-Stage 검색",
+      refs: ["search_node", "two_stage_retrieve"],
       summary: "retrieval.py: KaLM bi-encoder top-20 회수 → BGE cross-encoder top-5 재정렬",
       detail: "1단계(Bi-encoder): 질의를 KaLM으로 1024차원 벡터로 변환해 ChromaDB에서 코사인 유사도 상위 20개를 빠르게 회수합니다. 2단계(Cross-encoder): BGE 리랭커가 (질의, 문서) 쌍을 함께 보고 관련도를 직접 채점해 상위 5개만 남깁니다. 빠른 1차 + 정밀한 2차의 조합입니다."
     },
     {
       step: 5, title: "답변 생성 (generate)",
+      label: "답변 생성",
+      refs: ["generate_node_graph"],
       summary: "graph.py: 자막 발췌 포함 컨텍스트로 답변을 스트리밍 생성하고 출처를 부착함",
       detail: "법률 조문·웹 본문·YouTube 자막 청크를 하나의 컨텍스트로 합쳐 LLM에 답변을 요청합니다. Groq LPU의 스트리밍으로 토큰이 실시간으로 화면에 출력됩니다. 법률 DB가 불필요한 질문은 generate_direct가 웹 검색 결과로 직접 답변합니다."
     },
     {
       step: 6, title: "유용성 평가 (evaluate)",
+      label: "유용성 평가",
+      refs: ["evaluate_node"],
       summary: "graph.py: 답변이 질문에 실제로 유용한지 평가해 재검색 루프 여부를 결정함",
       detail: "LLM이 '이 답변이 질문에 직접 답하고 있는가?'를 평가합니다. 유용하지 않고 재시도 횟수(MAX_RETRIES=2)가 남아 있으면 rewrite → check_retrieval 루프로 돌아갑니다. 유용하거나 재시도가 소진되면 종료합니다."
     },
     {
       step: 7, title: "쿼리 재작성 (rewrite)",
+      label: "쿼리 재작성",
       summary: "graph.py: 실패 이유를 분석해 더 나은 검색을 위해 질문을 재작성함",
       detail: "실패한 답변과 실패 이유를 LLM에게 보여주고, 모호한 구어체를 정확한 특허 용어로 바꿉니다. 재작성된 질문으로 check_retrieval부터 다시 실행합니다."
     },
     {
       step: 8, title: "UI 렌더링",
+      label: "UI 렌더링",
+      refs: ["handle_user_input", "stream_events"],
       summary: "app.py: st.status 단계 가시화 + st.write_stream 토큰 스트리밍 + 처리 과정 로그",
       detail: "라우팅 결과·재정렬 top-5·웹/YouTube 결과·유용성 평가를 st.status로 실시간 표시합니다. 답변 본문은 st.write_stream으로 토큰 단위로 스트리밍하고, 처리 과정 전체는 접이식 expander로 보여줍니다."
     }

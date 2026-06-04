@@ -14,42 +14,56 @@ window.EXPLAIN_DATA = {
     {
       "step": 1,
       "title": "실행 & 환경 준비",
+      "label": "환경 준비",
+      "refs": ["setup"],
       "summary": "python app.py 로 실행하고, .env 의 API 키를 불러옴",
       "detail": "터미널에서 'python app.py' 또는 'python app.py \"질문\"' 으로 실행함. 시작과 동시에 load_dotenv() 가 hands-on/.env 에 적어 둔 OPENAI_API_KEY(질의 임베딩용)와 GROQ_API_KEY(LLM용)를 읽어 둠. 한글 출력이 깨지지 않게 표준출력을 UTF-8로 맞추고, 라이브러리의 불필요한 경고도 숨김. 비유하면, 사서(앱)가 출근해 책상에 두 개의 열쇠(임베딩 열쇠·답변 열쇠)를 챙겨 두는 단계."
     },
     {
       "step": 2,
       "title": "벡터 DB 로드 + BM25 코퍼스 준비",
+      "label": "벡터 DB 로드",
+      "refs": ["load_vectorstore", "load_corpus_from_vectorstore"],
       "summary": "공용 벡터 DB를 '재임베딩 없이' 연결하고, 그 안의 원문 청크를 꺼내 BM25용 자료로 재사용함",
       "detail": "이 예제는 PDF를 새로 읽거나 쪼개지 않음. 그 작업(인덱싱)은 ../indexing 이 미리 해 두었고, 여기서는 결과물인 공용 ChromaDB(컬렉션 patent_law)를 연결만 함. 그런데 BM25(키워드 검색)는 '벡터'가 아니라 '원문 글자'로 색인을 만들기 때문에, DB에 함께 저장돼 있던 청크 원문을 다시 꺼내(다시 임베딩하지 않음) BM25용 자료(코퍼스)로 재활용함. 비유하면, 같은 책장(서가)을 두 가지 방법으로 찾을 준비를 하는 것 — 하나는 좌표(벡터)로, 하나는 책에 적힌 글자(원문)로."
     },
     {
       "step": 3,
       "title": "두 검색기 + 융합 검색기 구성",
+      "label": "검색기 구성",
+      "refs": ["build_retrievers", "build_bm25_tokenizer"],
       "summary": "Dense(의미)·BM25(키워드) 검색기를 각각 만들고, 둘을 합치는 Hybrid(앙상블) 검색기를 만듦",
       "detail": "세 종류 검색기를 준비함. ① Dense: 질문을 벡터로 바꿔 의미가 가까운 청크를 찾음(임베딩 기반). ② BM25(Sparse): 글자가 겹치는 정도(키워드)로 찾음 — 한국어는 '특허를/특허는'이 다 다른 단어로 취급되므로, 형태소 분석기(kiwipiepy)로 '특허'처럼 어근만 떼어 맞춤률을 높임. ③ Hybrid: 두 검색기를 묶은 EnsembleRetriever 로, 각자 찾은 순위를 RRF(역순위 융합)로 점수화한 뒤 합침. 비유하면, '뜻으로 찾는 사서'와 '단어로 찾는 사서'를 한 팀으로 묶어, 둘이 같이 추천한 책은 더 위로 올려 주는 것."
     },
     {
       "step": 4,
       "title": "LLM 준비",
+      "label": "LLM 준비",
+      "refs": ["create_llm"],
       "summary": "답변을 생성할 Groq LLM(gpt-oss-120b)을 준비함",
       "detail": "검색한 근거를 바탕으로 실제 문장을 써 줄 LLM을 준비함. Groq LPU에서 서빙하는 openai/gpt-oss-120b 를 쓰며, 추론 과정이 답에 섞이지 않도록 reasoning_format=\"hidden\" 으로 최종 답변만 받음. temperature=0 이라 같은 질문엔 같은 답을 냄. 비유하면, 자료를 보고 답을 써 줄 '글쓰는 직원'을 부르는 단계."
     },
     {
       "step": 5,
       "title": "Hybrid 탐색 (Retrieve)",
+      "label": "Hybrid 탐색",
+      "refs": ["answer_query"],
       "summary": "Hybrid 검색기로 질문을 던져 Dense+BM25 융합 결과를 가져옴",
       "detail": "answer_query 안에서 hybrid_retriever.invoke(query) 를 호출하면, 내부적으로 두 검색기가 각자 상위 5개씩 찾고 그 순위를 RRF로 합쳐 하나의 목록으로 돌려줌(중복 제거 후 최대 10건). 두 검색기가 공통으로 찾은 청크는 점수가 합산되어 위로 올라옴 — 이것이 Hybrid의 핵심 이득. 비유하면, 두 사서가 따로 뽑아 온 추천 목록을 합쳐, 둘 다 추천한 책을 맨 위에 두는 것."
     },
     {
       "step": 6,
       "title": "생성 (Generate)",
+      "label": "생성",
+      "refs": ["answer_query", "format_docs"],
       "summary": "융합으로 찾은 청크를 근거로 넣어 LLM이 답을 만듦",
       "detail": "찾아온 청크들을 [출처] 라벨과 함께 '컨텍스트'로 프롬프트에 채우고, LLM이 그 근거만 바탕으로 답을 생성함. 프롬프트에 '문서에 없으면 추측하지 말 것'이라는 규칙이 있어 지어내기(환각)를 줄임. 이 조립은 LCEL 파이프(prompt | llm | StrOutputParser)로 이뤄짐. 비유하면, 사서들이 뽑아 온 카드만 보고 질문에 답을 적어 주는 것."
     },
     {
       "step": 7,
       "title": "검색 비교 + 결과 출력",
+      "label": "검색 비교·출력",
+      "refs": ["print_search_comparison", "print_result"],
       "summary": "Dense·BM25·Hybrid 결과를 나란히 보여 주고, 최종 답변과 '검색 출처'를 표시",
       "detail": "먼저 같은 질문에 대해 Dense·BM25·Hybrid 가 각각 어떤 청크를 골랐는지 나란히 출력해, 융합이 어떻게 두 결과를 합쳤는지(특히 공통 청크가 어떻게 상위로 올라갔는지) 눈으로 확인하게 함. 이어 최종 답변과 근거 청크(파일명·청크 번호·앞부분 미리보기)를 보여 줌. 비유하면, '뜻으로 찾은 목록·단어로 찾은 목록·합친 목록'을 같이 펼쳐 보여 주고, 답안과 참고 카드 목록을 함께 제출하는 것."
     }
