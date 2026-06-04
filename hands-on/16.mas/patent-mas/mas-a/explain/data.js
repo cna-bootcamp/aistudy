@@ -65,7 +65,7 @@ window.EXPLAIN_DATA = {
       fileId: "server",
       summary: "특허법 질문을 받아 SAS 워크플로로 검색·답변하는 MCP 도구(분산 MAS의 공개 진입점)",
       how: "@mcp.tool()로 등록되어 외부에서 호출 가능한 함수입니다. 질문과 모드를 받아 PatentLawMAS의 answer()를 호출하면, 내부에서 라우팅→검색→평가→(필요 시 융합)이 일어납니다. 동기 함수로 둔 것이 핵심입니다 — FastMCP가 동기 도구를 워커 스레드에서 호출하고, 그 안에서 async GraphRAG가 안전하게 돌게 하기 위함입니다(async로 바꾸면 이벤트 루프 브리지가 깨짐).",
-      terms: ["FastMCP", "MCP", "@mcp.tool()", "MCP 도구(Tool)", "SAS(Supervisor-Agent-System)", "동기/비동기(sync/async)", "싱글턴"],
+      terms: ["FastMCP", "MCP", "@mcp.tool()", "MCP 도구(Tool)", "SAS(Scheduler-Agent-Supervisor)", "동기/비동기(sync/async)", "싱글턴"],
       lines: [
         { at: "def ask_patent_law(question: str, mode: str = \"auto\")", text: "@mcp.tool()로 등록되어 외부 AI 앱/오케스트레이터가 호출할 수 있는 공개 함수입니다. 질문과 검색 모드를 받습니다(mode 기본 auto는 '알아서 모드를 정함')." },
         { at: "result = get_mas().answer(question, mode)", text: "싱글턴 MAS를 가져와 SAS 워크플로(라우팅→검색→평가→융합)를 실행합니다." },
@@ -182,7 +182,7 @@ if __name__ == "__main__":
       fileId: "cli",
       summary: "MCP 서버 없이 커맨드라인에서 PatentLawMAS를 직접 실행해 보는 진입점",
       how: "서버를 띄우지 않고도 같은 SAS 워크플로를 즉시 돌려 볼 수 있는 학습·디버깅용 도구입니다. argparse로 질문과 --mode를 받아 mas.answer()를 호출하고 결과를 보기 좋게 출력합니다. server.py와 cli가 동일한 PatentLawMAS를 공유하므로, 검색 로직을 한 곳에서 작성해 두 진입점이 함께 쓰는 구조입니다.",
-      terms: ["argparse", "CLI", "진입점(main)", "SAS(Supervisor-Agent-System)"],
+      terms: ["argparse", "CLI", "진입점(main)", "SAS(Scheduler-Agent-Supervisor)"],
       lines: [
         { at: "parser.add_argument(\"query\"", text: "커맨드라인에서 받을 질문 인자를 정의합니다." },
         { at: "parser.add_argument(\"--mode\"", text: "검색 모드 옵션(auto/vector/local/global/drift)을 정의합니다." },
@@ -212,7 +212,7 @@ if __name__ == "__main__":
       fileId: "graph",
       summary: "LangGraph StateGraph로 SAS 노드 4개를 노드·엣지로 연결해 워크플로 그래프를 만듦",
       how: "이 함수가 SAS의 '지도'를 그립니다. scheduler·agent·supervisor·fuse를 노드로 등록하고, START부터 차례로 잇습니다. 핵심은 supervisor 뒤의 '조건부 엣지'입니다 — supervisor가 State에 적어 둔 next_step 값('agent'면 재검색, 'fuse'면 융합, 'end'면 종료)을 보고 갈림길을 정합니다. 이렇게 분기·반복이 있는 흐름을 그래프로 표현하는 것이 LangGraph입니다.",
-      terms: ["LangGraph", "StateGraph", "노드(node)", "엣지(edge)", "조건부 엣지(conditional edge)", "공유 State", "compile", "SAS(Supervisor-Agent-System)"],
+      terms: ["LangGraph", "StateGraph", "노드(node)", "엣지(edge)", "조건부 엣지(conditional edge)", "공유 State", "compile", "SAS(Scheduler-Agent-Supervisor)"],
       lines: [
         { at: "builder = StateGraph(PatentLawState)", text: "공유 State 타입을 기준으로 빈 그래프 빌더를 만듭니다." },
         { at: "builder.add_node(\"scheduler\", self.nodes.scheduler_node)", text: "'scheduler' 이름의 노드에 라우팅 함수를 연결합니다(나머지 노드도 동일)." },
@@ -752,7 +752,7 @@ def validate_stores(self) -> list[str]:
     "엔드포인트": "서버에 접속하는 주소(URL 경로). 여기서는 /mcp.",
     "URI": "자원을 가리키는 주소 문자열. 여기서는 'patent://kg/stats'처럼 리소스를 식별함.",
     "JSON Schema": "데이터의 모양(어떤 키·타입이 있는지)을 정의하는 규격. FastMCP가 도구 입출력 규격을 이걸로 자동 생성함.",
-    "SAS(Supervisor-Agent-System)": "감독자(Supervisor)가 일꾼(Agent)에게 작업을 시키고 결과를 검수·조정하는 멀티에이전트 구조. 여기선 Scheduler+Agent+Supervisor로 구성됨.",
+    "SAS(Scheduler-Agent-Supervisor)": "조율자(Scheduler)가 작업을 나누고, 일꾼(Agent)이 실행하며, 감독자(Supervisor)가 결과를 검수·통제하는 멀티에이전트 구조(교재 §2.1). 이 예제는 Scheduler+Agent+Supervisor로 구성됨.",
     "MAS(멀티에이전트 시스템)": "여러 전문 에이전트(부서)가 협력해 문제를 푸는 시스템. 이 예제는 '법령지식'을 맡는 한 축임.",
     "LangGraph": "노드와 엣지로 'AI 워크플로'를 그래프처럼 표현·실행하는 라이브러리. 분기·반복·상태 공유가 쉬움.",
     "StateGraph": "LangGraph에서 공유 State를 기준으로 노드·엣지를 조립하는 그래프 빌더.",

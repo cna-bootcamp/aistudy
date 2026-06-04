@@ -12,43 +12,71 @@ LangGraph StateGraph로 Agent가 스스로 검색 소스를 고르고, 답변 �
 
 ### 1.1 워크플로우 (Self-RAG StateGraph)
 
+**Self-RAG가 무엇인가** — "스스로(Self) 자기 답을 점검하는 RAG"임. 일반 RAG는 "검색 → 답변"으로 끝나지만,
+Self-RAG는 중간중간 AI가 **자기 작업을 채점하는 신호**를 뽑아 "검색이 필요한가? 자료가 관련 있나? 답이
+근거에 충실한가? 답이 쓸모 있나?"를 스스로 묻고, 미흡하면 다시 시도함.
+
 ```mermaid
 flowchart TD
-    Q(["질문"]) --> RT{"① Route<br/>검색 필요? + 소스 선택<br/>(law / web / youtube)"}
-    RT -->|"검색 불필요<br/>(인사·잡담·특허 무관)"| DA["Direct Answer<br/>LLM 지식으로 직접 답변"]
-    RT -->|"검색 필요"| RE["② Retrieve<br/>law → korean-law MCP<br/>web → DuckDuckGo<br/>youtube → Data API + 자막"]
-    RE --> GD["③ Grade Documents [IsRel]<br/>검색 항목 관련성 일괄 평가 (1콜)"]
-    GD --> GE["④ Generate [IsSup]<br/>답변 생성 + 근거성 검증<br/>미흡 시 엄격 재생성<br/>+ 코드기반 출처 부착"]
-    GE --> GG{"⑤ Grade Generation [IsUse]<br/>답변 유용성 평가"}
-    GG -->|"유용 또는 재시도 소진<br/>(MAX_RETRIES=3)"| ANS(["답변 + 출처"])
+    Q(["질문"]) --> RT{"① Route<br/>검색 여부·소스 선택"}
+    RT -->|"검색 불필요"| DA["Direct Answer<br/>직접 답변"]
+    RT -->|"검색 필요"| RE["② Retrieve<br/>law · web · youtube"]
+    RE --> GD["③ Grade Documents<br/>[IsRel] 관련성 평가"]
+    GD --> GE["④ Generate<br/>[IsSup] 근거성 검증"]
+    GE --> GG{"⑤ Grade Generation<br/>[IsUse] 유용성 평가"}
+    GG -->|"유용 / 소진"| ANS(["답변 + 출처"])
     GG -->|"유용 미달"| RW["⑥ Rewrite<br/>질문 재작성"]
     RW -->|"재검색 루프"| RT
     DA --> ANS
 ```
 
-**Self-RAG가 무엇인가** — "스스로(Self) 자기 답을 점검하는 RAG"임. 일반 RAG는 "검색 → 답변"으로 끝나지만,
-Self-RAG는 중간중간 LLM이 **자기 작업을 검사하는 신호(Reflection 토큰)** 를 뽑아 "검색이 필요한가? 검색
-결과가 관련 있나? 답이 근거에 충실한가? 답이 쓸모 있나?"를 스스로 묻고, 미흡하면 다시 시도함.
+**용어 풀이** (그림에 나오는 말)
+
+| 그림 속 용어 | 쉬운 뜻 |
+|------|------|
+| **Self-RAG** | 검색·답변 도중 AI가 자기 작업을 스스로 채점하는 방식 |
+| **Route** | 검색이 필요한지, 어떤 자료(법령·웹·영상)를 쓸지 정하는 단계 |
+| **Retrieve** | 정해진 자료에서 실제로 검색해 오는 단계 |
+| **Grade Documents [IsRel]** | 찾은 자료가 질문과 관련 있는지 채점 (IsRel = is **Rel**evant, '관련 있나?') |
+| **Generate [IsSup]** | 답을 쓰고, 그 답이 자료에 근거하는지 채점 (IsSup = is **Sup**ported, '근거 있나?') |
+| **Grade Generation [IsUse]** | 그 답이 질문에 쓸모 있는지 채점 (IsUse = is **Use**ful, '쓸모 있나?') |
+| **Rewrite** | 쓸모가 부족하면 질문을 더 낫게 고쳐 다시 검색 |
+| **Direct Answer** | 검색이 필요 없는 질문(인사 등)에 바로 답 |
+| **law / web / youtube** | 검색 자료 종류 — 판례·법령 / 웹 / 유튜브 |
 
 **그림 읽는 법 (한 단계씩)**
 
-1. **Route(라우팅)** — 질문을 보고 ① 검색이 필요한지, ② 필요하면 어떤 소스(`law`/`web`/`youtube`)를 쓸지,
-   ③ 소스별 검색어를 어떻게 다듬을지 한 번에 결정함. 인사·잡담·특허 무관 질문이면 검색 없이 곧장
-   **Direct Answer**로 빠짐.  
-2. **Retrieve(검색)** — 고른 소스에서만 실제 검색을 수행함. 한 소스가 실패해도 나머지로 답을 만들 수 있게
-   각 호출을 따로 감쌈. 결과는 `{출처, 제목, 본문, 인용}` 형태의 **통합 항목**으로 합쳐짐.  
-3. **Grade Documents [IsRel]** — 검색 항목들이 질문과 정말 관련 있는지 **한 번의 LLM 호출로 일괄 평가**해
-   관련 있는 것만 추림(비용 절약).  
-4. **Generate [IsSup]** — 추려진 자료로 답변을 생성한 뒤, **그 답이 자료에 실제로 근거하는지(환각이 없는지)**
-   를 검사함([IsSup]). 근거가 약하면 "자료에 있는 것만 쓰라"는 엄격 모드로 다시 생성함. 출처 링크는 LLM이
-   지어내지 못하도록 **코드가 직접** 붙임.  
-5. **Grade Generation [IsUse]** — 최종 답이 질문에 실제로 **쓸모 있는지** 평가함. 쓸모 있으면 종료.  
-6. **Rewrite(질문 재작성)** — 쓸모가 부족하면 질문을 더 나은 검색어로 고쳐 **다시 Route로 돌아가 재검색**함.
-   단, 무한 반복을 막기 위해 최대 3회(`MAX_RETRIES=3`)까지만 돌고, 소진되면 마지막 답을 그대로 반환함.  
+1. **① Route(길 정하기)** — 질문을 보고 ⓐ 검색이 필요한지, ⓑ 필요하면 어떤 자료(`law`/`web`/`youtube`)를
+   쓸지, ⓒ 자료별 검색어를 어떻게 다듬을지 한 번에 정함. 인사·잡담처럼 검색이 필요 없으면 곧장
+   **Direct Answer**로 빠져 바로 답함.  
+2. **② Retrieve(검색)** — 고른 자료에서만 실제로 검색함. 한 자료가 실패해도 나머지로 답을 만들 수 있게
+   따로따로 감쌈. 결과는 `{출처, 제목, 본문, 인용}` 형태로 한데 모음.  
+3. **③ Grade Documents [IsRel](관련성 채점)** — 찾은 자료가 질문과 정말 관련 있는지 **한 번의 호출로
+   한꺼번에** 채점해 관련 있는 것만 추림(비용 절약).  
+4. **④ Generate [IsSup](답변 + 근거 점검)** — 추린 자료로 답을 쓴 뒤, **그 답이 자료에 실제로 근거하는지
+   (지어낸 게 없는지)** 점검함. 근거가 약하면 "자료에 있는 것만 써라"는 엄격 모드로 다시 씀. 출처 링크는
+   AI가 못 지어내도록 **코드가 직접** 붙임.  
+5. **⑤ Grade Generation [IsUse](유용성 채점)** — 최종 답이 질문에 실제로 **쓸모 있는지** 채점함. 쓸모
+   있으면 종료.  
+6. **⑥ Rewrite(질문 고쳐 쓰기)** — 쓸모가 부족하면 질문을 더 나은 검색어로 고쳐 **다시 ① Route로 돌아가
+   재검색**함. 단, 무한 반복을 막으려 최대 3회(`MAX_RETRIES=3`)까지만 돌고, 소진되면 마지막 답을 반환함.  
 
-> 핵심 아이디어: "**검색하고 끝**"이 아니라 "**관련성·근거성·유용성을 스스로 채점하고, 부족하면 질문을
-> 고쳐 다시 검색**"하는 자기교정 루프임. 멀티턴 대화에서는 직전 맥락(history)을 참고해 "그럼 판례는?" 같은
-> 후속 질문의 의도까지 파악함.
+> 한마디로: "**검색하고 끝**"이 아니라 "**관련성·근거·쓸모를 스스로 채점하고, 부족하면 질문을 고쳐 다시
+> 검색**"하는 자기교정 루프임. 멀티턴 대화에서는 직전 맥락을 참고해 "그럼 판례는?" 같은 후속 질문의 의도도
+> 파악함.
+
+**코드로 보기** — 답을 점검하고 부족하면 다시 쓰는 부분 (`graph/workflow.py`의 `generate`)
+
+```python
+answer = self._generate_answer(state, context, strict=False)   # 1차 답변
+support = self._grade_support(answer, context)                 # 자료에 근거하나? ([IsSup])
+if not support.is_supported:                                   # 근거가 약하면
+    answer = self._generate_answer(state, context, strict=True)   # 자료에 있는 것만 쓰도록 다시 생성
+    support = self._grade_support(answer, context)             # 다시 점검해 결과 갱신
+```
+
+답이 자료에 근거하지 않으면(환각 의심) 그냥 두지 않고 **즉시 더 엄격하게 다시 쓰는 것**이 Self-RAG의
+자기교정 장치임.
 
 ### 1.2 Self-RAG Reflection 토큰
 
@@ -61,6 +89,9 @@ Self-RAG는 중간중간 LLM이 **자기 작업을 검사하는 신호(Reflectio
 
 ### 1.3 소스별 통신
 
+각 검색 자료를 **어디서 어떻게 가져오는지** 보여주는 그림임. 법령(law)만 외부 MCP 서버를 빌려 쓰고,
+웹·유튜브는 각자의 공개 API를 직접 부름.
+
 ```mermaid
 flowchart LR
     subgraph MASB["MAS B (MCP 클라이언트)"]
@@ -68,9 +99,9 @@ flowchart LR
         WS["web_search.py"]
         YS["youtube_search.py"]
     end
-    LC -->|"Streamable HTTP"| KL["korean-law MCP<br/>(korean-law-mcp.fly.dev)<br/>search_decisions (판례·해석례)<br/>search_law → get_law_text<br/>chain_full_research (폴백)"]
-    WS --> DDG["DuckDuckGo<br/>(API 키 불필요, 최근 1년)"]
-    YS --> YT["YouTube Data API v3 (검색)<br/>+ LangChain YoutubeLoader (자막 로드)"]
+    LC -->|"Streamable HTTP"| KL["korean-law MCP (원격)<br/>search_decisions<br/>search_law → get_law_text<br/>chain_full_research"]
+    WS --> DDG["DuckDuckGo<br/>(최근 1년)"]
+    YS --> YT["YouTube Data API v3<br/>+ YoutubeLoader (자막)"]
 ```
 
 **그림 읽는 법**

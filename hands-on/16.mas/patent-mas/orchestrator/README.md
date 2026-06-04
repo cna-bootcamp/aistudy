@@ -24,22 +24,35 @@
 
 ```mermaid
 flowchart TD
-    U(["사용자 질문<br/>(+ 멀티턴 history)"]) --> SCH["① Scheduler<br/>의도 분류 (패턴 + LLM 폴백)<br/>법령→A · 동향→B(+A)<br/>의견서→A∥B→C · 잡담→직접"]
-    SCH -->|"활성 단위 없음 (잡담)"| DA["direct_answer<br/>단위 MAS 미호출, 직접 답변"]
-    SCH -->|"fan_out · Send API<br/>활성 단위(A·B)만 병렬 분기"| RUA["② run_unit: A"]
-    SCH -->|"fan_out · Send API"| RUB["② run_unit: B"]
+    U(["사용자 질문<br/>(+ history)"]) --> SCH["① Scheduler<br/>의도 분류·라우팅"]
+    SCH -->|"잡담"| DA["direct_answer<br/>직접 답변"]
+    SCH -->|"fan_out (Send)<br/>활성 단위 병렬"| RUA["② run_unit: A"]
+    SCH -->|"fan_out (Send)"| RUB["② run_unit: B"]
     RUA --> SUP
     RUB --> SUP
-    SUP{"③ Supervisor (글로벌)<br/>fan-in join (1회)<br/>Budget·Kill-switch<br/>출력 검증·Loop Guard"}
-    SUP -->|"실패 단위 재디스패치<br/>(max_redispatch=1)"| RUA
-    SUP -->|"의견서 요청 (to_c)"| RC["④ run_mas_c<br/>A∥B 컨텍스트 주입<br/>→ 의견서 작성·검증"]
-    SUP -->|"그 외 (compose)"| CMP["⑤ compose<br/>최종 합성 + 통제 메모"]
-    RC -->|"escalated (게이트 미통과)"| HR{{"human_review<br/>글로벌 HITL (interrupt)"}}
+    SUP{"③ Supervisor<br/>fan-in · 글로벌 통제"}
+    SUP -->|"실패 재디스패치"| RUA
+    SUP -->|"의견서 to_c"| RC["④ run_mas_c<br/>A·B 주입 → 의견서"]
+    SUP -->|"그 외 compose"| CMP["⑤ compose<br/>최종 합성"]
+    RC -->|"escalated"| HR{{"human_review<br/>글로벌 HITL"}}
     RC -->|"정상"| CMP
     HR --> CMP
-    DA --> ANS(["사용자에게 응답"])
+    DA --> ANS(["사용자 응답"])
     CMP --> ANS
 ```
+
+**용어 풀이** (그림에 나오는 말)
+
+| 그림 속 용어 | 쉬운 뜻 |
+|------|------|
+| **Scheduler** | 질문 의도를 보고 어느 단위(A·B·C)로 보낼지 정하는 '접수처' |
+| **fan_out / Send** | 여러 단위(A·B)에 일을 **동시에** 나눠 보내는 것 (Send = 분기 명령) |
+| **run_unit** | 단위 MAS(A 또는 B)를 실제로 실행하는 분기 |
+| **Supervisor** | 흩어진 결과를 모아 예산·품질을 점검하는 '총괄 관리자' |
+| **fan-in** | 흩어진 결과를 다시 한곳에 **모으는** 것 (fan_out의 반대) |
+| **run_mas_c** | 의견서가 필요할 때 A·B 결과를 C에 넘겨 작성·검증 |
+| **human_review (HITL)** | 문제가 있을 때만 사람이 직접 승인·반려 (HITL = 사람이 중간 개입) |
+| **compose** | 최종 답을 하나로 합쳐 사용자에게 돌려주는 단계 |
 
 **그림 읽는 법 (한 단계씩)**
 
@@ -64,28 +77,52 @@ flowchart TD
 > **순서 요약**: ① A∥B 병렬(fan-out) → ② C 취합(fan-in, 의견서 요청일 때만) → ③ 합성·응답.
 > ※ 단순 질의는 A 또는 B 단독 실행, 잡담은 단위 MAS 미호출(직접 답변).
 
+**코드로 보기** — 활성 단위를 동시에 분기하는 부분 (`graph/workflow.py`의 `fan_out`)
+
+```python
+def fan_out(state):
+    units = state.get("active_units", [])     # 이번 질문에 필요한 단위 목록 (예: ['A','B'])
+    if not units:
+        return "direct_answer"                # 잡담 등 → 단위 호출 없이 바로 답
+    # 단위마다 Send를 만들어 한꺼번에 분기 → A·B가 동시에(병렬) 실행됨
+    return [_branch_send(state, unit) for unit in units]
+```
+
+`Send`는 "이 단위를 이 입력으로 실행해"라는 분기 명령임. 목록으로 여러 개를 돌려주면 그 분기들이 **동시에**
+출발함(fan-out). 결과는 나중에 Supervisor에서 다시 모임(fan-in).
+
 ### 1.2 2계층 SAS 분산·통신 구조
 
 ```mermaid
 flowchart TB
-    subgraph UPPER["상위 SAS — Orchestrator (async StateGraph)"]
-        ORCH["Scheduler → fan-out → Supervisor<br/>→ run_mas_c → (글로벌 HITL) → compose"]
+    subgraph UPPER["상위 SAS — Orchestrator"]
+        ORCH["Scheduler → fan-out → Supervisor<br/>→ run_mas_c → HITL → compose"]
     end
 
-    UPPER -.->|"① MCP (Streamable HTTP :8010)"| MASA
-    UPPER -.->|"② subprocess 워커 (mas-b venv)"| MASB
-    UPPER -.->|"② subprocess 워커 (mas-c venv)"| MASC
+    UPPER -.->|"① MCP (HTTP :8010)"| MASA
+    UPPER -.->|"② 워커 (mas-b venv)"| MASB
+    UPPER -.->|"② 워커 (mas-c venv)"| MASC
 
-    subgraph LOWER["하위 단위 MAS — 각자 자기 SAS + 자기 venv (독립 프로세스)"]
-        MASA["MAS A — 하위 SAS<br/>FastMCP :8010<br/>GraphRAG + 조문 벡터"]
-        MASB["MAS B — 하위 Self-RAG<br/>워커 stdio JSON RPC<br/>판례·웹·YouTube"]
-        MASC["MAS C — 하위 SAS<br/>워커 stdio JSON RPC<br/>작성→IsSup→verify→DLP"]
+    subgraph LOWER["하위 단위 MAS"]
+        MASA["MAS A — 하위 SAS<br/>FastMCP :8010<br/>GraphRAG + 벡터"]
+        MASB["MAS B — Self-RAG<br/>워커 stdio JSON<br/>판례·웹·YouTube"]
+        MASC["MAS C — 하위 SAS<br/>워커 stdio JSON<br/>작성·검증·DLP"]
     end
 
     MASA -.-> IDX[("사전 인덱싱<br/>벡터 + GraphRAG")]
     MASB -.-> KL["korean-law MCP<br/>(외부 원격)"]
     MASC -.-> KL
 ```
+
+**용어 풀이** (그림에 나오는 말)
+
+| 그림 속 용어 | 쉬운 뜻 |
+|------|------|
+| **상위 / 하위 SAS** | 큰 SAS(오케스트레이터) 안에 작은 SAS(A·B·C)가 든 2계층 구조 |
+| **MCP 클라이언트** | (A 호출) 미리 떠 있는 서버에 인터넷 주소로 요청하는 방식 |
+| **워커 (subprocess)** | (B·C 호출) 질의마다 별도 프로그램을 띄워 실행하는 방식 |
+| **venv** | 프로젝트별 독립 파이썬 환경 (라이브러리가 서로 안 섞이게) |
+| **stdio JSON** | 워커와 표준입출력(stdin/stdout)으로 JSON을 주고받는 통신 |
 
 **그림 읽는 법**
 

@@ -17,59 +17,101 @@
 
 ### 1.1 SAS 워크플로 (LangGraph StateGraph)
 
+이 시스템은 **세 담당자가 역할을 나눠** 일하는 방식임. 질문이 들어오면 ① 길잡이가 검색 방법을 고르고
+→ ② 실행자가 검색하고 → ③ 감독자가 결과가 충분한지 점검함. 이 3역할 구조를 **SAS 패턴**이라 부름.
+
 ```mermaid
 flowchart TD
-    Q(["질문 입력<br/>(question + mode)"]) --> SCH["① Scheduler · router<br/>검색 모드 결정<br/>패턴 매칭 + LLM 폴백"]
-    SCH --> AGT["② Agent<br/>결정된 1개 모드만 검색 실행<br/>vector → ChromaDB 조문 인용<br/>graphrag → MS GraphRAG 구조"]
-    AGT --> SUP{"③ Supervisor<br/>근거 충분성 평가<br/>(구조화 LLM)"}
-    SUP -->|"미흡: 보완 모드로 1회 재검색<br/>(Loop Guard max_reroutes=1)"| AGT
-    SUP -->|"2패스 발생: 근거 융합"| FUSE["④ Fuse<br/>조문 원문 + 관계·구조 근거 융합<br/>(단일 패스면 생략)"]
-    SUP -->|"충분 또는 한도 도달"| ANS(["답변 + 출처 + 근거 요약"])
+    Q(["질문<br/>question + mode"]) --> SCH["① Scheduler<br/>검색 모드 결정"]
+    SCH --> AGT["② Agent<br/>모드 1개만 검색"]
+    AGT --> SUP{"③ Supervisor<br/>근거 충분성 평가"}
+    SUP -->|"미흡 → 1회 재검색"| AGT
+    SUP -->|"2패스 → 융합"| FUSE["④ Fuse<br/>근거 융합"]
+    SUP -->|"충분 / 한도"| ANS(["답변 + 출처"])
     FUSE --> ANS
 ```
 
+**용어 풀이** (그림에 나오는 말)
+
+| 그림 속 용어 | 쉬운 뜻 |
+|------|------|
+| **SAS** | 길잡이·실행자·감독자 3역할로 나눠 일하는 구조 (Scheduler–Agent–Supervisor) |
+| **Scheduler** | 질문을 보고 어떤 검색 방법을 쓸지 정하는 '길잡이' |
+| **Agent** | 정해진 방법으로 실제 검색을 하는 '실행자' |
+| **Supervisor** | 결과가 충분한지 점검하고, 부족하면 다시 시키는 '감독자' |
+| **Fuse** | 검색을 두 번 했을 때 두 결과를 하나로 합치는 단계 (fuse = 융합) |
+| **vector** | 법 조문 원문을 그대로 찾아오는 검색 방법 (ChromaDB 사용) |
+| **GraphRAG** | 요건·권리·절차가 서로 어떻게 연결되는지 '관계'를 찾는 검색 방법 |
+
 **그림 읽는 법 (한 단계씩)**
 
-1. **Scheduler(스케줄러)** — 질문을 보고 "어떤 검색기를 쓸지" 정하는 교통정리 담당임. 특허법 도메인 키워드로
-   먼저 점수를 매기고(빠름·무료), 확신이 낮으면 LLM에게 분류를 맡기는 폴백을 둠. 결과는 `vector`(조문)·
-   `local`/`global`/`drift`(GraphRAG) 중 하나임.  
-2. **Agent(에이전트)** — 스케줄러가 고른 **딱 한 가지 모드**만 실행함. 두 검색기를 동시에 돌리지 않음(중복·비용
-   방지). `vector`면 ChromaDB에서 조문 원문을, `graphrag`면 지식그래프에서 관계·구조를 가져옴.  
-3. **Supervisor(감독자)** — 나온 답이 "근거로 충분한가"를 보수적으로 평가함. 충분하면 곧장 종료, 부족하면
-   **반대 성격의 검색기**(조문↔구조)로 **딱 한 번만** 더 검색하도록 되돌림. 이 "한 번만"이 **Loop Guard**(무한
-   재검색 방지, `max_reroutes=1`)임.  
-4. **Fuse(융합)** — 재검색이 일어나 2패스가 되면, 조문 원문 근거와 관계/구조 근거를 **하나의 답변으로 합침**.
-   처음 한 번에 끝났으면(단일 패스) 이 단계는 건너뜀.  
+1. **① 길잡이 (Scheduler)** — 질문을 보고 "어떤 검색 방법이 좋을지" 고름. 특허법에 자주 나오는 단어가
+   있는지 규칙으로 먼저 빠르게 확인하고(공짜·즉시), 애매하면 AI에게 "이건 어떤 종류 질문이야?"를 물어
+   정함. 결과는 조문 검색(vector) 또는 관계 검색(GraphRAG) 중 하나임.  
+2. **② 실행자 (Agent)** — 길잡이가 고른 **딱 한 가지 방법**으로만 검색함. 두 방법을 동시에 돌리지 않아
+   시간·비용을 아낌. 조문 검색이면 법 조문 원문을, 관계 검색이면 개념들이 어떻게 이어지는지를 가져옴.  
+3. **③ 감독자 (Supervisor)** — 나온 답에 "근거가 충분한가?"를 따져봄. 충분하면 바로 끝내고, 부족하면
+   **반대쪽 방법**(조문 ↔ 관계)으로 **딱 한 번만** 더 검색하게 함. 이 '한 번만' 제한이 무한 반복을 막는
+   안전장치임(코드에서는 `max_reroutes=1`).  
+4. **④ 합치기 (Fuse)** — 검색을 두 번 했을 때만 동작함. 조문 근거와 관계 근거를 **하나의 답으로 합침**.
+   한 번에 끝났으면 이 단계는 건너뜀.  
 
-> 핵심 아이디어: "**한 번에 한 검색기만, 부족할 때만 보완**" — 단순·저비용을 유지하면서 답변 품질을 끌어올리는
-> SAS 패턴임. 분기는 모두 Supervisor의 `next_step` 값(`agent`/`fuse`/`end`)으로 결정됨.
+> 한마디로: "**한 번에 한 방법만, 모자랄 때만 한 번 더**" — 단순하고 저렴하게 유지하면서 답 품질을
+> 높이는 구조임.
+
+**코드로 보기** — 감독자가 다음 행동을 정하는 부분 (`mas/graph.py`)
+
+```python
+# 감독자(supervisor) 다음에, state의 next_step 값에 따라 길이 세 갈래로 갈라짐
+builder.add_conditional_edges(
+    "supervisor",
+    lambda state: state.get("next_step", "end"),
+    {"agent": "agent", "fuse": "fuse", "end": END},
+)
+```
+
+`next_step`이 `agent`면 다시 검색(② 로 되돌아감), `fuse`면 합치기(④ 로), `end`면 종료임. 그림의 세 갈래가
+이 딕셔너리 한 줄과 그대로 대응함.
 
 ### 1.2 MCP 노출 (FastMCP / Streamable HTTP)
+
+위에서 만든 검색 능력을 **다른 AI 앱이 갖다 쓸 수 있게** 창구(서버)로 열어 두는 부분임. 표준 약속(MCP)을
+따르므로, Claude Code 같은 앱이 이 서버에 질문을 보내면 답을 받아갈 수 있음.
 
 ```mermaid
 flowchart LR
     subgraph CLIENT["MCP 클라이언트"]
         APP["AI 앱 / Claude Code"]
     end
-    subgraph SERVER["patent-law-mas · FastMCP 서버"]
+    subgraph SERVER["FastMCP 서버 (patent-law-mas)"]
         direction TB
-        EP["http://host:8010/mcp<br/>(Streamable HTTP)"]
-        CORE["PatentLawMAS (SAS 워크플로)"]
+        EP["http://host:8010/mcp"]
+        CORE["PatentLawMAS<br/>(SAS 워크플로)"]
         EP --> CORE
     end
-    APP -->|"tools/call ask_patent_law<br/>resources/read patent://kg/*<br/>prompts/get patent_law_advice"| EP
+    APP -->|"ask_patent_law 등<br/>tools / resources / prompts"| EP
     CORE --> VDB[("ChromaDB patent_law<br/>조문 245청크<br/>OpenAI 1536차원")]
-    CORE --> KG[("MS GraphRAG<br/>엔티티 1,122 / 관계 1,242<br/>Parquet + LanceDB")]
+    CORE --> KG[("MS GraphRAG<br/>엔티티 1,122 · 관계 1,242<br/>Parquet + LanceDB")]
 ```
+
+**용어 풀이**
+
+| 그림 속 용어 | 쉬운 뜻 |
+|------|------|
+| **MCP** | AI 앱과 도구(서버)가 주고받는 대화 표준 약속 (USB처럼 꽂으면 통함) |
+| **MCP 클라이언트 / 서버** | 요청하는 쪽(앱) / 응답하는 쪽(이 프로젝트) |
+| **FastMCP** | 그 약속에 맞는 서버를 쉽게 만드는 라이브러리 |
+| **Streamable HTTP** | 앱과 서버가 인터넷 주소로 연결돼 통신하는 방식 |
+| **Tool / Resource / Prompt** | MCP가 주는 3종류 — 기능 실행 / 데이터 읽기 / 프롬프트 양식 |
 
 **그림 읽는 법**
 
-- 외부의 **MCP 클라이언트**(예: Claude Code)가 `http://host:8010/mcp` 한 곳으로 표준 MCP 메시지를 보냄.
-  - `tools/call ask_patent_law` : 특허법 질문 → SAS 워크플로 실행 → 근거 기반 한국어 답변  
-  - `resources/read patent://kg/*` : 지식그래프 통계·스키마 조회  
-  - `prompts/get patent_law_advice` : 자문 작성용 프롬프트 템플릿  
-- 서버 안의 `PatentLawMAS`가 위 §1.1 워크플로를 돌리며, 실제 데이터는 **ChromaDB(조문 벡터)** 와
-  **MS GraphRAG(지식그래프)** 두 저장소에서 가져옴. 두 저장소는 선행 인덱싱으로 미리 구축돼 있음.
+- 바깥의 **AI 앱**(예: Claude Code)이 서버 주소 `http://host:8010/mcp` 한 곳으로 요청을 보냄.
+  - `ask_patent_law` (Tool) : 특허법 질문 → §1.1 워크플로 실행 → 근거 기반 한국어 답변  
+  - `patent://kg/*` (Resource) : 지식그래프 통계·구조 조회  
+  - 자문 프롬프트 (Prompt) : 자문서 작성용 양식 제공  
+- 서버 속 `PatentLawMAS`가 §1.1 흐름을 돌리고, 실제 자료는 **ChromaDB(조문)** 와 **GraphRAG(관계)** 두
+  창고에서 꺼냄. 두 창고는 미리 인덱싱으로 채워 둔 상태임.
 
 ### 1.3 기술 스택
 

@@ -58,26 +58,43 @@ korean-law MCP의 `verify_citations`는 사람이 읽는 텍스트를 반환함
 
 ### 2.1 런타임 워크플로 (LangGraph StateGraph)
 
+특허 의견서를 쓰되, **틀린 근거나 가짜 인용이 사람에게 그대로 넘어가지 않도록** 흐름 한가운데에
+검문소(게이트)를 둔 구조임. 통과하면 사람 승인 뒤 완성하고, 못 통과하면 다시 쓰거나 사람에게 넘김.
+
 ```mermaid
 flowchart TD
-    IN(["입력<br/>question + history<br/>provided_context (오케스트레이터 A·B fan-in)"]) --> GC["① gather_context<br/>주입분 있으면 그대로 사용<br/>없으면 korean-law MCP로 자체 수집"]
-    GC --> WD["② write_draft<br/>컨텍스트 종합 → 의견서 초안"]
-    WD --> GS["③ grade_support [IsSup]<br/>근거성 평가 (1콜, 정답 불필요)"]
-    GS --> VC["④ verify_citations<br/>korean-law MCP 인용 환각 탐지<br/>(조문-scoped, LLM 미사용)"]
-    VC --> GATE{"decide_gate<br/>게이트 = [IsSup]=True<br/>AND 인용 정상(✗=0)"}
-    GATE -->|"통과 (approve)"| HR
-    GATE -->|"미통과 + 재시도 여유 (rewrite)"| RW["⑤ rewrite_draft<br/>엄격 근거 기반 재작성"]
-    GATE -->|"판정 불가 / 소진 (escalate)"| ES["⑥ escalate<br/>escalated=True"]
+    IN(["입력: 질문<br/>+ provided_context<br/>(A·B fan-in)"]) --> GC["① gather_context<br/>컨텍스트 확보"]
+    GC --> WD["② write_draft<br/>의견서 초안"]
+    WD --> GS["③ grade_support<br/>[IsSup] 근거성 평가"]
+    GS --> VC["④ verify_citations<br/>인용 환각 탐지"]
+    VC --> GATE{"decide_gate<br/>IsSup AND 인용정상?"}
+    GATE -->|"통과 approve"| HR
+    GATE -->|"미통과·여유 rewrite"| RW["⑤ rewrite_draft<br/>엄격 재작성"]
+    GATE -->|"판정불가·소진 escalate"| ES["⑥ escalate"]
     RW -->|"재평가 루프"| GS
     ES --> HR
-    HR{{"⑦ human_review<br/>interrupt_before로 일시중단<br/>사람 승인 대기 (HITL)"}}
-    HR -->|"승인 (finalize)"| FIN["⑧ finalize<br/>DLP 마스킹 + 출처 + 고지문"]
-    HR -->|"반려 + 재시도 여유 (rewrite)"| RW
+    HR{{"⑦ human_review<br/>사람 승인 (HITL)"}}
+    HR -->|"승인 finalize"| FIN["⑧ finalize<br/>DLP + 출처 + 고지문"]
+    HR -->|"반려·여유 rewrite"| RW
     FIN --> OUT(["최종 의견서"])
 ```
 
 > `checkpointer = MemorySaver()` · `interrupt_before = ['human_review']` · 구조화 출력 = `json_schema`
 > · 재작성 한도 `MAX_REWRITES=2` · `RECURSION_LIMIT=50`
+
+**용어 풀이** (그림에 나오는 말)
+
+| 그림 속 용어 | 쉬운 뜻 |
+|------|------|
+| **gather_context** | 의견서에 쓸 자료(MAS A·B 검색 결과)를 모으는 단계 |
+| **write_draft** | 모은 자료로 의견서 초안을 쓰는 단계 |
+| **grade_support [IsSup]** | 초안이 자료에 근거하는지 채점 (지어낸 내용 거르기) |
+| **verify_citations** | 본문의 법 조문 인용이 실제로 있는지 확인 (가짜 인용 차단) |
+| **decide_gate** | 통과 / 다시쓰기 / 사람에게 중 하나로 길을 정하는 '관문' |
+| **rewrite_draft** | 문제가 있으면 더 엄격하게 다시 쓰는 단계 |
+| **escalate** | 자동으로 못 고치는 문제는 사람에게 넘기기(승급) |
+| **human_review (HITL)** | 확정 전 사람이 직접 승인·반려 (HITL = Human In The Loop, '사람이 중간에 개입') |
+| **finalize / DLP** | 개인정보 가리고(DLP) 출처·고지문 붙여 최종 완성 |
 
 **그림 읽는 법 (한 단계씩)**
 
@@ -107,6 +124,21 @@ flowchart TD
 흐름 요약: `START → gather_context → write_draft → grade_support → verify_citations →`  
 `(approve→human_review / rewrite→rewrite_draft→grade_support / escalate→human_review) →`  
 `human_review →(finalize / rewrite) → finalize → END`  
+
+**코드로 보기** — 게이트가 길을 정하는 부분 (`graph/workflow.py`의 `decide_gate`)
+
+```python
+if state["gate_passed"]:                                 # 근거 OK + 인용 OK
+    return "approve"                                     # → 사람 승인 단계로
+if state["citation_report"].get("ok") is None:           # 인용 검증 자체가 불가(서비스 문제)
+    return "escalate"                                    # → 다시 써도 못 고침, 사람에게
+if state.get("retry_count", 0) < settings.MAX_REWRITES:  # 재시도 여유가 있으면
+    return "rewrite"                                     # → 다시 쓰기
+return "escalate"                                        # 횟수 소진 → 사람에게
+```
+
+자동 검증으로 거를 수 있는 건 거르고, **자동으로 못 고치는 것(서비스 장애·반복 실패)은 사람에게 넘기는**
+판단이 이 한 함수에 모여 있음.
 
 ---
 
