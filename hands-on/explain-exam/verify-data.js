@@ -12,6 +12,8 @@
  *        - 0개 매칭(앵커 오타) 또는 2개 이상 매칭(모호함) → 오류
  *        - 이 검사가 "줄 번호 어긋남" 버그를 원천 차단함
  *   5) flow[] 각 항목에 step/title/summary/detail 존재
+ *   6) flow[].refs(선택 필드) 가 있으면 각 id 가 functions[].id 에 존재
+ *        - 처리 흐름↔함수 바로가기 링크의 무결성 보장(없으면 통과 = 하위호환)
  */
 "use strict";
 
@@ -69,10 +71,11 @@ var glossKeys = D.glossary || {};
 });
 
 // 2~4) functions
-var annTotal = 0, fileUsed = {};
+var annTotal = 0, fileUsed = {}, fnIds = {};
 (D.functions || []).forEach(function (fn, i) {
   var tag = "functions[" + i + "]" + (fn.id ? "(" + fn.id + ")" : "");
   if (!fn.id) err(tag + ".id 누락");
+  else fnIds[fn.id] = true;
   if (!fn.name) err(tag + ".name 누락");
   if (!fn.code) err(tag + ".code 누락");
   if (!fn.summary) warn(tag + ".summary 누락(권장)");
@@ -100,6 +103,15 @@ var annTotal = 0, fileUsed = {};
     }
     if (hits.length === 0) err(loc + " 앵커 '" + a.at + "' 가 code 에서 발견되지 않음(오타 의심)");
     else if (hits.length > 1) err(loc + " 앵커 '" + a.at + "' 가 여러 줄(" + hits.join(",") + ")에 매칭됨(더 구체적으로)");
+  });
+});
+
+// 6) flow[].refs (선택 필드) — 있으면 각 id 가 functions[].id 에 존재해야 함(없으면 통과 = 하위호환)
+(D.flow || []).forEach(function (s, i) {
+  if (s.refs === undefined || s.refs === null) return;
+  if (!Array.isArray(s.refs)) { err("flow[" + i + "].refs 는 배열이어야 함"); return; }
+  s.refs.forEach(function (rid) {
+    if (!fnIds[rid]) err("flow[" + i + "].refs 의 '" + rid + "' 가 functions[].id 에 없음");
   });
 });
 

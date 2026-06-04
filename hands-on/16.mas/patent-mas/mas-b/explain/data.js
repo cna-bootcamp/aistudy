@@ -156,7 +156,254 @@ class AgentState(TypedDict):
     rewrites: list              # Query Rewriting 이력 [{from, to, reasoning}]`,
     },
 
+    {
+      id: "state_schemas",
+      name: "RelevanceGrade · BatchRelevanceGrade · RewrittenQuery",
+      fileId: "state",
+      summary: "관련성(IsRel) 항목별·일괄 평가 스키마와, 질문 재작성(Query Rewriting) 결과 스키마 정의",
+      how: "selfrag_schemas가 다루지 않은 나머지 판단 스키마들입니다. RelevanceGrade는 항목 한 건의 관련성을 '몇 번 항목인가(인덱스)+관련 있나(참/거짓)'로 담고, BatchRelevanceGrade는 그 결과를 리스트로 묶어 한 번의 LLM 호출로 여러 항목을 일괄 평가하게 합니다(비용 절감). RewrittenQuery는 유용성 미달 시 LLM이 더 검색하기 좋게 고쳐 쓴 질문과 그 이유를 담습니다. 모두 Pydantic 스키마라 LLM이 정해진 칸을 채워 돌려줘 코드가 안정적으로 읽습니다.",
+      terms: ["IsRel", "Pydantic", "구조화 출력(structured output)", "인덱스(index)", "Query Rewriting", "Self-RAG"],
+      lines: [
+        { at: "class RelevanceGrade(BaseModel):", text: "[IsRel] 검색 항목 한 건의 관련성 평가 스키마입니다." },
+        { at: "document_index: int = Field(description=\"평가 대상 항목의 인덱스", text: "어느 항목을 평가했는지 인덱스(0부터 시작)로 가리킵니다." },
+        { at: "class BatchRelevanceGrade(BaseModel):", text: "여러 항목의 관련성을 한 번의 LLM 호출로 일괄 평가하는 스키마입니다." },
+        { at: "results: list[RelevanceGrade] = Field(", text: "각 항목의 관련성 결과를 리스트로 모아 담습니다." },
+        { at: "class RewrittenQuery(BaseModel):", text: "유용성 미달 시 검색 친화적으로 다시 쓴 질문을 담는 스키마입니다." },
+        { at: "rewritten_query: str = Field(description=\"검색에 최적화되도록", text: "재작성된 질문 문자열을 담습니다(다음 라우팅의 입력)." },
+      ],
+      code: `# (일부 발췌) graph/state.py — IsRel 평가 + Query Rewriting 스키마
+
+class RelevanceGrade(BaseModel):
+    """[IsRel] 검색 항목 한 건의 관련성 평가."""
+
+    document_index: int = Field(description="평가 대상 항목의 인덱스 (0부터 시작)")
+    is_relevant: bool = Field(description="해당 항목이 질문과 관련 있는지 여부")
+
+
+class BatchRelevanceGrade(BaseModel):
+    """[IsRel] 여러 항목의 관련성 일괄 평가 (1회 LLM 호출로 전체 평가)."""
+
+    results: list[RelevanceGrade] = Field(description="각 항목의 관련성 평가 결과 리스트")
+
+
+class RewrittenQuery(BaseModel):
+    """Query Rewriting 결과: 검색에 최적화되도록 다시 작성된 질문."""
+
+    rewritten_query: str = Field(description="검색에 최적화되도록 다시 작성된 질문")
+    reasoning: str = Field(description="질문을 다시 작성한 이유 (한국어 한 문장)")`,
+    },
+
     // ───────────────────────── graph/workflow.py ─────────────────────────
+    {
+      id: "init_graders",
+      name: "PatentTrendRAG.__init__()",
+      fileId: "workflow",
+      summary: "공용 LLM에 4대 판단 스키마를 입혀 라우터·관련성·근거성·유용성·재작성 전용 도구를 만들고 그래프를 컴파일",
+      how: "Self-RAG 에이전트가 처음 만들어질 때 한 번 실행됩니다. 같은 LLM 하나에 with_structured_output(method='json_schema')로 서로 다른 스키마를 입혀, 같은 모델을 '라우터·관련성 평가자·근거성 평가자·유용성 평가자·질문 재작성기'라는 5개의 전용 도구로 분화시킵니다. gpt-oss-120b는 function_calling 모드에서 도구명을 잘못 만들어 실패할 수 있어 json_schema 방식으로 안정화합니다. 마지막에 _build_graph()로 노드·엣지를 연결한 실행 그래프를 만들어 보관합니다.",
+      terms: ["Self-RAG", "구조화 출력(structured output)", "json_schema", "StateGraph", "Pydantic"],
+      lines: [
+        { at: "self.router = llm.with_structured_output(RouteDecision", text: "같은 LLM을 RouteDecision 스키마에 묶어 '라우터' 전용으로 만듭니다." },
+        { at: "self.relevance_grader = llm.with_structured_output(BatchRelevanceGrade", text: "관련성(IsRel) 일괄 평가 전용 도구를 만듭니다." },
+        { at: "self.support_grader = llm.with_structured_output(SupportGrade", text: "근거성(IsSup) 평가 전용 도구를 만듭니다." },
+        { at: "self.usefulness_grader = llm.with_structured_output(UsefulnessGrade", text: "유용성(IsUse) 평가 전용 도구를 만듭니다." },
+        { at: "self.query_rewriter = llm.with_structured_output(RewrittenQuery", text: "질문 재작성(Query Rewriting) 전용 도구를 만듭니다." },
+        { at: "self.graph = self._build_graph()", text: "노드·엣지를 연결한 실행 가능한 그래프를 만들어 보관합니다." },
+      ],
+      code: `# (일부 발췌)
+    def __init__(self, llm: ChatGroq):
+        self.llm = llm
+        # with_structured_output(method='json_schema'): LLM 응답을 Pydantic 스키마(JSON)로 강제함.
+        # gpt-oss-120b는 function_calling 모드에서 도구명을 잘못 생성해 실패할 수 있어 json_schema로 안정화함.
+        self.router = llm.with_structured_output(RouteDecision, method="json_schema")
+        self.relevance_grader = llm.with_structured_output(BatchRelevanceGrade, method="json_schema")
+        self.support_grader = llm.with_structured_output(SupportGrade, method="json_schema")
+        self.usefulness_grader = llm.with_structured_output(UsefulnessGrade, method="json_schema")
+        self.query_rewriter = llm.with_structured_output(RewrittenQuery, method="json_schema")
+        self.graph = self._build_graph()`,
+    },
+    {
+      id: "build_llm_helpers",
+      name: "build_llm() · format_history()",
+      fileId: "workflow",
+      summary: "Groq gpt-oss-120b 공용 인스턴스 생성(추론 숨김·온도0·재시도)과, 직전 대화를 프롬프트용 텍스트로 변환",
+      how: "그래프가 쓰는 두 가지 준비 도구입니다. build_llm()은 라우팅·평가·생성에 공용으로 쓸 Groq LLM 하나를 만듭니다 — 추론 과정은 숨기고(reasoning_format='hidden') 최종 텍스트만 받으며, 구조화 판단을 재현 가능하게 온도를 0으로 고정하고, 일시적 오류(429/503)에 지수 백오프로 재시도해 그래프 전체가 죽지 않게 합니다. format_history()는 이전 대화 메시지를 '사용자:/어시스턴트:' 형태의 텍스트로 바꿔 멀티턴 맥락을 프롬프트에 넣어 줍니다(최근 N개만 써 토큰을 아낌).",
+      terms: ["지수 백오프(exponential backoff)", "재시도(retry)", "재현성", "멀티턴(multi-turn)", "환경변수(environment variable)"],
+      lines: [
+        { at: "def build_llm() -> ChatGroq:", text: "라우팅·평가·생성에 공용으로 쓸 Groq LLM을 만드는 함수입니다." },
+        { at: "api_key = settings.require_env(\"GROQ_API_KEY\")", text: "필수 환경변수에서 Groq API 키를 읽습니다(없으면 즉시 오류)." },
+        { at: "max_retries=settings.LLM_MAX_RETRIES,", text: "일시적 오류(429/503)에 지수 백오프로 재시도해 그래프가 죽지 않게 합니다." },
+        { at: "def format_history(history: list) -> str:", text: "직전 대화를 프롬프트용 텍스트로 바꾸는 함수입니다(멀티턴 맥락)." },
+        { at: "recent = history[-settings.HISTORY_TURNS:]", text: "최근 N개 메시지만 사용해 토큰·비용을 제한합니다." },
+        { at: "speaker = \"사용자\" if message[\"role\"] == \"user\" else \"어시스턴트\"", text: "각 메시지의 화자를 '사용자/어시스턴트'로 표기합니다." },
+      ],
+      code: `def build_llm() -> ChatGroq:
+    """Groq LPU의 gpt-oss-120b 인스턴스를 생성함 (라우팅·평가·생성 공용).
+
+    reasoning_format='hidden'으로 추론 과정을 숨기고 최종 텍스트만 받음(MUST).
+    스모크 테스트로 with_structured_output(method='json_schema')와 공존 가능함을 확인함.
+    temperature=0으로 구조화 판단을 재현 가능하게 함.
+    """
+    api_key = settings.require_env("GROQ_API_KEY")
+    return ChatGroq(
+        model=settings.LLM_MODEL,
+        temperature=settings.LLM_TEMPERATURE,
+        reasoning_format=settings.LLM_REASONING_FORMAT,
+        api_key=api_key,
+        # 일시적 오류(429/503 over capacity)에 지수 백오프로 재시도해 그래프 전체가 죽지 않게 함
+        max_retries=settings.LLM_MAX_RETRIES,
+    )
+
+
+def format_history(history: list) -> str:
+    """직전 대화 메시지를 프롬프트용 텍스트로 변환함 (멀티턴 맥락 제공)."""
+    if not history:
+        return "(이전 대화 없음)"
+    recent = history[-settings.HISTORY_TURNS:]  # 최근 N개 메시지만 사용해 토큰·비용 제한
+    lines = []
+    for message in recent:
+        speaker = "사용자" if message["role"] == "user" else "어시스턴트"
+        lines.append(f"{speaker}: {message['content']}")
+    return "\\n".join(lines)`,
+    },
+    {
+      id: "build_retrieved_items",
+      name: "build_retrieved_items()",
+      fileId: "workflow",
+      summary: "law/web/youtube 검색 결과를 {source,title,content,citation} 통합 항목으로 변환 — 출처를 코드가 직접 구성(인용 환각 방지)",
+      how: "세 소스의 제각각인 결과를 하나의 공통 형태로 합치는 변환기입니다. 판례·해석례·법령조문·종합검색·웹·YouTube 자막청크를 차례로 돌며, 각각 {source, title, content(답변 생성용 본문), citation(출처 한 줄)} 형태의 항목으로 만듭니다. 핵심은 citation(출처 링크·사건번호·타임스탬프)을 LLM이 아니라 코드가 직접 조립한다는 점입니다 — LLM이 인용을 지어내는 환각을 원천 차단합니다. 자막이 있는 영상은 청크로, 자막이 없는 영상은 설명으로 보강합니다(중복 영상은 제외).",
+      terms: ["인용 환각 방지", "마크다운(markdown)", "타임스탬프 URL", "graceful degradation"],
+      lines: [
+        { at: "# 1) 판례 (사건번호·선고일·링크가 핵심 출처)", text: "판례를 통합 항목으로 변환합니다(사건번호·링크가 출처 핵심)." },
+        { at: "# 3) 최신 법령 조문 본문", text: "특정 법령명이 드러난 질문에서만 수집된 최신 조문 본문을 항목으로 만듭니다." },
+        { at: "# 4) 종합검색(chain_full_research)", text: "폭넓은 질문·폴백에서 모은 종합검색 결과를 항목으로 추가합니다." },
+        { at: "# 5) 웹 (뉴스·시장 동향)", text: "DuckDuckGo 웹 결과를 제목·요약·링크 항목으로 변환합니다." },
+        { at: "# 6) YouTube — 자막 청크 우선", text: "YouTube는 자막 청크를 우선 항목화하고, 자막 없는 영상은 설명으로 보강합니다." },
+        { at: "if video[\"video_id\"] in chunk_video_ids:", text: "이미 자막 청크로 들어간 영상은 중복 추가하지 않습니다." },
+      ],
+      code: `# (일부 발췌)
+def build_retrieved_items(state: AgentState) -> list[dict]:
+    """law/web/youtube 검색 결과를 IsRel 평가·컨텍스트·출처 구성에 쓸 통합 항목으로 변환함.
+
+    각 항목: {source, title, content, citation}
+      - content : 답변 생성용 본문 (LLM 컨텍스트)
+      - citation: '출처' 섹션용 마크다운 한 줄 (코드에서 직접 구성 → 인용 환각 방지, MUST)
+    """
+    items: list[dict] = []
+    law = state.get("law_raw") or {}
+
+    # 1) 판례 (사건번호·선고일·링크가 핵심 출처)
+    for precedent in law.get("precedents", []):
+        if precedent["url"]:
+            citation = (f"- [{precedent['title']}]({precedent['url']}) "
+                        f"(사건번호 {precedent['case_number'] or 'N/A'}, 선고일 {precedent['date'] or 'N/A'})")
+        else:
+            citation = f"- {precedent['summary']}"
+        items.append({"source": "판례", "title": precedent["title"],
+                      "content": precedent["summary"], "citation": citation})
+
+    # 3) 최신 법령 조문 본문 (특정 법령명이 드러난 질문에서만 수집됨)
+    for law_text in law.get("law_texts", []):
+        items.append({
+            "source": "법령",
+            "title": law_text["name"],
+            "content": law_text["text"][:LAW_TEXT_MAX_CHARS],
+            "citation": f"- {law_text['name']} (최신 조문, 출처: 법제처 국가법령정보센터)",
+        })
+
+    # 4) 종합검색(chain_full_research) — 폭넓은 질문/폴백에서 수집된 종합 결과
+    if law.get("chain_research"):
+        items.append({
+            "source": "종합검색",
+            "title": "법제처 종합검색 결과",
+            "content": law["chain_research"][:CHAIN_RESEARCH_MAX_CHARS],
+            "citation": "- 법제처 종합검색 (korean-law MCP chain_full_research)",
+        })
+
+    # 5) 웹 (뉴스·시장 동향)
+    for web in state.get("web_results", []):
+        citation = f"- [{web['title']}]({web['link']})" if web["link"] else f"- {web['title']}"
+        items.append({"source": "웹", "title": web["title"],
+                      "content": web["snippet"], "citation": citation})
+
+    # 6) YouTube — 자막 청크 우선, 자막 없는 영상은 설명(description)으로 보강(graceful)
+    chunk_video_ids = set()
+    for chunk in state.get("youtube_chunks", []):
+        chunk_video_ids.add(chunk["video_id"])
+        items.append({
+            "source": "YouTube",
+            "title": chunk["title"],
+            "content": chunk["text"],
+            "citation": f"- [{chunk['title']}]({chunk['timestamp_url']}) @ {chunk['timestamp_display']}",
+        })
+    for video in state.get("youtube_videos", []):
+        if video["video_id"] in chunk_video_ids:
+            continue  # 이미 자막 청크로 포함된 영상은 중복 추가하지 않음
+
+    return items`,
+    },
+    {
+      id: "build_context",
+      name: "build_context()",
+      fileId: "workflow",
+      summary: "관련 항목들을 소스별로 묶어 답변 생성용 단일 컨텍스트 문자열로 합침",
+      how: "관련성 평가를 통과한 항목들을 LLM에 넣기 좋은 하나의 긴 글로 합칩니다. 같은 소스(판례/웹/YouTube 등)끼리 묶고, 각 소스 안에서 '=== 판례 ===' 같은 머리글과 번호를 붙여 LLM이 어떤 출처의 내용인지 구분하게 합니다. 등장 순서는 그대로 보존합니다. 항목이 하나도 없으면 '(검색 결과 없음)'을 돌려줍니다. 이렇게 정리된 컨텍스트가 답변 생성의 근거가 됩니다.",
+      terms: ["컨텍스트(context)", "Self-RAG"],
+      lines: [
+        { at: "def build_context(items: list[dict]) -> str:", text: "관련 항목들을 답변 생성용 단일 컨텍스트로 합치는 함수입니다." },
+        { at: "return \"(검색 결과 없음)\"", text: "항목이 하나도 없으면 '(검색 결과 없음)'을 돌려줍니다." },
+        { at: "grouped.setdefault(item[\"source\"], []).append(item)", text: "같은 소스끼리 묶습니다(등장 순서 보존)." },
+        { at: "lines = [f\"=== {source} ===\"]", text: "각 소스 블록 앞에 '=== 소스명 ===' 머리글을 답니다." },
+        { at: "return \"\\n\\n\".join(blocks)", text: "소스별 블록을 빈 줄로 이어 하나의 컨텍스트 문자열로 만듭니다." },
+      ],
+      code: `def build_context(items: list[dict]) -> str:
+    """관련 항목을 소스별로 묶어 답변 생성용 단일 컨텍스트 문자열로 합침."""
+    if not items:
+        return "(검색 결과 없음)"
+    # 소스별 그룹화 (등장 순서 보존)
+    grouped: dict[str, list[dict]] = {}
+    for item in items:
+        grouped.setdefault(item["source"], []).append(item)
+
+    blocks = []
+    for source, group in grouped.items():
+        lines = [f"=== {source} ==="]
+        for index, item in enumerate(group, 1):
+            lines.append(f"[{source} {index}] {item['title']}\\n{item['content']}")
+        blocks.append("\\n\\n".join(lines))
+    return "\\n\\n".join(blocks)`,
+    },
+    {
+      id: "build_sources_section",
+      name: "build_sources_section()",
+      fileId: "workflow",
+      summary: "관련 항목의 citation을 소스별로 묶어 '출처' 섹션을 코드가 직접 구성(인용 환각 방지)",
+      how: "답변 끝에 붙는 '## 출처' 섹션을 코드가 직접 조립합니다. 각 항목이 이미 들고 있는 citation(링크·사건번호·타임스탬프)을 소스별로 묶고, 같은 출처가 중복되면 순서를 보존하며 한 번만 남깁니다. 출처를 LLM이 아니라 코드가 붙이는 이유는, LLM이 그럴듯한 가짜 URL·사건번호를 지어내는 인용 환각을 막기 위함입니다. 결과 문자열은 generate 노드가 답변 본문 뒤에 이어 붙입니다.",
+      terms: ["인용 환각 방지", "마크다운(markdown)", "컨텍스트(context)"],
+      lines: [
+        { at: "def build_sources_section(items: list[dict]) -> str:", text: "항목들의 출처를 모아 '출처' 섹션 문자열을 만드는 함수입니다." },
+        { at: "grouped.setdefault(item[\"source\"], []).append(item[\"citation\"])", text: "각 항목의 citation을 소스별로 묶어 모읍니다." },
+        { at: "unique = list(dict.fromkeys(citations))", text: "같은 출처가 중복되면 순서를 보존하며 한 번만 남깁니다." },
+        { at: "blocks.append(f\"**{source}**\\n\"", text: "소스명을 굵게 표시하고 그 아래 출처 줄들을 붙입니다." },
+        { at: "return \"## 출처\\n\"", text: "맨 앞에 '## 출처' 제목을 달아 최종 섹션 문자열을 반환합니다." },
+      ],
+      code: `def build_sources_section(items: list[dict]) -> str:
+    """관련 항목의 citation을 소스별로 묶어 '출처' 섹션을 코드에서 직접 구성함(인용 환각 방지)."""
+    if not items:
+        return ""
+    grouped: dict[str, list[str]] = {}
+    for item in items:
+        if item["citation"]:
+            grouped.setdefault(item["source"], []).append(item["citation"])
+
+    blocks = []
+    for source, citations in grouped.items():
+        # 같은 출처가 중복되면 순서를 보존하며 한 번만 남김
+        unique = list(dict.fromkeys(citations))
+        blocks.append(f"**{source}**\\n" + "\\n".join(unique))
+    if not blocks:
+        return ""
+    return "## 출처\\n" + "\\n\\n".join(blocks)`,
+    },
     {
       id: "route",
       name: "route()",
@@ -342,6 +589,322 @@ class AgentState(TypedDict):
         full_answer = f"{answer}\\n\\n{sources_section}".strip() if sources_section else answer
         return {"answer": full_answer, "is_supported": is_supported}`,
     },
+    {
+      id: "generate_answer",
+      name: "_generate_answer()",
+      fileId: "workflow",
+      summary: "검색 컨텍스트와 대화 맥락을 근거로 답변 본문을 생성 — strict=True면 컨텍스트에 있는 내용만 쓰도록 강제",
+      how: "generate 노드가 답변 초안과 엄격 재생성에 공통으로 쓰는 생성 헬퍼입니다. 시스템 프롬프트로 '특허 선행기술·동향 전문 AI' 역할과 규칙(판례 흐름 정리·임의 시점 금지·출처는 직접 쓰지 말 것)을 주고, 이전 대화 맥락과 검색 컨텍스트를 끼워 LLM을 호출합니다. strict=True면 '컨텍스트에 있는 정보만 쓰고, 없으면 확인되지 않음이라고 명시하라'는 엄격 규칙을 덧붙여 환각을 줄입니다. 출처는 본문에 쓰지 못하게 막고 시스템(코드)이 따로 붙입니다.",
+      terms: ["컨텍스트(context)", "환각(hallucination)", "ChatPromptTemplate", "멀티턴(multi-turn)", "타임스탬프 URL"],
+      lines: [
+        { at: "def _generate_answer(self, state: AgentState, context: str, strict: bool) -> str:", text: "컨텍스트·대화 맥락을 근거로 답변 본문을 만드는 헬퍼입니다." },
+        { at: "strict_rule = (", text: "strict=True일 때 덧붙일 '엄격한 근거 기반' 규칙 문구를 준비합니다." },
+        { at: "if strict else \"\"", text: "strict=False면 엄격 규칙을 비워 일반 모드로 생성합니다." },
+        { at: "만들어내지 마세요. 구체적 시점은 시스템이 출처 섹션의 타임스탬프 URL로 제공합니다.", text: "영상의 임의 시점(분:초)을 지어내지 말도록 막습니다(시점은 코드가 붙임)." },
+        { at: "\"question\": state[\"original_question\"],", text: "답변은 재작성본이 아니라 최초 질문(original_question)에 답하게 합니다." },
+      ],
+      code: `# (일부 발췌)
+    def _generate_answer(self, state: AgentState, context: str, strict: bool) -> str:
+        """검색 컨텍스트와 대화 맥락을 근거로 답변 본문을 생성함 (strict=True면 컨텍스트만 사용)."""
+        strict_rule = (
+            "\\n## 중요: 엄격한 근거 기반 답변\\n- 반드시 아래 컨텍스트에 있는 정보만 사용하세요.\\n"
+            "- 컨텍스트에 없는 내용은 추가하지 말고 '확인되지 않음'이라고 명시하세요."
+            if strict else ""
+        )
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """당신은 특허 선행기술·동향 리서치 전문 AI입니다.
+
+## 규칙
+1. 컨텍스트의 정보를 우선 활용하되, 핵심을 요약해 명확히 전달
+2. 판례는 어떤 사건이 있는지, 최근 흐름이 어떤지 정리 (사건번호·선고일이 있으면 자연스럽게 언급)
+3. 영상은 어떤 영상이 도움이 되는지 안내하되, 컨텍스트에 명시되지 않은 임의의 시점(분:초)을
+   만들어내지 마세요. 구체적 시점은 시스템이 출처 섹션의 타임스탬프 URL로 제공합니다.
+4. '출처' 섹션은 시스템이 자동으로 덧붙이므로 답변 본문에 직접 작성하지 마세요{strict_rule}
+
+## 이전 대화 맥락
+{history}
+
+## 검색 컨텍스트
+{context}"""),
+            ("human", "{question}"),
+        ])
+        return (prompt | self.llm | StrOutputParser()).invoke({
+            "history": format_history(state.get("history", [])),
+            "context": context,
+            "question": state["original_question"],
+            "strict_rule": strict_rule,
+        })`,
+    },
+    {
+      id: "grade_support",
+      name: "_grade_support()",
+      fileId: "workflow",
+      summary: "[IsSup] 생성된 답변이 검색 컨텍스트에 근거하는지(환각이 없는지)를 LLM으로 검증",
+      how: "Self-RAG의 근거성(IsSup) 검사를 실제로 수행하는 헬퍼입니다. '답변의 주요 주장이 컨텍스트에서 직접 확인되는가?'를 LLM에게 묻고, 컨텍스트에 없는 내용을 추가·왜곡했으면 근거 없음(False)으로 판정하게 합니다. 결과는 SupportGrade 스키마(근거 있음 여부+이유)로 받아 generate 노드가 엄격 재생성 여부를 결정하는 근거로 씁니다.",
+      terms: ["IsSup", "Self-RAG", "환각(hallucination)", "컨텍스트(context)", "ChatPromptTemplate", "구조화 출력(structured output)"],
+      lines: [
+        { at: "def _grade_support(self, answer: str, context: str) -> SupportGrade:", text: "답변이 컨텍스트에 근거하는지 검증하는 [IsSup] 헬퍼입니다." },
+        { at: "답변의 주요 주장과 정보가 컨텍스트에서 직접 확인 가능해야 근거 있음(True)입니다.", text: "주요 주장이 컨텍스트에서 직접 확인돼야 '근거 있음'으로 판정합니다." },
+        { at: "컨텍스트에 없는 정보를 추가하거나 왜곡했으면 근거 없음(False)으로 판단합니다.", text: "없는 정보를 더하거나 왜곡하면 '근거 없음'으로 판정합니다(환각 탐지)." },
+        { at: "return (prompt | self.support_grader).invoke({\"context\": context, \"answer\": answer})", text: "근거성 평가 전용 LLM으로 호출해 SupportGrade 결과를 받습니다." },
+      ],
+      code: `# (일부 발췌)
+    def _grade_support(self, answer: str, context: str) -> SupportGrade:
+        """[IsSup]: 생성된 답변이 검색 컨텍스트에 근거하는지(환각이 없는지) 검증함."""
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """당신은 생성된 답변이 제공된 컨텍스트에 근거하는지 평가하는 전문가입니다.
+
+답변의 주요 주장과 정보가 컨텍스트에서 직접 확인 가능해야 근거 있음(True)입니다.
+컨텍스트에 없는 정보를 추가하거나 왜곡했으면 근거 없음(False)으로 판단합니다.
+판단 이유(reasoning)는 한국어로 작성하세요."""),
+            ("human", "컨텍스트:\\n{context}\\n\\n생성된 답변:\\n{answer}\\n\\n이 답변이 컨텍스트에 근거하고 있나요?"),
+        ])
+        return (prompt | self.support_grader).invoke({"context": context, "answer": answer})`,
+    },
+    {
+      id: "grade_generation",
+      name: "grade_generation()",
+      fileId: "workflow",
+      summary: "[IsUse] 유용성 평가 노드 — 최종 답변이 사용자 질문에 유용한지 LLM이 평가(재검색 루프의 분기 기준)",
+      how: "Self-RAG의 마지막 평가 단계(IsUse)입니다. '이 답변이 질문에 직접 답하고, 명확하며, 실질적으로 도움이 되는가?'를 LLM에게 묻습니다. 질문을 회피하거나 모호하거나 너무 일반적이면 '유용하지 않음(False)'으로 판정합니다. 평가의 기준은 재작성본이 아니라 최초 질문(original_question)입니다. 이 결과(is_useful)가 바로 다음 분기에서 '종료할지 vs 질문을 다시 써 재검색할지'를 가릅니다.",
+      terms: ["IsUse", "Self-RAG", "노드(node)", "ChatPromptTemplate", "구조화 출력(structured output)", "Query Rewriting"],
+      lines: [
+        { at: "def grade_generation(self, state: AgentState) -> dict:", text: "최종 답변의 유용성을 평가하는 [IsUse] 노드입니다." },
+        { at: "[유용함 = True] 질문에 직접 답하고, 내용이 명확하며 실질적으로 도움이 됨", text: "질문에 직접 답하고 명확·유익하면 '유용함'으로 봅니다." },
+        { at: "[유용하지 않음 = False] 질문을 회피·모호하게 답하거나", text: "회피·모호·일반적이면 '유용하지 않음'으로 판정합니다(재검색 트리거)." },
+        { at: "\"question\": state[\"original_question\"],", text: "재작성본이 아니라 최초 질문을 기준으로 유용성을 따집니다." },
+        { at: "return {\"is_useful\": grade.is_useful, \"usefulness_reasoning\": grade.reasoning}", text: "유용성 결과와 이유를 상태에 담아 분기 엣지로 넘깁니다." },
+      ],
+      code: `# (일부 발췌)
+    def grade_generation(self, state: AgentState) -> dict:
+        """[IsUse] 노드: 최종 답변이 사용자 질문에 유용한지 평가함 (재검색 루프의 분기 기준)."""
+        print("\\n[IsUse] 답변 유용성 평가 중...")
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """당신은 생성된 답변이 사용자 질문에 유용한지 평가하는 전문가입니다.
+
+[유용함 = True] 질문에 직접 답하고, 내용이 명확하며 실질적으로 도움이 됨
+[유용하지 않음 = False] 질문을 회피·모호하게 답하거나, 관련 없는 정보만 나열하거나, 너무 일반적임
+
+판단 이유(reasoning)는 한국어로 작성하세요."""),
+            ("human", "질문: {question}\\n\\n답변:\\n{answer}\\n\\n이 답변이 질문에 유용하게 답하고 있나요?"),
+        ])
+        grade: UsefulnessGrade = (prompt | self.usefulness_grader).invoke({
+            "question": state["original_question"],
+            "answer": state["answer"],
+        })
+        print(f"  → 유용함: {grade.is_useful} ({grade.reasoning})")
+        return {"is_useful": grade.is_useful, "usefulness_reasoning": grade.reasoning}`,
+    },
+    {
+      id: "rewrite",
+      name: "rewrite()",
+      fileId: "workflow",
+      summary: "Query Rewriting 노드 — 유용성 미달 시 더 나은 검색을 위해 질문을 전문 용어로 다시 작성하고 재시도 횟수를 올림",
+      how: "유용성(IsUse) 미달로 판정되면 실행되는 노드입니다. '원래 질문으로는 좋은 답을 못 만들었으니, 더 잘 검색되게 질문을 고쳐 써라'고 LLM에 요청합니다. 모호한 표현을 구체적 특허·판례 용어로, 구어체를 문어체로 바꾸고 핵심 키워드를 명확히 넣습니다. 새 질문은 다음 라우팅의 입력이 되고, retry_count를 1 올려 무한 루프를 막는 가드의 카운터로 씁니다. 재작성 이력(rewrites)도 남겨 요약에서 추적할 수 있게 합니다.",
+      terms: ["Query Rewriting", "노드(node)", "Self-RAG", "재시도(retry)", "ChatPromptTemplate"],
+      lines: [
+        { at: "def rewrite(self, state: AgentState) -> dict:", text: "유용성 미달 시 질문을 다시 쓰는 Query Rewriting 노드입니다." },
+        { at: "1. 모호한 표현을 구체적인 특허/판례 용어로 변환", text: "모호한 표현을 구체적 특허·판례 용어로 바꿉니다." },
+        { at: "rewritten: RewrittenQuery = (prompt | self.query_rewriter).invoke({", text: "재작성 전용 LLM으로 호출해 다시 쓴 질문을 받습니다." },
+        { at: "\"question\": rewritten.rewritten_query,", text: "다음 라우팅의 입력이 될 새 질문으로 교체합니다." },
+        { at: "\"retry_count\": state[\"retry_count\"] + 1,", text: "재시도 횟수를 1 올립니다(무한 루프 방지 가드의 카운터)." },
+        { at: "\"rewrites\": state[\"rewrites\"] + [{", text: "어떤 질문을 어떻게 고쳤는지 재작성 이력을 누적합니다." },
+      ],
+      code: `# (일부 발췌)
+    def rewrite(self, state: AgentState) -> dict:
+        """Query Rewriting 노드: 유용성 미달 시 더 나은 검색을 위해 질문을 재작성함."""
+        print("\\n[Query Rewriting] 유용성 미달 → 질문 재작성 중...")
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """당신은 검색 쿼리를 최적화하는 전문가입니다.
+
+원래 질문으로 시도했으나 유용한 답변을 생성하지 못했습니다. 더 나은 검색을 위해 질문을 다시 작성하세요.
+
+## 재작성 전략
+1. 모호한 표현을 구체적인 특허/판례 용어로 변환
+2. 구어체를 문어체/전문 용어로 변환
+3. 선행기술·판례·동향 검색에 적합한 핵심 키워드를 명확히 포함
+
+재작성 이유(reasoning)는 한국어로 작성하세요."""),
+            ("human", """원래 질문: {original_question}
+
+이전 답변(유용하지 않음): {failed_answer}
+
+유용하지 않은 이유: {failure_reason}
+
+더 나은 검색 결과를 위해 질문을 다시 작성해 주세요."""),
+        ])
+        rewritten: RewrittenQuery = (prompt | self.query_rewriter).invoke({
+            "original_question": state["original_question"],
+            "failed_answer": state["answer"],
+            "failure_reason": state.get("usefulness_reasoning", ""),
+        })
+        print(f"  → 재작성 질문: {rewritten.rewritten_query}")
+        return {
+            "question": rewritten.rewritten_query,
+            "retry_count": state["retry_count"] + 1,
+            "rewrites": state["rewrites"] + [{
+                "from": state["question"],
+                "to": rewritten.rewritten_query,
+                "reasoning": rewritten.reasoning,
+            }],
+        }`,
+    },
+    {
+      id: "direct_answer",
+      name: "direct_answer()",
+      fileId: "workflow",
+      summary: "직접 답변 노드 — 특허 외 질문·인사 등 검색 불필요 질문은 외부 검색 없이 LLM 지식·대화 맥락으로 바로 답변",
+      how: "라우터가 '검색 불필요'로 판정한 질문(인사·잡담·특허 무관 주제)을 처리하는 우회로 노드입니다. 외부 검색을 건너뛰고 LLM이 가진 지식과 이전 대화 맥락만으로 친절하게 답합니다. 특허·지식재산권과 무관하면 일반 지식으로 간단히 답하되 필요하면 특허 질문을 안내합니다. 불필요한 검색 비용·지연을 줄이는 단계로, 답변 뒤 곧장 그래프를 종료합니다.",
+      terms: ["노드(node)", "Self-RAG", "ChatPromptTemplate", "멀티턴(multi-turn)", "컨텍스트(context)"],
+      lines: [
+        { at: "def direct_answer(self, state: AgentState) -> dict:", text: "검색 없이 LLM 지식으로 바로 답하는 직접 답변 노드입니다." },
+        { at: "다만 이번 질문은 검색이 필요 없는 질문입니다.", text: "이 노드는 라우터가 '검색 불필요'로 본 질문만 들어옵니다." },
+        { at: "특허/지식재산권과 무관한 주제라면 일반 지식으로 간단히 답하되", text: "특허와 무관하면 일반 지식으로 간단히 답합니다." },
+        { at: "answer = (prompt | self.llm | StrOutputParser()).invoke({", text: "구조화 없이 일반 LLM 체인으로 답변 텍스트를 생성합니다." },
+        { at: "return {\"answer\": answer}", text: "생성한 답변만 상태에 담고 곧장 종료로 향합니다." },
+      ],
+      code: `# (일부 발췌)
+    def direct_answer(self, state: AgentState) -> dict:
+        """직접 답변 노드: 특허 외 질문·인사 등은 검색 없이 LLM 지식과 대화 맥락으로 답변함."""
+        print("\\n[Direct] 검색 불필요 → LLM 지식으로 직접 답변 중...")
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """당신은 특허 선행기술·동향 리서치 챗봇입니다. 다만 이번 질문은 검색이 필요 없는 질문입니다.
+
+이전 대화 맥락을 고려해 친절하고 정확하게 답변하세요.
+특허/지식재산권과 무관한 주제라면 일반 지식으로 간단히 답하되, 필요하면 특허 관련 질문을 안내해도 좋습니다.
+
+## 이전 대화 맥락
+{history}"""),
+            ("human", "{question}"),
+        ])
+        answer = (prompt | self.llm | StrOutputParser()).invoke({
+            "history": format_history(state.get("history", [])),
+            "question": state["question"],
+        })
+        return {"answer": answer}`,
+    },
+    {
+      id: "decide_edges",
+      name: "decide_search_path() · decide_after_generation()",
+      fileId: "workflow",
+      summary: "두 조건부 엣지 — route 후 retrieve/direct 분기, grade_generation 후 종료/재작성 분기(재시도 가드 포함)",
+      how: "그래프의 흐름을 가르는 두 갈림길 함수입니다. decide_search_path는 route 직후 '검색이 필요하고 소스가 있으면 retrieve로, 아니면 direct_answer로' 보냅니다. decide_after_generation은 유용성(IsUse) 평가 직후 '유용하면 종료(end), 미달이면 rewrite로' 보내되, 재시도가 상한(MAX_RETRIES)에 닿았으면 더 돌지 않고 마지막 답변으로 종료합니다 — 이 가드가 무한 루프(GraphRecursionError)를 막습니다. 두 함수의 반환 문자열이 _build_graph의 분기 맵과 연결됩니다.",
+      terms: ["조건부 엣지(conditional edge)", "노드(node)", "Self-RAG", "재시도(retry)", "Query Rewriting"],
+      lines: [
+        { at: "def decide_search_path(self, state: AgentState) -> Literal[\"retrieve\", \"direct\"]:", text: "route 직후 retrieve로 갈지 direct로 갈지 정하는 엣지입니다." },
+        { at: "if state[\"needs_retrieval\"] and state[\"sources\"]:", text: "검색이 필요하고 소스가 있을 때만 검색 경로(retrieve)로 보냅니다." },
+        { at: "def decide_after_generation(self, state: AgentState) -> Literal[\"rewrite\", \"end\"]:", text: "유용성 평가 직후 종료할지 재작성할지 정하는 엣지입니다." },
+        { at: "if state[\"is_useful\"]:", text: "유용하면 더 돌지 않고 종료(end)로 보냅니다." },
+        { at: "if state[\"retry_count\"] >= settings.MAX_RETRIES:", text: "재시도 상한에 닿으면 마지막 답변으로 종료해 무한 루프를 막습니다." },
+        { at: "return \"rewrite\"", text: "유용 미달이고 재시도 여유가 있으면 질문 재작성으로 보냅니다." },
+      ],
+      code: `# (일부 발췌)
+    def decide_search_path(self, state: AgentState) -> Literal["retrieve", "direct"]:
+        """route 직후 분기: 검색 필요 + 소스 있으면 retrieve, 아니면 direct_answer."""
+        if state["needs_retrieval"] and state["sources"]:
+            return "retrieve"
+        return "direct"
+
+    def decide_after_generation(self, state: AgentState) -> Literal["rewrite", "end"]:
+        """grade_generation 직후 분기: 유용하면 종료, 미달 + 재시도 남으면 rewrite.
+
+        재시도 횟수 가드를 이 엣지에서 직접 검사해 무한 루프(GraphRecursionError)를 방지함.
+        """
+        if state["is_useful"]:
+            return "end"
+        if state["retry_count"] >= settings.MAX_RETRIES:
+            print(f"\\n[경고] 최대 재시도({settings.MAX_RETRIES}회) 도달 → 마지막 답변을 그대로 반환함.")
+            return "end"
+        return "rewrite"`,
+    },
+    {
+      id: "build_graph",
+      name: "_build_graph()",
+      fileId: "workflow",
+      summary: "Self-RAG 그래프 배선 — 노드 7개와 엣지를 연결해 '검색→평가→재검색 루프'를 가진 StateGraph로 컴파일",
+      how: "Self-RAG 워크플로의 전체 배선도입니다. 7개 노드(route·retrieve·grade_documents·generate·grade_generation·rewrite·direct_answer)를 등록하고 엣지로 잇습니다. START는 route로 가고, route에서 조건부 엣지로 retrieve 또는 direct_answer로 갈립니다. 검색 경로는 retrieve→grade_documents→generate→grade_generation으로 한 줄로 흐르다가, grade_generation에서 다시 조건부로 END 또는 rewrite로 갈립니다. 핵심은 rewrite→route로 되돌아가는 엣지로, 이것이 '검색→평가→재검색' 되먹임 루프를 만듭니다. 마지막에 compile()로 실행 가능한 그래프를 만듭니다.",
+      terms: ["StateGraph", "노드(node)", "조건부 엣지(conditional edge)", "Self-RAG", "LangGraph"],
+      lines: [
+        { at: "def _build_graph(self):", text: "노드·엣지를 연결해 실행 가능한 그래프로 컴파일하는 함수입니다." },
+        { at: "workflow = StateGraph(AgentState)", text: "공용 상태(AgentState)를 흐르게 할 빈 StateGraph를 만듭니다." },
+        { at: "workflow.add_edge(START, \"route\")", text: "시작 지점을 라우터 노드에 연결합니다." },
+        { at: "{\"retrieve\": \"retrieve\", \"direct\": \"direct_answer\"},", text: "route 분기 맵 — 검색이면 retrieve, 아니면 direct_answer로 갈립니다." },
+        { at: "{\"rewrite\": \"rewrite\", \"end\": END},", text: "유용성 분기 맵 — 미달이면 rewrite, 유용하면 END로 갈립니다." },
+        { at: "workflow.add_edge(\"rewrite\", \"route\")", text: "재작성 후 라우터로 되돌아가는 재검색 루프의 핵심 엣지입니다." },
+        { at: "return workflow.compile()", text: "배선을 마쳐 실행 가능한 그래프로 컴파일해 돌려줍니다." },
+      ],
+      code: `# (일부 발췌)
+    def _build_graph(self):
+        """노드와 엣지를 연결해 실행 가능한 StateGraph로 컴파일함."""
+        workflow = StateGraph(AgentState)
+        workflow.add_node("route", self.route)
+        workflow.add_node("retrieve", self.retrieve)
+        workflow.add_node("grade_documents", self.grade_documents)
+        workflow.add_node("generate", self.generate)
+        workflow.add_node("grade_generation", self.grade_generation)
+        workflow.add_node("rewrite", self.rewrite)
+        workflow.add_node("direct_answer", self.direct_answer)
+
+        workflow.add_edge(START, "route")
+        workflow.add_conditional_edges(
+            "route", self.decide_search_path,
+            {"retrieve": "retrieve", "direct": "direct_answer"},
+        )
+        workflow.add_edge("retrieve", "grade_documents")
+        workflow.add_edge("grade_documents", "generate")
+        workflow.add_edge("generate", "grade_generation")
+        workflow.add_conditional_edges(
+            "grade_generation", self.decide_after_generation,
+            {"rewrite": "rewrite", "end": END},
+        )
+        workflow.add_edge("rewrite", "route")
+        workflow.add_edge("direct_answer", END)
+        return workflow.compile()`,
+    },
+    {
+      id: "invoke",
+      name: "PatentTrendRAG.invoke()",
+      fileId: "workflow",
+      summary: "그래프 실행 진입점 — 질문 한 건의 초기 상태를 채워 그래프를 돌리고 최종 상태를 반환(멀티턴 history 전달)",
+      how: "앱이 질문 하나를 처리할 때 부르는 실행 진입점입니다. AgentState의 모든 칸을 초기값으로 채운 뒤(현재 질문과 최초 질문에 같은 값, 재시도 0, 결과 칸은 비움), 멀티턴 맥락(history)을 함께 넣어 그래프를 실행합니다. recursion_limit을 넉넉히 줘 재검색 루프가 LangGraph 기본 단계 한계에 걸리지 않게 합니다. 그래프가 모든 노드를 거쳐 채운 최종 상태(답변·평가·재작성 이력 등)를 통째로 돌려줍니다.",
+      terms: ["graph.invoke", "멀티턴(multi-turn)", "Self-RAG", "재시도(retry)", "StateGraph"],
+      lines: [
+        { at: "def invoke(self, question: str, history: list) -> dict:", text: "질문 한 건을 처리하는 그래프 실행 진입점입니다." },
+        { at: "\"question\": question,", text: "현재 처리할 질문을 초기 상태에 넣습니다." },
+        { at: "\"original_question\": question,", text: "유용성 평가·재작성의 기준이 될 최초 질문도 함께 저장합니다." },
+        { at: "\"retry_count\": 0,", text: "재시도 횟수를 0에서 시작합니다." },
+        { at: "return self.graph.invoke(initial_state, config={\"recursion_limit\": settings.RECURSION_LIMIT})", text: "초기 상태로 그래프를 실행하고 최종 상태를 반환합니다(단계 한계 상향)." },
+      ],
+      code: `# (일부 발췌)
+    def invoke(self, question: str, history: list) -> dict:
+        """질문 한 건에 대해 그래프를 실행하고 최종 상태를 반환함 (멀티턴 history 전달)."""
+        initial_state: AgentState = {
+            "question": question,
+            "original_question": question,
+            "history": history,
+            "needs_retrieval": False,
+            "sources": [],
+            "law_query": "",
+            "law_name": "",
+            "use_chain_research": False,
+            "web_query": "",
+            "youtube_query": "",
+            "route_reasoning": "",
+            "law_raw": {},
+            "web_results": [],
+            "youtube_videos": [],
+            "youtube_chunks": [],
+            "retrieved_items": [],
+            "relevant_items": [],
+            "answer": "",
+            "is_supported": None,
+            "is_useful": None,
+            "usefulness_reasoning": "",
+            "retry_count": 0,
+            "rewrites": [],
+        }
+        return self.graph.invoke(initial_state, config={"recursion_limit": settings.RECURSION_LIMIT})`,
+    },
 
     // ───────────────────────── sources/law_client.py ─────────────────────────
     {
@@ -402,6 +965,194 @@ async def search_law_sources(
 def run_law_search(law_query: str, law_name: str = "", use_chain_research: bool = False) -> dict:
     """동기 래퍼: 동기 LangGraph 노드에서 비동기 MCP 검색을 실행함 (asyncio.run으로 브리지)."""
     return asyncio.run(search_law_sources(law_query, law_name, use_chain_research))`,
+    },
+    {
+      id: "parse_decisions",
+      name: "parse_decisions()",
+      fileId: "law",
+      summary: "판례·해석례 검색 결과 텍스트를 정규식으로 파싱해 사건번호·선고일·링크 등 출처 메타데이터를 표준 항목으로 추출",
+      how: "korean-law MCP 도구는 JSON이 아니라 '사람이 읽는 텍스트'를 돌려줍니다. 이 함수는 그 텍스트를 한 줄씩 훑으며 '[607079] 제목' 같은 항목 머리글과 그 아래 들여쓴 '키: 값' 메타데이터(사건번호·선고일·링크 등)를 정규식으로 뽑아냅니다. 도메인마다 날짜 필드명이 달라(선고일/회신일자/의결일) 우선순위로 탐색하고, 핵심 값만 표준 키(case_number·date·url·summary)로 승격합니다. 이렇게 코드가 직접 출처를 구성해 LLM의 인용 환각을 막습니다.",
+      terms: ["정규식(regular expression)", "인용 환각 방지", "MCP(Model Context Protocol)", "마크다운(markdown)"],
+      lines: [
+        { at: "def parse_decisions(text: str, source_label: str) -> list[dict]:", text: "판례·해석례 텍스트를 표준 항목 리스트로 파싱하는 함수입니다." },
+        { at: "header = _ITEM_HEADER.match(stripped)", text: "'[ID] 제목' 형태의 항목 머리글을 정규식으로 인식합니다." },
+        { at: "# 새 항목 시작", text: "새 항목 머리글을 만나면 직전 항목을 확정해 리스트에 넣습니다." },
+        { at: "field = _FIELD_LINE.match(line)", text: "'키: 값' 형태의 메타데이터 줄을 정규식으로 뽑아 현재 항목에 담습니다." },
+        { at: "fields.get(\"선고일\")", text: "도메인마다 다른 날짜 필드명을 우선순위로 탐색합니다(선고일 우선)." },
+        { at: "\"url\": _absolute_url(link) if link else \"\",", text: "상대경로 링크를 절대 URL로 바꿔 클릭 가능한 출처로 만듭니다." },
+      ],
+      code: `# (일부 발췌)
+def parse_decisions(text: str, source_label: str) -> list[dict]:
+    """판례/해석례 검색 결과 텍스트를 항목 리스트로 파싱함.
+
+    각 항목은 '[ID] 제목' 머리글과 그 아래 들여쓴 '키: 값' 메타데이터로 구성됨.
+    반환: [{id, title, source, case_number, date, url, raw}] (없는 필드는 빈 문자열)
+    """
+    items: list[dict] = []
+    current: dict | None = None
+
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+        if not stripped or stripped.startswith(_SKIP_PREFIXES):
+            continue
+
+        header = _ITEM_HEADER.match(stripped)
+        if header:
+            # 새 항목 시작 — 직전 항목을 확정하고 새 dict를 만듦
+            if current:
+                items.append(current)
+            current = {
+                "id": header.group(1),
+                "title": header.group(2).strip(),
+                "source": source_label,
+                "fields": {},
+            }
+            continue
+
+        if current is not None:
+            field = _FIELD_LINE.match(line)
+            if field:
+                current["fields"][field.group(1).strip()] = field.group(2).strip()
+
+    if current:
+        items.append(current)
+
+    # 파싱된 fields에서 출처 구성에 필요한 핵심 값만 표준 키로 승격함
+    normalized = []
+    for item in items:
+        fields = item["fields"]
+        # 도메인마다 날짜 필드명이 달라(선고일/회신일자/의결일 등) 우선순위로 탐색함
+        date = (
+            fields.get("선고일")
+            or fields.get("회신일자")
+            or fields.get("의결일")
+            or fields.get("결정일")
+            or ""
+        )
+        link = fields.get("링크", "")
+        normalized.append({
+            "id": item["id"],
+            "title": item["title"],
+            "source": item["source"],
+            "case_number": fields.get("사건번호", "") or fields.get("안건번호", ""),
+            "court": fields.get("법원", ""),
+            "date": date,
+            "url": _absolute_url(link) if link else "",
+            "summary": f"{item['title']} (사건번호 {fields.get('사건번호', 'N/A')}, 선고/회신일 {date or 'N/A'})",
+        })
+    return normalized`,
+    },
+    {
+      id: "parse_laws",
+      name: "parse_laws()",
+      fileId: "law",
+      summary: "법령 검색 결과 텍스트를 정규식으로 파싱해 법령명·법령ID·MST·공포일을 추출(최신 조문 조회의 입력)",
+      how: "search_law 도구가 돌려준 텍스트에서 법령 목록을 뽑아냅니다. '1. 특허법' 같은 순번 머리글과 그 아래 '- 법령ID:', '- MST:', '- 공포일:' 메타데이터를 정규식으로 파싱합니다. 한 가지 함정 대비가 있는데, '- 키: 값' 라인을 머리글보다 먼저 검사합니다 — 그러지 않으면 머리글 정규식이 메타데이터 줄을 잘못 삼킬 수 있기 때문입니다. 여기서 뽑은 MST(법령일련번호)는 가장 정확히 매칭된 법령의 최신 조문 전문을 get_law_text로 가져오는 열쇠가 됩니다.",
+      terms: ["정규식(regular expression)", "MCP(Model Context Protocol)", "MST(법령일련번호)"],
+      lines: [
+        { at: "def parse_laws(text: str) -> list[dict]:", text: "법령 검색 텍스트를 법령 목록으로 파싱하는 함수입니다." },
+        { at: "field = _LAW_FIELD.match(line)  # '- 키: 값' 라인", text: "'- 키: 값' 메타데이터 줄을 머리글보다 먼저 검사합니다(혼동 방지)." },
+        { at: "header = _LAW_HEADER.match(line)", text: "'1. 특허법' 형태의 법령명 머리글을 정규식으로 인식합니다." },
+        { at: "\"law_id\": fields.get(\"법령ID\", \"\"),", text: "법령 고유 ID를 표준 키로 뽑습니다." },
+        { at: "\"mst\": fields.get(\"MST\", \"\"),", text: "MST(법령일련번호) — 최신 조문 전문 조회의 열쇠를 뽑습니다." },
+      ],
+      code: `# (일부 발췌)
+def parse_laws(text: str) -> list[dict]:
+    """법령 검색(search_law) 결과 텍스트를 법령 리스트로 파싱함.
+
+    각 항목은 '1. 특허법' 머리글과 '- 법령ID:', '- MST:', '- 공포일:', '- 구분:' 메타데이터로 구성됨.
+    반환: [{name, law_id, mst, date, category}]
+    """
+    laws: list[dict] = []
+    current: dict | None = None
+
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+        if not stripped or stripped.startswith(_SKIP_PREFIXES):
+            continue
+
+        field = _LAW_FIELD.match(line)  # '- 키: 값' 라인 (머리글보다 먼저 검사: 머리글 정규식과 혼동 방지)
+        if field and current is not None:
+            current["fields"][field.group(1).strip()] = field.group(2).strip()
+            continue
+
+        header = _LAW_HEADER.match(line)
+        if header:
+            if current:
+                laws.append(current)
+            current = {"name": header.group(1).strip(), "fields": {}}
+
+    if current:
+        laws.append(current)
+
+    normalized = []
+    for law in laws:
+        fields = law["fields"]
+        normalized.append({
+            "name": law["name"],
+            "law_id": fields.get("법령ID", ""),
+            "mst": fields.get("MST", ""),
+            "date": fields.get("공포일", ""),
+            "category": fields.get("구분", ""),
+        })
+    return normalized`,
+    },
+    {
+      id: "call_tool_helpers",
+      name: "_call_tool() · _text_of() · _absolute_url()",
+      fileId: "law",
+      summary: "MCP 도구 호출(타임아웃·실패 흡수)·결과 텍스트 추출·상대링크 절대화 — 법령 소스의 저수준 보조 함수들",
+      how: "law_client의 저수준 일꾼 3종입니다. _call_tool은 MCP 도구 하나를 타임아웃과 함께 호출하고, 어떤 원격 오류든 빈 문자열로 흡수해 한 도구가 실패해도 나머지로 진행하게 합니다(장애 격리). _text_of는 도구 결과(CallToolResult)에서 사람이 읽는 텍스트 블록만 골라 이어 붙입니다. _absolute_url은 MCP가 준 상대경로·HTML 엔티티가 섞인 링크를 html.unescape로 복원하고 법제처 기본 주소를 앞에 붙여 클릭 가능한 인용 URL로 만듭니다.",
+      terms: ["MCP(Model Context Protocol)", "장애 격리(failure isolation)", "graceful degradation", "타임아웃(timeout)", "HTML 엔티티(HTML entity)"],
+      lines: [
+        { at: "async def _call_tool(session: ClientSession, name: str, args: dict) -> str:", text: "MCP 도구 하나를 호출하고 결과 텍스트를 반환하는 헬퍼입니다." },
+        { at: "result = await asyncio.wait_for(", text: "asyncio.wait_for로 호출에 타임아웃을 걸어 무한 대기를 막습니다." },
+        { at: "except Exception as error:  # noqa: BLE001 - 어떤 원격 오류든 빈 결과로 진행", text: "어떤 원격 오류든 빈 문자열로 흡수해 다른 도구·소스로 진행합니다." },
+        { at: "def _text_of(call_result) -> str:", text: "도구 결과에서 사람이 읽는 텍스트 블록만 이어 붙이는 헬퍼입니다." },
+        { at: "def _absolute_url(link: str) -> str:", text: "MCP가 준 상대 링크를 클릭 가능한 절대 URL로 바꾸는 헬퍼입니다." },
+        { at: "link = html.unescape(link.strip())", text: "HTML 엔티티(&amp;→&)를 복원해 정상 URL로 만듭니다." },
+      ],
+      code: `# (일부 발췌)
+def _text_of(call_result) -> str:
+    """MCP 도구 호출 결과(CallToolResult)에서 사람이 읽는 텍스트만 이어 붙여 반환함."""
+    chunks = []
+    for block in getattr(call_result, "content", []) or []:
+        text = getattr(block, "text", None)
+        if text:
+            chunks.append(text)
+    return "\\n".join(chunks)
+
+
+def _absolute_url(link: str) -> str:
+    """MCP가 돌려준 링크를 절대 URL로 변환함.
+
+    판례 링크는 '/DRF/lawService.do?...&amp;ID=...' 같은 상대경로 + HTML 엔티티 형태이므로,
+    html.unescape로 &amp;→& 복원 후 법제처 기본 주소를 앞에 붙여 클릭 가능한 인용 URL을 만듦.
+    """
+    link = html.unescape(link.strip())
+    if link.startswith("http"):
+        return link
+    if link.startswith("/"):
+        return settings.LAW_GO_KR_BASE + link
+    return link
+
+
+async def _call_tool(session: ClientSession, name: str, args: dict) -> str:
+    """MCP 도구를 호출하고 결과 텍스트를 반환함. 호출 실패는 빈 문자열로 graceful 처리함.
+
+    한 소스(MCP)의 한 도구가 실패해도 나머지 도구·소스로 답변을 만들 수 있게 예외를 흡수함.
+    """
+    try:
+        result = await asyncio.wait_for(
+            session.call_tool(name, args),
+            timeout=settings.LAW_MCP_TIMEOUT_SECONDS,
+        )
+        return _text_of(result)
+    except Exception as error:  # noqa: BLE001 - 어떤 원격 오류든 빈 결과로 진행
+        print(f"  ! [law MCP] {name} 호출 실패(무시하고 진행): {type(error).__name__}: {str(error)[:120]}")
+        return ""`,
     },
 
     // ───────────────────────── sources/web_search.py ─────────────────────────
@@ -566,5 +1317,17 @@ def build_law_mcp_url() -> str:
     "빠른 실패(fail-fast)": "설정·인증 오류를 실행 초기에 바로 드러내, 한참 돈 뒤 실패하는 낭비를 막는 방식.",
     "재현성": "같은 입력으로 다시 돌리면 같은 결과가 나오는 성질. 온도 0 고정 등으로 보장함.",
     "진입점(main)": "프로그램 실행이 시작되는 함수. 전체 흐름을 순서대로 호출함.",
+    "Query Rewriting": "검색 결과가 부실할 때 질문을 더 검색 친화적인 표현으로 고쳐 다시 검색하는 것. Self-RAG에서 IsUse(유용성) 미달이면 수행함.",
+    "json_schema": "LLM에게 정해진 JSON 구조를 강제하는 구조화 출력 방식(with_structured_output method='json_schema'). 자연어에서 JSON을 파싱하는 불안정성을 없앰.",
+    "StateGraph": "LangGraph에서 공유 상태(State)를 기준으로 노드·엣지를 조립하는 그래프 빌더. compile하면 실행 가능한 그래프가 됨.",
+    "지수 백오프(exponential backoff)": "재시도 간격을 1초→2초→4초처럼 점점 늘리는 재시도 전략. 일시적 오류·요청 제한에서 서버 부담을 줄이며 재시도함.",
+    "환경변수(environment variable)": "운영체제나 .env 파일에 저장해 두고 코드가 읽어 쓰는 설정값(API 키·접속정보 등). 비밀값을 코드에 직접 박지 않게 함.",
+    "마크다운(markdown)": "제목·목록·링크를 기호로 표현하는 경량 서식 문법(예: # 제목, - 목록, [텍스트](URL)). 답변·출처를 사람이 보기 좋게 정리하는 데 씀.",
+    "조건부 엣지(conditional edge)": "상태(State) 값에 따라 다음에 갈 노드를 다르게 정하는 갈림길 엣지. 여기선 검색 경로 선택·재검색 여부를 가름.",
+    "graph.invoke": "컴파일된 LangGraph 그래프를 시작 상태와 함께 처음부터 끝까지 한 번 실행하는 호출.",
+    "정규식(regular expression)": "글자 패턴을 규칙으로 표현해 찾기·추출하는 도구. 여기선 판례 텍스트에서 사건번호·날짜·링크를 뽑는 데 씀.",
+    "MST(법령일련번호)": "국가법령정보센터가 법령마다 부여하는 고유 일련번호(법령 마스터 ID). 특정 법령의 최신 조문을 정확히 조회할 때 사용함.",
+    "타임아웃(timeout)": "응답을 기다리는 최대 시간. 그 안에 응답이 없으면 실패로 처리해 무한 대기를 막음.",
+    "HTML 엔티티(HTML entity)": "&amp;·&lt; 처럼 특수문자를 안전하게 표현한 HTML 표기. 파싱할 때 원래 문자(&, <)로 되돌려 줌.",
   },
 };

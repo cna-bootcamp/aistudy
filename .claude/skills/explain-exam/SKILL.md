@@ -67,7 +67,11 @@ node hands-on/explain-exam/verify-data.js <예제 디렉터리>/explain/data.js
 window.EXPLAIN_DATA = {
   meta:  { title: "페이지 제목", entry: "메인 파일명" },
   files: [ { id: "main", label: "파일명.py", role: "한 줄 역할" } ],   // 좌측 그룹 = 파일
-  flow:  [ { step: 1, title: "단계명", summary: "중앙 한 줄", detail: "우측 상세(비유 포함)" } ],
+  flow:  [ {
+    step: 1, title: "단계명", summary: "중앙 한 줄", detail: "우측 상세(비유 포함)",
+    label: "좌측용 짧은 제목",          // (선택) 좌측 '처리 흐름' 바로가기 메뉴 표시명. 없으면 title 사용
+    refs: ["get_agent"],                // (선택) 이 단계의 함수 id들 → 좌측 단계 클릭·중앙 '코드:' 칩으로 소스 점프
+  } ],
   functions: [
     {
       id: "get_agent",                 // 고유 식별자
@@ -91,6 +95,9 @@ window.EXPLAIN_DATA = {
   (예: 마크다운 문자열 안의 `` `서울` `` → `` \`서울\` ``)
 - `terms`의 각 항목은 `glossary`에 키가 존재해야 함.
 - `files[].id`와 `functions[].fileId`가 일치해야 좌측 그룹에 표시됨.
+- (선택) `flow[].label`·`flow[].refs`로 **처리 흐름↔함수**를 연결함. `refs`는 그 단계의 `functions[].id` 목록이며,
+  좌측 단계 바로가기·중앙 "코드:" 칩·함수 화면 상단 "처리 흐름 N단계" 배너로 렌더됨. 깨끗이 대응되는 함수가 없는
+  단계는 `refs`를 **생략**함(억지 매칭 금지 = graceful degrade). 모범사례: `16.mas/patent-mas/mas-a/explain/data.js`.
 
 ## launcher 템플릿 (`<예제>/explain/index.html` — 모든 예제 동일, 그대로 복사)
 

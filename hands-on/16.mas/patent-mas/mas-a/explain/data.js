@@ -15,6 +15,7 @@ window.EXPLAIN_DATA = {
     { id: "graphrag", label: "retrieval/graphrag_retriever.py",role: "MS GraphRAG 검색기 — 요건·권리·절차의 관계/구조를 질의(local/global/drift)" },
     { id: "async",    label: "retrieval/async_utils.py",       role: "이벤트 루프 브리지 — 동기 코드에서 async GraphRAG API를 안전하게 호출" },
     { id: "config",   label: "config/settings.py",             role: "전역 설정 — 인덱스 경로·모델·검색 파라미터·키 검증을 한곳에서 관리" },
+    { id: "llm",      label: "config/llm.py",                  role: "LLM 공용 팩토리 — 라우팅·답변·평가가 같은 방식으로 Groq LLM(일반/구조화 출력)을 생성" },
   ],
 
   // 전체 처리 흐름 (MCP 진입 → 라우팅 → 검색 → 평가 → (필요 시 보완·융합) → 응답)
@@ -22,36 +23,47 @@ window.EXPLAIN_DATA = {
     {
       step: 1,
       title: "분산 MAS의 한 축 — MCP 서버로 노출",
+      label: "MCP 서버로 노출",
+      refs: ["ask_patent_law"],
       summary: "server.py: 특허법 검색 능력을 ask_patent_law 도구로 외부에 공개",
       detail: "이 예제는 '법령지식'을 전담하는 하나의 전문가 부서입니다. FastMCP로 검색 능력을 표준 규격(MCP)에 맞춰 노출하면, 상위 오케스트레이터나 다른 AI 앱이 마치 콘센트에 플러그를 꽂듯 이 부서를 호출할 수 있습니다. 비유하면 '특허법 상담 창구를 인터넷에 열어 두는' 단계로, 여러 부서가 모이는 분산 멀티에이전트의 한 축이 됩니다.",
     },
     {
       step: 2,
       title: "검색 모드 결정 (Scheduler)",
+      label: "검색 모드 결정",
+      refs: ["router_route"],
       summary: "scheduler_node → router.route(): 질문에 맞는 검색 방식 1개를 고름",
       detail: "질문을 받으면 먼저 '어떤 방법으로 찾을지'를 정합니다. 조문 원문을 정확히 인용해야 하면 벡터 검색(vector), 요건·권리의 관계를 봐야 하면 GraphRAG(local/global/drift)를 고릅니다. 키워드 규칙으로 먼저 판단하고 애매하면 LLM에게 분류를 맡깁니다. 비유하면 '민원을 보고 어느 창구로 보낼지 정하는 안내 데스크'입니다.",
     },
     {
       step: 3,
       title: "검색 실행 (Agent)",
+      label: "검색 실행",
+      refs: ["agent_node", "vector_search", "graphrag_search_async"],
       summary: "agent_node: 결정된 모드로 실제 검색을 수행해 답변·근거를 만듦",
       detail: "안내받은 한 가지 방법으로 실제 검색을 수행합니다. vector면 ChromaDB에서 비슷한 조문 청크를 찾아 LLM이 조문을 인용해 답하고, GraphRAG면 지식그래프(엔티티·관계·커뮤니티)를 질의합니다. 한 패스에서는 딱 한 가지 방법만 씁니다(두 방법을 무조건 동시에 돌리지 않음 = 중복 검색 금지).",
     },
     {
       step: 4,
       title: "근거 충분성 평가 (Supervisor)",
+      label: "근거 충분성 평가",
+      refs: ["supervisor_node"],
       summary: "supervisor_node: 답이 충분한지 LLM이 보수적으로 판정 → 종료/재검색/융합 분기",
       detail: "검색 결과가 질문에 충분히 답했는지 감독자가 점검합니다. 충분하면 마무리하고, 부족하면 '서로 다른 역할의 보완 모드'(예: 벡터로 부족했으면 GraphRAG)로 딱 한 번 더 검색하도록 지시합니다. 무한 반복을 막는 한도(Loop Guard)가 있어 안전합니다. 비유하면 '상담 결과를 검토해 미흡하면 다른 전문가에게 한 번 더 묻는 팀장'입니다.",
     },
     {
       step: 5,
       title: "두 근거 융합 (Fuse)",
+      label: "두 근거 융합",
+      refs: ["fuse_node"],
       summary: "fuse_node: 조문 원문(vector) + 관계/구조(GraphRAG) 두 답변을 하나로 종합",
       detail: "보완 검색까지 두 번 돌았다면, 조문 원문 근거와 관계/구조 근거를 하나의 모순 없는 한국어 답변으로 합칩니다. 이것이 이 MAS의 핵심 가치입니다 — 정밀한 조문 인용(벡터)과 넓은 맥락(그래프)을 합쳐 더 정확한 자문을 만듭니다. 비유하면 '두 전문가 소견서를 하나의 결론으로 정리하는' 단계입니다.",
     },
     {
       step: 6,
       title: "MCP 응답 정리 & 반환",
+      label: "응답 정리·반환",
       summary: "_shape_tool_result(): 답변·사용 모드·근거를 간결한 JSON으로 호출자에게 돌려줌",
       detail: "최종 답변과 함께 '어떤 모드를 왜 골랐는지, 충분성 평가가 어땠는지, 근거 출처는 무엇인지'를 정리해 돌려줍니다. 대용량 원문은 짧은 스니펫으로 줄여 LLM 컨텍스트 비용을 아낍니다. 호출하는 쪽이 결과를 신뢰·추적할 수 있도록 처리 과정을 투명하게 노출하는 단계입니다.",
     },
@@ -275,7 +287,114 @@ def answer(self, question: str, mode: str = "auto") -> dict:
     return self._shape(question, requested, final)`,
     },
 
+    {
+      id: "graph_shape",
+      name: "_shape() (PatentLawMAS)",
+      fileId: "graph",
+      summary: "그래프 실행이 끝난 최종 State를 호출자에게 돌려줄 깔끔한 응답 딕셔너리로 정리하는 함수",
+      how: "그래프가 흐르며 쌓인 공유 State에는 내부용 값이 많이 섞여 있습니다. answer()가 이 함수를 불러, 그중 외부에 보여 줄 항목만 골라 정돈된 딕셔너리로 만듭니다. 단순히 답만 주는 게 아니라 '어떤 모드를 왜 골랐는지(route_reason), LLM 폴백을 썼는지, 충분성 평가가 어땠는지(supervisor_reason), 어떤 모드들을 거쳤는지(modes_used), 근거 출처는 무엇인지'를 함께 담습니다. 덕분에 호출자가 결과를 신뢰하고 처리 과정을 되짚을 수 있습니다(관찰 가능성).",
+      terms: ["공유 State", "관찰 가능성(observability)", "출처(source)", "충분성 평가", "LLM 폴백"],
+      lines: [
+        { at: "passes = state.get(\"passes\", [])", text: "그래프가 누적한 검색 패스 목록을 State에서 꺼냅니다." },
+        { at: "\"resolved_mode\": state.get(\"mode\"),", text: "최종적으로 실제 사용된 검색 모드를 담습니다." },
+        { at: "\"supervisor_reason\": state.get(\"supervisor_reason\", \"\"),", text: "충분성 평가 결과·이유를 담아 판단 과정을 투명하게 합니다." },
+        { at: "\"modes_used\": [p.get(\"mode\") for p in passes],", text: "거쳐 간 모드들을 나열합니다(예: 벡터→보완 GraphRAG)." },
+        { at: "\"error\": bool(state.get(\"error\", False)),", text: "검색 중 오류가 있었는지 여부를 참/거짓으로 표시합니다." },
+      ],
+      code: `@staticmethod
+def _shape(question: str, requested: str, state: PatentLawState) -> dict:
+    """그래프 최종 State를 외부 응답용으로 정리함."""
+    passes = state.get("passes", [])
+    return {
+        "question": question,
+        "answer": state.get("answer", ""),
+        "requested_mode": requested,
+        "resolved_mode": state.get("mode"),
+        "route_reason": state.get("route_reason", ""),
+        "used_llm_fallback": state.get("used_llm_fallback", False),
+        "supervisor_reason": state.get("supervisor_reason", ""),
+        "sufficient": state.get("sufficient"),
+        "reroutes": state.get("reroutes", 0),
+        "modes_used": [p.get("mode") for p in passes],
+        "sources": state.get("sources", []),
+        "evidence": state.get("evidence", {}),
+        "note": state.get("note", ""),
+        "error": bool(state.get("error", False)),
+    }`,
+    },
+    {
+      id: "kg_resource",
+      name: "kg_stats() · kg_schema() (PatentLawMAS)",
+      fileId: "graph",
+      summary: "지식그래프의 규모 통계·스키마를 돌려주는 두 메서드 — MCP 리소스가 이 값을 노출함",
+      how: "server.py의 MCP 리소스(patent://kg/stats 등)가 호출하는 진입점입니다. 둘 다 실제 계산은 GraphRAG 검색기에 위임하는 얇은 통로(delegation)입니다. kg_stats는 엔티티·관계·커뮤니티·텍스트유닛 개수와 엔티티 타입 분포를 딕셔너리로 돌려주고, kg_schema는 그 통계를 사람이 읽기 좋은 한 편의 설명 문자열로 만듭니다. 외부에서 '이 지식그래프가 얼마나 크고 어떤 모양인지'를 들여다볼 수 있게 하는 창입니다.",
+      terms: ["KG(지식그래프)", "MCP 리소스(Resource)", "엔티티/관계/커뮤니티", "위임(delegation)"],
+      lines: [
+        { at: "def kg_stats(self) -> dict:", text: "지식그래프 규모 통계를 딕셔너리로 돌려주는 메서드입니다." },
+        { at: "return self.graphrag.kg_stats()", text: "실제 집계는 GraphRAG 검색기에 위임합니다(얇은 통로)." },
+        { at: "def kg_schema(self) -> str:", text: "지식그래프 스키마를 사람이 읽을 문자열로 돌려주는 메서드입니다." },
+        { at: "return self.graphrag.kg_schema()", text: "스키마 문자열 생성도 GraphRAG 검색기에 위임합니다." },
+      ],
+      code: `# === MCP Resource 지원 ===============================================
+
+def kg_stats(self) -> dict:
+    """KG 통계(엔티티/관계/커뮤니티/텍스트유닛 수, 엔티티 타입 분포) 반환."""
+    return self.graphrag.kg_stats()
+
+def kg_schema(self) -> str:
+    """KG 스키마(엔티티 타입·관계·인덱스 구성) 문자열 반환."""
+    return self.graphrag.kg_schema()`,
+    },
+
     // ───────────────────────── mas/nodes.py ─────────────────────────
+    {
+      id: "scheduler_node",
+      name: "scheduler_node()",
+      fileId: "nodes",
+      summary: "질문을 받아 라우터로 검색 모드를 정하고 공유 State에 적어 두는 SAS의 첫 노드(Scheduler)",
+      how: "그래프가 시작되면 가장 먼저 실행되는 노드입니다. 실제 모드 판단은 router.route()에 위임하고, 그 결과(고른 모드·이유·LLM 폴백 사용 여부)를 공유 State에 기록합니다. reroutes를 0으로 초기화하는 것이 핵심입니다 — 이번 질문에 대한 재검색 횟수를 새로 세기 시작한다는 뜻으로, Supervisor의 Loop Guard가 이 값을 보고 무한 반복을 막습니다. 비유하면 '민원을 어느 창구로 보낼지 정하고 접수증에 적는 안내 데스크'입니다.",
+      terms: ["노드(node)", "Scheduler", "Router(라우터)", "공유 State", "local/global/drift", "Loop Guard(루프 가드)"],
+      lines: [
+        { at: "requested = state.get(\"requested_mode\", \"auto\")", text: "호출자가 지정한 모드를 읽습니다(없으면 auto = '알아서 정함')." },
+        { at: "decision = self.router.route(question, requested)", text: "라우터에게 모드 결정을 위임합니다(패턴 점수 + 필요 시 LLM 폴백)." },
+        { at: "\"mode\": decision.mode,", text: "결정된 모드를 State에 적어 다음 노드(Agent)가 읽게 합니다." },
+        { at: "\"reroutes\": 0,", text: "재검색 횟수를 0으로 초기화 — 이 값이 나중에 Loop Guard의 기준이 됩니다." },
+      ],
+      code: `def scheduler_node(self, state: PatentLawState) -> dict:
+    """검색 모드를 라우팅함 (auto면 패턴 + LLM, 그 외면 호출자 지정)."""
+    question = state["question"]
+    requested = state.get("requested_mode", "auto")
+    decision = self.router.route(question, requested)
+    logger.info("[Scheduler] mode=%s (%s)", decision.mode, decision.reason)
+    return {
+        "mode": decision.mode,
+        "route_reason": decision.reason,
+        "used_llm_fallback": decision.used_llm_fallback,
+        "reroutes": 0,
+    }`,
+    },
+    {
+      id: "src_to_dict",
+      name: "_src_to_dict()",
+      fileId: "nodes",
+      summary: "검색기가 돌려준 출처 객체(SourceItem)를 State·MCP 응답용 간결한 딕셔너리로 변환하는 헬퍼",
+      how: "검색기는 출처를 SourceItem이라는 객체로 돌려주는데, 그래프 State에 담거나 MCP 응답으로 내보내려면 단순한 딕셔너리(키-값 묶음)가 편합니다. 이 함수가 그 변환을 담당하며, 원문(content)을 600자로 잘라 LLM 컨텍스트 비용과 응답 크기를 줄입니다. 비유하면 '두꺼운 서류를 요약 카드 한 장으로 옮겨 적는' 일입니다.",
+      terms: ["직렬화(serialize)", "공유 State", "MCP 응답", "출처(source)"],
+      lines: [
+        { at: "def _src_to_dict(src: SourceItem) -> dict:", text: "출처 객체 하나를 받아 딕셔너리로 바꾸는 변환 함수입니다." },
+        { at: "\"type\": src.source_type,", text: "출처 종류(vector/엔티티/관계 등)를 그대로 옮깁니다." },
+        { at: "\"content\": src.content[:600],", text: "원문을 600자까지만 잘라 담습니다 — 응답을 가볍게 유지(컨텍스트 비용 절감)." },
+        { at: "\"metadata\": src.metadata,", text: "장/조·출처 같은 부가 정보(메타데이터)를 함께 싣습니다." },
+      ],
+      code: `def _src_to_dict(src: SourceItem) -> dict:
+    """SourceItem을 MCP 응답·State 저장용 간결한 dict로 직렬화함(원문 길이 추가 제한)."""
+    return {
+        "type": src.source_type,
+        "title": src.title,
+        "content": src.content[:600],
+        "metadata": src.metadata,
+    }`,
+    },
     {
       id: "agent_node",
       name: "agent_node()",
@@ -414,6 +533,116 @@ def answer(self, question: str, mode: str = "auto") -> dict:
     }`,
     },
 
+    {
+      id: "judge",
+      name: "_judge()",
+      fileId: "nodes",
+      summary: "검색 답변이 질문에 충분한지 LLM으로 보수적으로 판정하는 Supervisor의 핵심 두뇌",
+      how: "Supervisor가 '재검색이 필요한가?'를 정하려면 먼저 지금 답이 충분한지 알아야 합니다. 이 함수가 그 판정을 합니다 — 답이 비었거나 출처가 하나도 없으면 LLM을 부르지도 않고 즉시 '부족'으로 처리해 비용을 아낍니다(빠른 탈락). 그 외에는 구조화 출력 LLM에게 sufficient(true/false)와 이유를 받습니다. 기준을 '보수적'으로 둔 게 핵심입니다 — 핵심만 짚으면 충분으로 봐서 불필요한 재검색·중복을 막습니다. 평가 LLM 자체가 실패하면 무한 루프를 피하려고 '충분'으로 간주합니다(fail-safe).",
+      terms: ["충분성 평가", "Supervisor", "구조화 출력(structured output)", "지연 초기화(lazy init)", "fail-safe(안전 우선)", "보완 모드(상보적 검색)"],
+      lines: [
+        { at: "if not answer or not str(answer).strip():", text: "답이 비어 있으면 LLM 호출 없이 즉시 '부족'으로 판정합니다(빠른 탈락)." },
+        { at: "if not sources:", text: "근거 출처가 하나도 없어도 곧바로 '부족'으로 판정합니다." },
+        { at: "self._verdict_llm = build_structured_llm(self.settings, _Verdict)", text: "평가용 구조화 LLM을 첫 호출 때 한 번만 만듭니다(지연 생성)." },
+        { at: "verdict = self._verdict_llm.invoke(prompt)", text: "LLM에게 '충분한가'를 정해진 JSON(_Verdict) 형식으로 받습니다." },
+        { at: "return True, f\"평가 LLM 실패로 현재 답변 채택({exc})\"", text: "평가 자체가 실패하면 무한 루프를 막기 위해 '충분'으로 처리합니다(fail-safe)." },
+      ],
+      code: `def _judge(self, question: str, answer: str, sources: list) -> tuple[bool, str]:
+    """답변의 근거 충분성을 평가함 (빈 답/무출처는 LLM 호출 없이 부족 처리)."""
+    if not answer or not str(answer).strip():
+        return False, "답변이 비어 있음"
+    if not sources:
+        return False, "근거 출처가 없음"
+    if self._verdict_llm is None:
+        self._verdict_llm = build_structured_llm(self.settings, _Verdict)
+    # 보수적 기준: 답변이 질문을 다루고 특허법 근거가 있으면 충분으로 봄(불필요한 재검색·비용 방지).
+    # 명백히 부적합할 때만 보완 검색을 유발해, '서로 다른 역할의 두 검색'이 과하게 겹치지 않게 함.
+    prompt = (
+        "당신은 특허법 답변의 품질 감독자임. 아래 답변이 질문에 답하기에 '충분한지'만 보수적으로 판단하라.\\n"
+        "- 질문의 핵심을 다루고 특허법 근거(조문/개념)가 조금이라도 제시되면 sufficient=true\\n"
+        "- 질문과 무관하거나, 근거가 전혀 없거나, '관련 내용을 찾을 수 없다'는 취지면 sufficient=false\\n"
+        "- 답변이 완벽히 망라적이지 않더라도 핵심을 짚었다면 sufficient=true (사소한 누락으로 false 금지)\\n\\n"
+        f"질문: {question}\\n답변: {str(answer)[:1500]}\\n출처 수: {len(sources)}"
+    )
+    try:
+        verdict = self._verdict_llm.invoke(prompt)
+        return bool(verdict.sufficient), str(verdict.reason)
+    except Exception as exc:  # 평가 실패 시 보수적으로 충분 처리(무한 루프 방지)
+        logger.warning("[Supervisor] 평가 LLM 실패, 현재 답변 채택: %s", exc)
+        return True, f"평가 LLM 실패로 현재 답변 채택({exc})"`,
+    },
+    {
+      id: "complementary_finish",
+      name: "_complementary_mode() · _finish()",
+      fileId: "nodes",
+      summary: "보완 모드를 고르는 함수와 종료 분기(융합/종료)를 정하는 함수 — Supervisor의 결정 보조 2종",
+      how: "Supervisor가 '부족' 판정을 내린 뒤 쓰는 두 도우미입니다. _complementary_mode는 '역할이 다른' 두 번째 모드를 고릅니다 — 벡터(조문 원문)가 부족했으면 GraphRAG(관계/구조)로, GraphRAG가 부족했으면 벡터로 바꿉니다(이미 써 본 모드는 제외). _finish는 더 검색하지 않고 끝낼 때, 패스가 2개 이상이면 'fuse'(융합)로, 1개뿐이면 'end'(종료)로 가도록 다음 행동을 정합니다. 비유하면 '다른 전문가를 부를지 고르기'와 '여기서 마칠지·소견을 합칠지 정하기'입니다.",
+      terms: ["보완 모드(상보적 검색)", "Supervisor", "벡터 검색", "GraphRAG", "융합(fusion)", "공유 State"],
+      lines: [
+        { at: "if current == \"vector\":", text: "현재 모드가 벡터였다면(조문 원문이 부족했다는 뜻)" },
+        { at: "cand = self.router.best_graphrag_mode(question)", text: "GraphRAG 쪽에서 가장 어울리는 보완 모드를 고릅니다." },
+        { at: "return \"vector\" if \"vector\" not in tried else None", text: "반대로 GraphRAG가 부족했으면 벡터로 보완(이미 썼으면 None=보완 불가)." },
+        { at: "\"next_step\": \"fuse\" if pass_count > 1 else \"end\",", text: "패스가 2개 이상이면 융합(fuse), 1개뿐이면 종료(end)로 분기를 정합니다." },
+      ],
+      code: `@staticmethod
+def _finish(sufficient: bool, reason: str, pass_count: int) -> dict:
+    """종료 분기 결정 — 다중 패스면 융합, 단일 패스면 그대로 종료."""
+    return {
+        "sufficient": sufficient,
+        "supervisor_reason": reason,
+        "next_step": "fuse" if pass_count > 1 else "end",
+    }
+
+def _complementary_mode(self, current: str, tried: list[str], question: str) -> str | None:
+    """현재 모드와 상보적인(역할이 다른) 모드를 고름 — 이미 시도한 모드는 제외함."""
+    if current == "vector":
+        # 벡터(조문 원문)가 부족 → GraphRAG(관계/구조)로 보완
+        cand = self.router.best_graphrag_mode(question)
+        if cand not in tried:
+            return cand
+        for m in GRAPHRAG_MODES:
+            if m not in tried:
+                return m
+        return None
+    # GraphRAG가 부족 → 벡터(조문 원문 정밀 인용)로 보완
+    return "vector" if "vector" not in tried else None`,
+    },
+    {
+      id: "fuse_answer",
+      name: "_fuse_answer()",
+      fileId: "nodes",
+      summary: "여러 패스의 답변 후보를 LLM으로 종합해 하나의 모순 없는 한국어 답변을 만드는 함수",
+      how: "fuse_node가 실제 융합을 맡기는 함수입니다. 두 패스(벡터·GraphRAG)의 답변을 '[모드 검색 답변]' 블록으로 묶어 LLM에게 주고, 모순 없이 하나로 합치게 합니다. 프롬프트가 두 가지를 강하게 지시하는 게 핵심입니다 — (1) 근거 조문 번호('제○○조')를 인용할 것, (2) 'vector·GraphRAG·검색' 같은 내부 처리 용어는 절대 답변에 드러내지 말 것. 그래서 사용자에게는 자연스러운 법령 자문으로 보입니다. 융합 LLM은 첫 호출 때 한 번만 만듭니다(지연 생성).",
+      terms: ["융합(fusion)", "LLM", "조문 인용", "지연 초기화(lazy init)", "f-string"],
+      lines: [
+        { at: "self._fuse_llm = build_chat_llm(self.settings, max_tokens=self.settings.llm_max_tokens)", text: "융합용 일반 채팅 LLM을 첫 융합 때 한 번만 만듭니다(지연 생성)." },
+        { at: "for p in passes if p.get(\"answer\", \"\").strip()", text: "비어 있지 않은 답변만 골라 융합 후보 블록으로 만듭니다." },
+        { at: "if not blocks:", text: "합칠 답변이 하나도 없으면 '찾을 수 없다'는 안전한 문구를 돌려줍니다." },
+        { at: "context = \"\\n\\n\".join(blocks)", text: "후보 답변들을 빈 줄로 구분해 하나의 컨텍스트 문자열로 합칩니다." },
+        { at: "return self._fuse_llm.invoke(prompt).content.strip()", text: "종합 프롬프트로 LLM을 호출해 최종 한국어 답변을 얻습니다." },
+      ],
+      code: `def _fuse_answer(self, question: str, passes: list[dict]) -> str:
+    """패스별 답변을 종합해 하나의 정확한 한국어 답변을 생성함."""
+    if self._fuse_llm is None:
+        self._fuse_llm = build_chat_llm(self.settings, max_tokens=self.settings.llm_max_tokens)
+    # 비어있지 않은 답변만 융합 대상으로 사용
+    blocks = [
+        f"[{p.get('mode', '?')} 검색 답변]\\n{p.get('answer', '').strip()}"
+        for p in passes if p.get("answer", "").strip()
+    ]
+    if not blocks:
+        return "제공된 근거에서 관련 내용을 찾을 수 없습니다."
+    context = "\\n\\n".join(blocks)
+    prompt = (
+        "다음은 동일한 특허법 질문에 대해 서로 다른 방식으로 얻은 답변 후보들임. "
+        "이들을 종합해 모순 없이 하나의 정확한 한국어 답변을 작성하라.\\n"
+        "- 근거가 된 조문 번호('제○○조')와 핵심 개념을 인용할 것\\n"
+        "- 'vector'·'GraphRAG'·'검색' 같은 내부 처리 용어는 답변에 드러내지 말 것(자연스러운 법령 자문체)\\n\\n"
+        f"질문: {question}\\n\\n{context}\\n\\n[종합 답변]"
+    )
+    return self._fuse_llm.invoke(prompt).content.strip()`,
+    },
+
     // ───────────────────────── mas/router.py ─────────────────────────
     {
       id: "router_route",
@@ -468,6 +697,79 @@ def answer(self, question: str, mode: str = "auto") -> dict:
     if _ARTICLE_REF_RE.search(query):
         scores["vector"] += 1.5
     return scores`,
+    },
+
+    {
+      id: "route_strategy",
+      name: "_route_by_pattern() · _route_by_llm()",
+      fileId: "router",
+      summary: "route()가 쓰는 2단계 모드 결정 전략 — 빠른 키워드 패턴(1단계) + LLM 분류 폴백(2단계)",
+      how: "라우팅을 두 단계로 나눕니다. 1단계 _route_by_pattern은 _score로 모드별 키워드 점수를 매겨 가장 높은 모드를 고르고, '점수/전체합'으로 확신도를 계산합니다 — 빠르고 비용이 0입니다. 확신도가 낮아 애매하면 2단계 _route_by_llm으로 넘어가, 네 모드의 정의를 설명한 프롬프트로 LLM에게 분류를 맡깁니다(구조화 출력). LLM 폴백이 실패해도 치명적이지 않게 None을 돌려 패턴 결과를 쓰게 합니다. '규칙 먼저, 애매하면 AI'라는 비용 효율적 설계입니다.",
+      terms: ["패턴 매칭", "LLM 폴백", "키워드 점수", "확신도(confidence)", "구조화 출력(structured output)", "local/global/drift", "지연 초기화(lazy init)"],
+      lines: [
+        { at: "best_mode = max(scores, key=scores.get)", text: "키워드 점수가 가장 높은 모드를 1차 후보로 고릅니다." },
+        { at: "confidence = min(0.95, max(0.3, best_score / total))", text: "'최고점/전체합'으로 확신도를 0.3~0.95 사이로 계산합니다." },
+        { at: "self._llm = build_structured_llm(self.settings, _LLMRoute)", text: "폴백이 필요할 때만 분류용 구조화 LLM을 한 번 만듭니다(지연 생성)." },
+        { at: "result = self._llm.invoke(prompt)", text: "네 모드 정의가 담긴 프롬프트로 LLM에게 모드를 분류받습니다." },
+        { at: "return RouteDecision(result.mode, confidence, f\"LLM 분류: {result.reason}\", True)", text: "LLM 결정을 'used_llm_fallback=True' 표시와 함께 돌려줍니다." },
+        { at: "return None", text: "폴백이 실패하면 None을 돌려 route()가 패턴 결과를 쓰게 합니다." },
+      ],
+      code: `def _route_by_pattern(self, query: str) -> RouteDecision:
+    scores = self._score(query)
+    best_mode = max(scores, key=scores.get)
+    best_score = scores[best_mode]
+    total = sum(scores.values()) or 1.0
+    confidence = min(0.95, max(0.3, best_score / total))
+    matched = [kw for kw in self.KEYWORDS[best_mode] if kw in query.lower()]
+    reason = (
+        f"패턴 매칭: {', '.join(matched) or '조문 참조'}"
+        if best_score > 0 else "패턴 근거 부족"
+    )
+    return RouteDecision(best_mode, confidence, reason)
+
+def _route_by_llm(self, query: str) -> RouteDecision | None:
+    """패턴 확신도가 낮을 때 LLM 구조화 분류로 폴백함 (실패 시 None)."""
+    if self._llm is None:
+        self._llm = build_structured_llm(self.settings, _LLMRoute)
+    prompt = (
+        "당신은 한국 특허법 질의의 검색 모드 분류기임. 다음 중 하나로만 분류하라.\\n"
+        "- vector: 특정 조문 원문/정의/문구 조회 (정밀 인용)\\n"
+        "- local: 요건·권리·절차·기관 등 엔티티 사이의 관계/근접 컨텍스트\\n"
+        "- global: 전체 주제·구조·유형의 요약 (커뮤니티 단위)\\n"
+        "- drift: 복합·다단계 추론 (전체 primer + 세부 결합)\\n\\n"
+        f"질문: {query}"
+    )
+    try:
+        result = self._llm.invoke(prompt)
+        confidence = min(max(float(result.confidence), 0.0), 1.0)
+        return RouteDecision(result.mode, confidence, f"LLM 분류: {result.reason}", True)
+    except Exception as exc:  # 폴백 실패는 치명적이지 않으므로 패턴 결과를 사용
+        logger.warning("라우터 LLM 폴백 실패: %s", exc)
+        return None`,
+    },
+    {
+      id: "mode_resolve",
+      name: "normalize_mode() · best_graphrag_mode()",
+      fileId: "router",
+      summary: "호출자 모드 문자열을 내부 키로 정규화하는 함수와, GraphRAG 보완 시 최적 하위 모드를 고르는 함수",
+      how: "라우터의 작은 도우미 2종입니다. normalize_mode는 호출자가 넘긴 모드 문자열(대소문자·공백 섞일 수 있음)을 정해진 키로 맞추고, 모르는 값이면 안전하게 'auto'로 바꿉니다(잘못된 입력 방어). best_graphrag_mode는 Supervisor가 '벡터로 부족하니 GraphRAG로 보완'하기로 했을 때, local/global/drift 중 질문 키워드 점수가 가장 높은 하나를 고릅니다(전부 0점이면 기본 local). 보완 검색도 아무 모드나 쓰지 않고 질문에 맞춰 똑똑하게 고르게 합니다.",
+      terms: ["정규화(normalize)", "보완 모드(상보적 검색)", "GraphRAG", "local/global/drift", "키워드 점수"],
+      lines: [
+        { at: "return self.MODE_ALIASES.get((mode or \"auto\").lower().strip(), \"auto\")", text: "입력을 소문자·공백제거 후 별칭표와 대조 — 모르는 값이면 auto로 안전 대체합니다." },
+        { at: "graph_scores = {m: scores[m] for m in GRAPHRAG_MODES}", text: "GraphRAG의 세 모드(local/global/drift) 점수만 추립니다." },
+        { at: "best = max(graph_scores, key=graph_scores.get)", text: "그중 키워드 점수가 가장 높은 모드를 보완 후보로 고릅니다." },
+        { at: "return best if graph_scores[best] > 0 else \"local\"", text: "전부 0점이면(단서 없음) 기본값 local로 보완합니다." },
+      ],
+      code: `def normalize_mode(self, mode: str) -> str:
+    """호출자 입력 모드를 내부 키로 정규화함 (알 수 없으면 auto)."""
+    return self.MODE_ALIASES.get((mode or "auto").lower().strip(), "auto")
+
+def best_graphrag_mode(self, query: str) -> str:
+    """GraphRAG 보완 검색 시, local/global/drift 중 패턴 점수가 높은 모드를 고름(기본 local)."""
+    scores = self._score(query)
+    graph_scores = {m: scores[m] for m in GRAPHRAG_MODES}
+    best = max(graph_scores, key=graph_scores.get)
+    return best if graph_scores[best] > 0 else "local"`,
     },
 
     // ───────────────────────── retrieval/vector_retriever.py ─────────────────────────
@@ -532,6 +834,45 @@ def _citation_label(meta: dict) -> str:
     if chapter:
         return f"특허법 {chapter}"
     return str(meta.get("source", "특허법"))`,
+    },
+
+    {
+      id: "vector_helpers",
+      name: "_to_source() · _format_context()",
+      fileId: "vector",
+      summary: "검색된 조문 Document를 출처 객체로 바꾸는 함수와, 청크들을 LLM 프롬프트용 문자열로 합치는 함수",
+      how: "조문 벡터 검색의 두 도우미입니다. _to_source는 ChromaDB가 돌려준 Document(원문+메타데이터)를 표시용 SourceItem으로 바꾸며, _citation_label로 '특허법 제29조' 같은 인용 라벨을 붙이고 장/조/항 메타데이터를 함께 싣습니다(인용 추적 보존). _format_context는 찾은 청크 여러 개를 '[출처 N] 라벨 + 본문' 형태로 번호를 매겨 하나의 문자열로 합칩니다 — 이게 LLM에게 줄 [참고 조문] 컨텍스트가 됩니다. 결과가 없으면 '(검색 결과 없음)'으로 표시합니다.",
+      terms: ["출처(source)", "조문 인용", "인용 추적(citation tracing)", "메타데이터", "ChromaDB", "f-string"],
+      lines: [
+        { at: "meta = doc.metadata or {}", text: "검색된 Document에서 장/조 메타데이터를 꺼냅니다(없으면 빈 딕셔너리)." },
+        { at: "title=self._citation_label(meta),", text: "메타데이터로 '특허법 제29조(특허요건)' 인용 라벨을 만들어 제목으로 씁니다." },
+        { at: "\"articles\": meta.get(\"articles\", \"\"),     # 한 청크에 여러 조가 병합된 경우", text: "한 청크에 여러 조가 섞였을 때를 대비해 조 목록도 보존합니다." },
+        { at: "for index, src in enumerate(sources, start=1):", text: "청크마다 1부터 번호를 매겨 출처 블록을 만듭니다." },
+        { at: "return \"\\n\\n---\\n\\n\".join(blocks) if blocks else \"(검색 결과 없음)\"", text: "블록들을 구분선으로 이어 하나의 컨텍스트로 — 없으면 '(검색 결과 없음)'." },
+      ],
+      code: `def _to_source(self, doc) -> SourceItem:
+    """검색된 Document를 표시용 SourceItem으로 변환 (조문 라벨 + 핵심 메타데이터)."""
+    meta = doc.metadata or {}
+    return SourceItem(
+        source_type="vector",
+        title=self._citation_label(meta),
+        content=str(doc.page_content)[:1200],  # MCP 응답 간결화를 위해 원문 길이 제한
+        metadata={
+            "chapter": meta.get("chapter", ""),
+            "article": meta.get("article", ""),
+            "articles": meta.get("articles", ""),     # 한 청크에 여러 조가 병합된 경우
+            "clauses": meta.get("clauses", ""),       # 청크에 등장한 항(①②③) 마커
+            "chunk_index": meta.get("chunk_index", ""),
+        },
+    )
+
+@staticmethod
+def _format_context(sources: list[SourceItem]) -> str:
+    """검색 청크들을 LLM 프롬프트용 단일 문자열로 합침 (각 청크에 인용 라벨 부여)."""
+    blocks = []
+    for index, src in enumerate(sources, start=1):
+        blocks.append(f"[출처 {index}] {src.title}\\n{src.content}")
+    return "\\n\\n---\\n\\n".join(blocks) if blocks else "(검색 결과 없음)"`,
     },
 
     // ───────────────────────── retrieval/graphrag_retriever.py ─────────────────────────
@@ -631,6 +972,102 @@ async def _search_async(self, query: str, mode: str) -> SearchOutput:
     )`,
     },
 
+    {
+      id: "graphrag_local",
+      name: "_local() · _collect_sources()",
+      fileId: "graphrag",
+      summary: "Local Search 실제 호출 함수와, 검색 결과 컨텍스트를 표시용 출처로 변환하는 함수",
+      how: "GraphRAG 검색의 두 부품입니다. _local은 Microsoft GraphRAG의 local_search API를 호출합니다 — 엔티티·관계·커뮤니티 리포트·텍스트유닛 같은 지식그래프 조각(Parquet 프레임)을 모두 넘겨 '특정 개념 주변의 관계와 근접 맥락'을 질의합니다(drift 폴백도 이걸 재사용). _collect_sources는 검색이 돌려준 컨텍스트(엔티티/관계/리포트 표)를 훑어 화면·응답에 보여 줄 출처 목록으로 바꾸되, 너무 많지 않게 상한(graph_top_sources)까지만 모읍니다.",
+      terms: ["GraphRAG", "local/global/drift", "엔티티/관계/커뮤니티", "Parquet", "지연 로딩(lazy loading)", "출처(source)"],
+      lines: [
+        { at: "return await local_search(", text: "Microsoft GraphRAG의 Local Search API를 비동기로 호출합니다." },
+        { at: "relationships=self._frame(\"relationships\"),", text: "엔티티 사이의 관계 표를 넘겨 '근접 맥락'을 함께 보게 합니다." },
+        { at: "covariates=self._optional_frame(\"covariates\"),", text: "있으면 부가 정보(covariates)도 넘깁니다 — 없으면 None(선택적)." },
+        { at: "for source_type, frame in _iter_context_frames(context_data):", text: "검색이 돌려준 여러 결과 표(엔티티/관계/리포트)를 하나씩 순회합니다." },
+        { at: "if len(sources) >= max_items:", text: "출처가 상한에 도달하면 더 모으지 않고 즉시 반환합니다(응답 간결화)." },
+      ],
+      code: `async def _local(self, query: str) -> tuple[Any, Any]:
+    return await local_search(
+        config=self.config,
+        entities=self._frame("entities"),
+        communities=self._frame("communities"),
+        community_reports=self._frame("community_reports"),
+        text_units=self._frame("text_units"),
+        relationships=self._frame("relationships"),
+        covariates=self._optional_frame("covariates"),
+        community_level=self.community_level,
+        response_type=self.response_type,
+        query=query,
+    )
+
+def _collect_sources(self, context_data: Any) -> list[SourceItem]:
+    """GraphRAG 컨텍스트(엔티티/관계/리포트 프레임)를 간결한 표시용 출처로 변환함."""
+    max_items = self.settings.graph_top_sources
+    sources: list[SourceItem] = []
+    for source_type, frame in _iter_context_frames(context_data):
+        if frame.empty:
+            continue
+        for _, row in frame.head(max_items).iterrows():
+            sources.append(_source_from_row(source_type, row))
+            if len(sources) >= max_items:
+                return sources
+    return sources`,
+    },
+
+    {
+      id: "graphrag_normalize",
+      name: "_iter_context_frames() · _source_from_row()",
+      fileId: "graphrag",
+      summary: "GraphRAG 컨텍스트의 들쭉날쭉한 모양을 표준 표 목록으로 정리하고, 행 하나를 출처로 바꾸는 헬퍼",
+      how: "GraphRAG는 검색 방식(콜백 변형)에 따라 결과 컨텍스트의 모양이 제각각입니다 — 단일 표일 수도, '이름→표' 딕셔너리일 수도, 표들의 목록일 수도 있습니다. _iter_context_frames가 이 셋을 모두 받아 '(이름, 표)' 목록으로 통일합니다(방어적 정규화). _source_from_row는 그렇게 정리된 표의 한 행을 표시용 출처로 바꿉니다 — 제목·본문이 될 컬럼을 후보 중 첫 번째 있는 것으로 고르고, source/target가 있으면 관계로 보아 'A -> B' 제목을 만들며, 본문은 너무 길지 않게 잘라 담습니다.",
+      terms: ["GraphRAG", "정규화(normalize)", "엔티티/관계/커뮤니티", "출처(source)", "메타데이터", "예외 처리(try/except)"],
+      lines: [
+        { at: "if isinstance(context_data, pd.DataFrame):", text: "컨텍스트가 단일 표면 그대로 한 항목으로 담습니다." },
+        { at: "elif isinstance(context_data, dict):", text: "'이름→표' 딕셔너리면 각 표를 이름과 함께 꺼냅니다." },
+        { at: "if \"source\" in data and \"target\" in data:  # 관계(relationship) 행", text: "행에 source·target가 있으면 관계로 보아 'A -> B' 제목을 만듭니다." },
+        { at: "if key not in {\"text\", \"full_content\", \"summary\", \"description\", \"content\", \"report\"}", text: "본문에 쓴 큰 컬럼은 빼고 나머지만 메타데이터로 담습니다(중복 방지)." },
+        { at: "content=_stringify(content)[:1200],  # MCP 응답 간결화", text: "본문은 1200자까지만 잘라 응답을 가볍게 유지합니다." },
+      ],
+      code: `def _iter_context_frames(context_data: Any) -> list[tuple[str, pd.DataFrame]]:
+    """GraphRAG 컨텍스트에서 이름 붙은 DataFrame 목록을 추출함."""
+    frames: list[tuple[str, pd.DataFrame]] = []
+    if isinstance(context_data, pd.DataFrame):
+        frames.append(("context", context_data))
+    elif isinstance(context_data, dict):
+        for name, value in context_data.items():
+            if isinstance(value, pd.DataFrame):
+                frames.append((str(name), value))
+            elif isinstance(value, list) and value and isinstance(value[0], dict):
+                frames.append((str(name), pd.DataFrame(value)))
+    elif isinstance(context_data, list):
+        for idx, value in enumerate(context_data):
+            if isinstance(value, pd.DataFrame):
+                frames.append((f"context_{idx}", value))
+    return frames
+
+
+def _source_from_row(source_type: str, row: pd.Series) -> SourceItem:
+    """GraphRAG 컨텍스트 행 하나를 표시용 SourceItem으로 변환함."""
+    data = row.to_dict()
+    title = _first_present(data, ["title", "source", "id", "community", "human_readable_id"])
+    if "source" in data and "target" in data:  # 관계(relationship) 행
+        title = f"{data.get('source')} -> {data.get('target')}"
+    content = _first_present(
+        data, ["description", "summary", "text", "full_content", "content", "report"]
+    )
+    metadata = {
+        key: _stringify(value)
+        for key, value in data.items()
+        if key not in {"text", "full_content", "summary", "description", "content", "report"}
+    }
+    return SourceItem(
+        source_type=source_type,
+        title=_stringify(title)[:160],
+        content=_stringify(content)[:1200],  # MCP 응답 간결화
+        metadata=metadata,
+    )`,
+    },
+
     // ───────────────────────── retrieval/async_utils.py ─────────────────────────
     {
       id: "run_async",
@@ -660,6 +1097,50 @@ async def _search_async(self, query: str, mode: str) -> SearchOutput:
     # 실행 중 루프 있음 → 새 스레드에서 독립 루프로 실행 (블로킹 대기)
     with ThreadPoolExecutor(max_workers=1) as pool:
         return pool.submit(_run_in_new_loop, coro).result()`,
+    },
+
+    {
+      id: "async_helpers",
+      name: "_run_in_new_loop() · is_json_parse_error()",
+      fileId: "async",
+      summary: "전용 이벤트 루프로 코루틴을 끝까지 돌리는 실행기와, DRIFT의 JSON 파싱 오류를 판별하는 함수",
+      how: "run_async를 뒷받침하는 두 도우미입니다. _run_in_new_loop는 새 이벤트 루프를 만들어 코루틴을 끝까지 실행하고, 끝나면 남은 태스크를 취소·수거한 뒤 루프를 닫아 리소스 누수를 막습니다(뒷정리 철저). is_json_parse_error는 예외가 'JSON 파싱 실패'인지 판별합니다 — 진짜 JSONDecodeError이거나, 오류 메시지에 'json'·'expecting value' 같은 단서가 들어 있으면 참으로 봅니다. drift 폴백이 '이 오류는 폴백해도 되는 것'인지 가리는 데 이 판별이 쓰입니다.",
+      terms: ["코루틴(coroutine)", "이벤트 루프(event loop)", "asyncio", "JSON 파싱 오류", "DRIFT Search", "폴백(fallback)"],
+      lines: [
+        { at: "loop = asyncio.new_event_loop()", text: "이 실행 전용으로 새 이벤트 루프를 만듭니다." },
+        { at: "return loop.run_until_complete(coro)", text: "코루틴을 끝까지 실행하고 그 결과를 돌려줍니다." },
+        { at: "task.cancel()", text: "끝난 뒤 남아 있는 비동기 태스크를 모두 취소합니다(뒷정리)." },
+        { at: "if isinstance(exc, json.JSONDecodeError):", text: "예외가 진짜 JSON 디코드 오류면 곧바로 '맞다'고 판정합니다." },
+        { at: "return any(pattern in text for pattern in patterns)", text: "메시지에 'json'·'expecting value' 등 단서가 있으면 JSON 오류로 봅니다." },
+      ],
+      code: `def _run_in_new_loop(coro: Awaitable[T]) -> T:
+    """전용 이벤트 루프를 만들어 코루틴을 끝까지 실행하고 깔끔히 정리함."""
+    loop = asyncio.new_event_loop()
+    # DRIFT의 JSON 파싱 실패가 백그라운드 태스크 로그로 시끄럽게 찍히는 것을 억제함
+    loop.set_exception_handler(_quiet_json_errors)
+    try:
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(coro)
+    finally:
+        # 남은 태스크를 취소·수거한 뒤 루프를 닫아 리소스 누수를 방지함
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+        if pending:
+            loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        asyncio.set_event_loop(None)
+        loop.close()
+
+
+def is_json_parse_error(exc: Exception) -> bool:
+    """DRIFT Search primer/follow-up이 던지는 JSON 파싱 실패를 감지함."""
+    if isinstance(exc, json.JSONDecodeError):
+        return True
+    text = f"{type(exc).__name__}: {exc}".lower()
+    patterns = ("json", "expecting value", "unterminated string", "extra data",
+                "invalid control character", "could not parse")
+    return any(pattern in text for pattern in patterns)`,
     },
 
     // ───────────────────────── config/settings.py ─────────────────────────
@@ -736,6 +1217,75 @@ def validate_stores(self) -> list[str]:
         self.graphrag_vector_dir,                          # LanceDB 임베딩 테이블 디렉터리
     ]
     return [str(path) for path in required if not path.exists()]`,
+    },
+
+    {
+      id: "quiet_errors",
+      name: "_quiet_json_errors()",
+      fileId: "async",
+      summary: "이벤트 루프의 예외 핸들러 — DRIFT의 JSON 파싱 오류 로그만 조용히 무시하고 나머지는 그대로 출력",
+      how: "전용 루프(_run_in_new_loop)에 등록되는 예외 핸들러입니다. DRIFT 검색은 백그라운드에서 JSON 파싱에 가끔 실패하는데, 그 실패는 이미 상위에서 폴백으로 처리하므로 로그까지 시끄럽게 찍을 필요가 없습니다. 이 핸들러가 그런 'JSON 파싱 오류'만 골라 조용히 삼키고(무시), 그 외 진짜 오류는 파이썬 기본 핸들러로 넘겨 정상적으로 보이게 합니다. '예상된 소음만 끄고, 진짜 경보는 살려 두는' 필터입니다.",
+      terms: ["이벤트 루프(event loop)", "JSON 파싱 오류", "DRIFT Search", "예외 처리(try/except)"],
+      lines: [
+        { at: "exc = context.get(\"exception\")", text: "이벤트 루프가 잡은 예외 객체를 꺼냅니다." },
+        { at: "if isinstance(exc, Exception) and is_json_parse_error(exc):", text: "그 예외가 'JSON 파싱 오류'인지 판별합니다." },
+        { at: "return", text: "JSON 오류면 아무것도 하지 않고 조용히 무시합니다(로그 억제)." },
+        { at: "loop.default_exception_handler(context)", text: "그 외 진짜 오류는 기본 핸들러로 넘겨 정상 출력합니다." },
+      ],
+      code: `def _quiet_json_errors(loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+    """DRIFT primer JSON 파싱 실패 로그만 조용히 무시하고, 그 외 오류는 정상 출력함."""
+    exc = context.get("exception")
+    if isinstance(exc, Exception) and is_json_parse_error(exc):
+        return
+    loop.default_exception_handler(context)`,
+    },
+
+    // ───────────────────────── config/llm.py ─────────────────────────
+    {
+      id: "llm_factory",
+      name: "build_chat_llm() · build_structured_llm()",
+      fileId: "llm",
+      summary: "라우팅·답변·평가가 같은 방식으로 Groq LLM을 만들도록 모은 공용 팩토리 2종(일반·구조화 출력)",
+      how: "MAS 곳곳에서 LLM이 필요한데, 매번 따로 만들면 설정이 어긋나기 쉽습니다. 그래서 '만드는 법'을 이 한곳에 모읍니다(팩토리). build_chat_llm은 모델명·키·온도로 ChatGroq를 만들되, gpt-oss 계열일 때만 reasoning_format=\"hidden\"을 넣어 사고 과정을 숨기고 최종 답만 받게 합니다(다른 모델에 넣으면 오류). build_structured_llm은 그 위에 with_structured_output(method=\"json_schema\")를 얹어, LLM이 자유 문장이 아니라 '정해진 키를 가진 JSON'으로만 답하게 강제합니다 — 라우팅 결정·충분성 판정처럼 결과를 안정적으로 파싱해야 하는 곳에 씁니다.",
+      terms: ["LLM", "팩토리(factory)", "gpt-oss-120b", "reasoning_format", "구조화 출력(structured output)", "json_schema"],
+      lines: [
+        { at: "\"temperature\": settings.llm_temperature if temperature is None else temperature,", text: "온도(무작위성)를 지정 — 미지정 시 설정값(보통 0=재현 가능)을 씁니다." },
+        { at: "if \"gpt-oss\" in settings.llm_model:", text: "gpt-oss 계열일 때만 reasoning_format을 추가합니다(다른 모델엔 넣지 않음)." },
+        { at: "kwargs[\"reasoning_format\"] = \"hidden\"", text: "사고 과정을 숨기고 최종 답변만 반환하도록 설정합니다." },
+        { at: "return build_chat_llm(settings, max_tokens=512).with_structured_output(", text: "일반 LLM 위에 구조화 출력을 얹어 'JSON으로만 답하는' LLM을 만듭니다." },
+        { at: "schema, method=\"json_schema\"", text: "JSON 스키마를 모델에 강제해 자연어 파싱의 불안정성을 제거합니다." },
+      ],
+      code: `def build_chat_llm(settings: Settings, *, max_tokens: int | None = None,
+                   temperature: float | None = None) -> ChatGroq:
+    """Groq LPU에 연결된 ChatGroq 인스턴스를 생성함.
+
+    Args:
+        settings: 전역 설정(모델명·키·온도).
+        max_tokens: 응답 토큰 한도(미지정 시 모델 기본값).
+        temperature: 샘플링 온도(미지정 시 settings.llm_temperature).
+    """
+    kwargs: dict[str, Any] = {
+        "model": settings.llm_model,
+        "api_key": settings.groq_api_key,
+        "temperature": settings.llm_temperature if temperature is None else temperature,
+    }
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
+    # gpt-oss 계열에만 reasoning_format을 전달 (다른 모델에 넣으면 무시되거나 오류)
+    if "gpt-oss" in settings.llm_model:
+        kwargs["reasoning_format"] = "hidden"
+    return ChatGroq(**kwargs)
+
+
+def build_structured_llm(settings: Settings, schema: Any):
+    """구조화 출력 전용 LLM을 생성함 — with_structured_output(method="json_schema").
+
+    라우팅 결정·근거 충분성 판정처럼 '정해진 키를 가진 JSON'을 안정적으로 받아야 하는 곳에서 사용함.
+    method="json_schema"는 모델에 JSON 스키마를 강제해, 자연어에서 JSON을 파싱하는 불안정성을 제거함.
+    """
+    return build_chat_llm(settings, max_tokens=512).with_structured_output(
+        schema, method="json_schema"
+    )`,
     },
   ],
 
@@ -820,5 +1370,15 @@ def validate_stores(self) -> list[str]:
     "f-string": "파이썬에서 f\"...{변수}...\" 형태로 문자열 안에 값을 끼워 넣는 문법.",
     "설정(config)": "경로·모델·파라미터처럼 코드 동작을 좌우하는 값을 한곳에 모아 둔 것.",
     "LLM": "Large Language Model(대형 언어 모델). 여기선 답변 생성·라우팅·평가에 사용.",
+    "직렬화(serialize)": "객체(예: SourceItem)를 저장·전송하기 쉬운 단순한 형태(딕셔너리/JSON)로 바꾸는 것.",
+    "출처(source)": "답변의 근거가 된 자료(조문 청크·엔티티·관계 등). 화면·응답에 함께 표시해 신뢰를 높임.",
+    "MCP 응답": "MCP 도구가 호출자에게 돌려주는 결과. 여기선 답변·사용 모드·근거를 담은 딕셔너리.",
+    "fail-safe(안전 우선)": "어떤 단계가 실패해도 시스템이 멈추거나 무한 반복에 빠지지 않도록 안전한 쪽으로 처리하는 것.",
+    "정규화(normalize)": "입력값(대소문자·공백 등이 제각각인)을 정해진 표준 형태로 통일하는 것.",
+    "관찰 가능성(observability)": "시스템이 '무엇을 왜 했는지'를 밖에서 들여다볼 수 있는 정도. 모드·이유·평가 결과를 함께 노출해 높임.",
+    "위임(delegation)": "어떤 일을 직접 하지 않고 그 일을 잘하는 다른 객체·함수에 넘겨 맡기는 것.",
+    "팩토리(factory)": "객체를 일관된 방식으로 '만들어 주는' 함수. 설정이 흩어져 어긋나는 것을 막음.",
+    "reasoning_format": "gpt-oss 같은 추론형 모델 전용 옵션. 'hidden'이면 사고 과정을 숨기고 최종 답변만 반환함.",
+    "json_schema": "with_structured_output의 한 방식. LLM에 JSON 스키마를 강제해 정해진 키의 JSON으로만 답하게 함(자연어 파싱 불안정성 제거).",
   },
 };

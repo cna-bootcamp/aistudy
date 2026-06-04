@@ -21,36 +21,50 @@ window.EXPLAIN_DATA = {
   flow: [
     {
       step: 1, title: "환경 설정 · 상수 정의",
+      label: "환경 설정·상수 정의",
+      refs: ["module_setup"],
       summary: "파일 맨 위에서 .env를 읽고, WINDOW_SIZE·SUMMARY_THRESHOLD·시스템 프롬프트를 설정함",
       detail: "식당을 열기 전 주방을 세팅하는 단계임. load_dotenv()로 비밀 API 키를 환경변수로 올리고, OpenAI 클라이언트를 만듦. WINDOW_SIZE(6)는 '최근 몇 개 대화를 기억할지', SUMMARY_THRESHOLD(8)는 '몇 개가 넘으면 요약할지'를 정하는 숫자임."
     },
     {
       step: 2, title: "앱 시작 · 첫 인사",
+      label: "앱 시작·첫 인사",
+      refs: ["main", "build_context", "chat"],
       summary: "main()이 빈 conversation과 summary로 시작하고, AI가 먼저 인사를 건넴",
       detail: "가게 문을 열고 손님에게 먼저 인사하는 단계임. conversation(대화 목록)과 summary(요약 문자열)를 빈 상태로 시작함. build_context()로 전송할 메시지를 구성하고, chat()으로 AI 첫 인사를 받아 화면에 출력함."
     },
     {
       step: 3, title: "사용자 입력 대기",
+      label: "사용자 입력 대기",
+      refs: ["main"],
       summary: "input()으로 사용자가 여행지·기간·인원을 입력하기를 기다림",
       detail: "손님의 주문을 기다리는 단계임. input()이 키보드 입력을 한 줄 받아옴. 빈 입력이면 무시하고 다시 기다리며, 'quit'·'exit'·'종료'를 입력하면 프로그램이 끝남."
     },
     {
       step: 4, title: "대화 기록 · API 호출",
+      label: "대화 기록·API 호출",
+      refs: ["main", "build_context", "chat"],
       summary: "입력을 conversation에 추가하고, build_context()로 메시지를 구성해 chat()으로 AI 응답을 받음",
       detail: "주문서를 적고 주방에 전달하는 단계임. 사용자 말을 conversation에 쌓고, build_context()가 [시스템] + [요약(있으면)] + [최근 대화]를 조합함. chat()이 이 메시지를 OpenAI API에 보내 AI 답변을 받아옴."
     },
     {
       step: 5, title: "응답 출력 · 상태 표시",
+      label: "응답 출력·상태 표시",
+      refs: ["main"],
       summary: "AI 답변을 화면에 출력하고, 전체 턴 수·메모리 개수·API 전송 수·요약 여부를 괄호로 표시함",
       detail: "완성된 요리를 손님에게 내고 주방 상태를 알려주는 단계임. AI 답변과 함께 '전체 몇 턴, 메모리에 몇 개, API에 몇 개 보냈는지'를 보여줘, 슬라이딩 윈도우가 실제로 동작하는 모습을 직접 확인할 수 있음."
     },
     {
       step: 6, title: "슬라이딩 윈도우 압축 (maybe_compress)",
+      label: "슬라이딩 윈도우 압축",
+      refs: ["maybe_compress", "summarize"],
       summary: "conversation 개수가 SUMMARY_THRESHOLD(8)를 넘으면, 오래된 메시지를 summarize()로 요약하고 최근 WINDOW_SIZE(6)개만 유지함",
       detail: "메모장이 꽉 차면 오래된 내용을 한 줄 요약으로 바꿔 공간을 확보하는 단계임. summarize()가 LLM을 한 번 더 호출해 오래된 대화를 3~5문장으로 압축함. 이후 API에는 [요약 + 최근 6개]만 보내므로 대화가 아무리 길어져도 토큰 비용이 일정하게 유지됨."
     },
     {
       step: 7, title: "반복",
+      label: "반복",
+      refs: ["main"],
       summary: "사용자가 새 입력을 하면 3번 단계부터 다시 진행함",
       detail: "손님이 추가 질문을 하면 같은 과정을 반복함. 이전 대화가 conversation 또는 summary에 남아 있어, '그럼 제주도 맛집은?'처럼 이어지는 질문도 맥락을 이해함."
     },

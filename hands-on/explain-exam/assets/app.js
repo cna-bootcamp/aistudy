@@ -22,6 +22,7 @@
   };
 
   var DATA = null;
+  var FLOW_BY_FN = {};  // 함수 id → 그 함수가 속한 처리 흐름 단계 { step, title, label } (flow[].refs 로 채움)
   var LS_ZOOM = "explain_code_zoom";
   var codeZoom = parseFloat(localStorage.getItem(LS_ZOOM) || "1.0");  // 코드블록 폰트 배율 (0.5 ~ 2.0)
 
@@ -181,22 +182,51 @@
   // 좌측 메뉴
   // ---------------------------------------------------------------------------
 
+  // 함수 → 처리 흐름 단계 역매핑. flow[].refs(선택 필드)가 있을 때만 채워짐.
+  // 없으면 빈 맵이 되어 아래 렌더는 모두 기존(단계 표시 없는) 동작으로 폴백함.
+  function buildFlowIndex() {
+    FLOW_BY_FN = {};
+    (DATA.flow || []).forEach(function (s) {
+      (s.refs || []).forEach(function (fid) {
+        if (!FLOW_BY_FN[fid]) FLOW_BY_FN[fid] = { step: s.step, title: s.title, label: s.label || s.title };
+      });
+    });
+  }
+
   function buildNav() {
     var html = "";
+
+    // ── 처리 흐름: 전체 흐름 + (refs 가 있을 때만) 단계별 바로가기 ──────────────
+    var stepsWithRefs = (DATA.flow || []).filter(function (s) { return (s.refs || []).length; });
     html += '<div class="nav-group">';
     html += '<div class="nav-group-title flow">처리 흐름</div>';
-    html += '<button type="button" class="nav-item" data-type="flow" data-id="__flow__">전체 실행 흐름</button>';
+    html += '<button type="button" class="nav-item nav-flow-all" data-type="flow" data-id="__flow__">전체 실행 흐름</button>';
+    if (stepsWithRefs.length) {
+      html += '<div class="nav-flow-hint">아래 순서대로 따라가며 코드를 보세요</div>';
+      stepsWithRefs.forEach(function (s) {
+        html += '<button type="button" class="nav-item nav-step" data-type="step" data-id="' + esc(s.step) + '">' +
+          '<span class="nav-step-num">' + esc(s.step) + "</span>" +
+          '<span class="nav-step-tx">' + esc(s.label || s.title) + "</span></button>";
+      });
+    }
     html += "</div>";
 
+    // ── 파일별 함수 (참조용 색인) ──────────────────────────────────────────────
+    var entry = (DATA.meta && DATA.meta.entry) || "";
     (DATA.files || []).forEach(function (file) {
       var fns = (DATA.functions || []).filter(function (fn) { return fn.fileId === file.id; });
       if (!fns.length) return;
+      var isEntry = entry && file.label === entry;
       html += '<div class="nav-group">';
-      html += '<div class="nav-group-title file">' + esc(file.label) + "</div>";
+      html += '<div class="nav-group-title file">' + esc(file.label) +
+        (isEntry ? '<span class="nav-entry-badge">▶ 시작</span>' : "") + "</div>";
       if (file.role) html += '<div class="nav-group-role">' + esc(file.role) + "</div>";
       fns.forEach(function (fn) {
+        var inFlow = FLOW_BY_FN[fn.id];  // 이 함수가 처리 흐름의 몇 단계인지(있으면 작은 배지)
         html += '<button type="button" class="nav-item" data-type="fn" data-id="' + esc(fn.id) + '">' +
-          esc(fn.name) + "</button>";
+          '<span class="nav-fn-name">' + esc(fn.name) + "</span>" +
+          (inFlow ? '<span class="nav-fn-step" title="처리 흐름 ' + esc(inFlow.step) + '단계">' + esc(inFlow.step) + "</span>" : "") +
+          "</button>";
       });
       html += "</div>";
     });
@@ -214,8 +244,17 @@
 
   function selectItem(type, id) {
     setActive(type, id);
-    if (type === "flow") renderFlow();
-    else renderFunction(id);
+    if (type === "flow") {
+      renderFlow();
+    } else if (type === "step") {
+      // 처리 흐름 단계 버튼 → 그 단계의 대표 함수(refs[0]) 소스로 이동
+      var s = (DATA.flow || []).filter(function (f) { return String(f.step) === String(id); })[0];
+      var fid = s && (s.refs || [])[0];
+      if (fid) renderFunction(fid);
+      else renderFlow();
+    } else {
+      renderFunction(id);
+    }
     els.center.scrollTop = 0;
     els.detail.scrollTop = 0;
   }
@@ -226,19 +265,40 @@
 
   function renderFlow() {
     var steps = DATA.flow || [];
+    var anyRefs = steps.some(function (s) { return (s.refs || []).length; });
     var c = '<div class="center-head"><h2>전체 실행 흐름</h2>' +
       '<p class="center-sub">앱이 켜져서 답변을 줄 때까지의 단계입니다. ' +
-      "각 단계에 마우스를 올리면 오른쪽의 자세한 설명과 연결됩니다.</p></div>";
+      (anyRefs
+        ? '각 단계의 <b>코드:</b> 버튼을 누르면 그 단계의 소스로 바로 이동합니다.'
+        : "각 단계에 마우스를 올리면 오른쪽의 자세한 설명과 연결됩니다.") +
+      "</p></div>";
     c += '<div class="flow">';
     steps.forEach(function (s, idx) {
+      var chips = "";
+      (s.refs || []).forEach(function (fid) {
+        var fn = (DATA.functions || []).filter(function (f) { return f.id === fid; })[0];
+        if (fn) chips += '<button type="button" class="flow-ref" data-jump="' + esc(fid) + '">' + esc(fn.name) + "</button>";
+      });
       c += '<div class="flow-step" data-step="' + esc(s.step) + '">' +
         '<div class="flow-num">' + esc(s.step) + "</div>" +
         '<div class="flow-body"><div class="flow-title">' + esc(s.title) + "</div>" +
-        '<div class="flow-sum">' + esc(s.summary) + "</div></div></div>";
+        '<div class="flow-sum">' + esc(s.summary) + "</div>" +
+        (chips ? '<div class="flow-refs"><span class="flow-refs-label">코드:</span>' + chips + "</div>" : "") +
+        "</div></div>";
       if (idx < steps.length - 1) c += '<div class="flow-arrow">&#8595;</div>';
     });
     c += "</div>";
     els.center.innerHTML = c;
+    // 단계 카드의 '코드:' 칩 → 해당 함수 소스로 점프 (카드 자체 클릭과 분리: stopPropagation)
+    var refBtns = els.center.querySelectorAll(".flow-ref");
+    for (var ri = 0; ri < refBtns.length; ri++) {
+      (function (b) {
+        b.addEventListener("click", function (e) {
+          e.stopPropagation();
+          selectItem("fn", b.getAttribute("data-jump"));
+        });
+      })(refBtns[ri]);
+    }
 
     var d = '<div class="detail-head"><h2>단계별 자세한 설명</h2>' +
       '<p class="detail-sub">비유와 함께 각 단계가 무엇을, 왜 하는지 풀어서 설명합니다.</p></div>';
@@ -266,9 +326,16 @@
 
     // 중앙: 소스 코드 (줄 번호 + 구문 강조)
     var hl = highlightPython(fn.code);
+    var ctx = FLOW_BY_FN[fn.id];  // 이 함수가 처리 흐름의 몇 단계인지(있으면 상단에 컨텍스트 배너)
     var c = '<div class="center-head">';
     if (file) c += '<span class="file-badge">' + esc(file.label) + "</span>";
-    c += "<h2>" + esc(fn.name) + "</h2></div>";
+    c += "<h2>" + esc(fn.name) + "</h2>";
+    if (ctx) {
+      c += '<div class="fn-context"><span class="fn-context-tx">처리 흐름 <b>' + esc(ctx.step) +
+        "단계</b> · " + esc(ctx.title) + "</span>" +
+        '<button type="button" class="fn-context-link" data-type="flow" data-id="__flow__">전체 흐름 보기</button></div>';
+    }
+    c += "</div>";
     c += '<div class="code-wrap">';
     c += '<div class="code-zoom-bar">' +
       '<button class="zoom-btn" data-action="out" title="축소">A<sup>−</sup></button>' +
@@ -284,6 +351,8 @@
     c += "</div></div>";
     els.center.innerHTML = c;
     applyZoom(); // 저장된 줌 배율 즉시 적용
+    var ctxLink = els.center.querySelector(".fn-context-link");
+    if (ctxLink) ctxLink.addEventListener("click", function () { selectItem("flow", "__flow__"); });
 
     // 우측: 설명 (요약 -> 동작 원리 -> 줄별 풀이 -> 용어)
     var d = '<div class="detail-head"><h2>이 함수가 하는 일</h2></div>';
@@ -364,6 +433,7 @@
     if (els.title && DATA.meta && DATA.meta.title) els.title.textContent = DATA.meta.title;
     if (els.entry && DATA.meta && DATA.meta.entry) els.entry.textContent = "진입(시작) 파일: " + DATA.meta.entry;
 
+    buildFlowIndex();
     buildNav();
     els.nav.addEventListener("click", function (e) {
       var btn = e.target.closest ? e.target.closest(".nav-item") : null;
