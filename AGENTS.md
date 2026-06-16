@@ -9,6 +9,7 @@
    - Value Oriented: WHY First, Align WHY
    - Interactive: Believe crew, Yes And
    - Iterative: Fast fail, Learn and Pivot
+
 ## 팀원
 프로덕트 오너: 박온
 - 프로파일: 박온/남성/35
@@ -50,53 +51,20 @@ QA 엔지니어: 윤큐
 6) "1) ~ 5)번" 과정을 3번 반복함
 7) 최종으로 선정된 최적안을 제시함
 
-## 마크다운 작성 가이드
-- 문서 작성 시 명사체(명사형 종결어미) 사용
-  - 예시: "~한다" → "~함", "~이다" → "~임", "~된다" → "~됨"
-  - 예시: "지원한다" → "지원", "사용할 수 있다" → "사용 가능"
-- 한 줄은 120자 이내로 작성, 긴 문장은 적절히 줄바꿈
-- 줄바꿈 시 문장 끝에 스페이스 2개 + 줄바꿈
-- 빈 줄(`\n\n`) 없이 줄바꿈하는 모든 경우, 줄 끝에 스페이스 2개 필수
-- 간결하고 객관적인 기술 문서 스타일 유지
- 
-## 코드 주석 작성 가이드
-`hands-on/` 하위 Python 학습 예제 코드 작성 시 `agentic-ai/reference/standard-comment.md`를 참조하여 주석 작성
-
-## LLM Model
-`hands-on/` 하위 Python 학습 예제 코드 작성 시 LLM 모델에 대한 언급이 없으면 아래 모델을 사용  
-- Claude: claude-sonnet-4-6
-- Gemini: gemini-3.5-flash
-- OpenAI: gpt-5.5
-- Groq: openai/gpt-oss-120b
-
 ## Git 연동
 - "pull" 명령어 입력 시 Git pull 명령을 수행하고 충돌이 있을 때 최신 파일로 병합 수행
 - "push" 또는 "푸시" 명령어 입력 시 git add, commit, push를 수행
 - Commit Message는 한글로 함
-
-## 목차 및 구분선
-'agenda:'로 시작하면 목차 및 구분선 추가 요청임.   
-`references/agenda-guide.md`를 참고하여 수행.   
-
-## PPT 작성 가이드 
-`output/` 디렉토리에 `references/ppt-guide.md`를 참조하여 작성 
-
-### 이미지 작성
-- 특정 부분의 내용이 PPT 도형보다 이미지로 작성하는 것이 더 좋다고 판단되는 경우 이미지로 생성  
-- `agentic-ai/tools/generate_image.py'를 실행하여 작성 
-
----
 
 ## Lessons Learned
 - 실행 중 확인된 시행착오와 교훈을 기록한다.
 - 모든 작업 전 이 섹션을 반드시 참고한다.
 
 ### 기록 규칙
-- 실행 중 시행착오 발생 시 Notepad Working Memory에 즉시 기록한다 (`notepad_write_working` 도구 호출)
+- 실행 중 시행착오 발생 시 auto-memory에 기록한다 ("기억해둬: {내용}"으로 지시)
   - 형식: `{agent명}: {문제 요약}. {해결 방법}. {관련 파일}`
 - 반복 검증된 핵심 교훈만 이 섹션(AGENTS.md)에 승격한다 (Edit 도구로 추가)
   - 형식: `- [HIGH/MED] {교훈 한 줄} — {출처: agent명/단계명}`
-- 최대 20항목 유지, 넘으면 오래된 MED부터 정리
 - 기존 항목과 중복되는 내용은 기록하지 않음
 
 ### Lessons Learned
@@ -133,10 +101,42 @@ QA 엔지니어: 윤큐
   ```
   </가상환경설정>
 
-## Advisor 활용 규칙
+## Advisor 활용 규칙: Runtime이 Claude Code인 경우만 수행 
 - Advisor 모델은 Opus 가장 최신 버전으로 설정
 - 실제 작업을 시작하기 전에 먼저 Advisor를 호출
 - 작업 진행 중 Advisor의 자문이 필요하면 호출. 단, 최대 3번까지만 호출
 - 작업 완료 후 한번 더 Advisor를 호출
 - Advisor의 응답은 최대 200자를 초과하지 않게 함
+
+---
+
+## 마크다운 작성 가이드
+- 문서 작성 시 명사체(명사형 종결어미) 사용
+  - 예시: "~한다" → "~함", "~이다" → "~임", "~된다" → "~됨"
+  - 예시: "지원한다" → "지원", "사용할 수 있다" → "사용 가능"
+- 한 줄은 120자 이내로 작성, 긴 문장은 적절히 줄바꿈
+- 줄바꿈 시 문장 끝에 스페이스 2개 + 줄바꿈
+- 빈 줄(`\n\n`) 없이 줄바꿈하는 모든 경우, 줄 끝에 스페이스 2개 필수
+- 간결하고 객관적인 기술 문서 스타일 유지
+ 
+## 코드 주석 작성 가이드
+`hands-on/` 하위 Python 학습 예제 코드 작성 시 `agentic-ai/reference/standard-comment.md`를 참조하여 주석 작성
+
+## LLM Model
+`hands-on/` 하위 Python 학습 예제 코드 작성 시 LLM 모델에 대한 언급이 없으면 아래 모델을 사용  
+- Claude: claude-sonnet-4-6
+- Gemini: gemini-3.5-flash
+- OpenAI: gpt-5.5
+- Groq: openai/gpt-oss-120b
+
+## 목차 및 구분선
+'agenda:'로 시작하면 목차 및 구분선 추가 요청임.   
+`references/agenda-guide.md`를 참고하여 수행.   
+
+## PPT 작성 가이드 
+`output/` 디렉토리에 `references/ppt-guide.md`를 참조하여 작성 
+
+### 이미지 작성
+- 특정 부분의 내용이 PPT 도형보다 이미지로 작성하는 것이 더 좋다고 판단되는 경우 이미지로 생성  
+- `agentic-ai/tools/generate_image.py'를 실행하여 작성 
 
