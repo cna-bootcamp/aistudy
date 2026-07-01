@@ -1,30 +1,41 @@
 ---
 name: explain-exam
-description: 파이썬 예제 코드를 파이썬 모르는 교육생에게 쉽게 설명하는 웹 페이지를 생성함. 예제 디렉터리를 입력받아 공용 셸(hands-on/explain-exam)로 여는 data.js 하나를 작성. "예제 설명 페이지", explain-exam, 예제 코드 설명/해설 페이지 제작 요청 시 사용.
-argument-hint: "<예제 디렉터리 경로>"
+description: 파이썬 예제 코드를 파이썬 모르는 교육생에게 쉽게 설명하는 웹 페이지를 생성함. 예제 디렉터리를 입력받아 공용 셸(기본 hands-on/explain-exam)로 여는 data.js 하나를 작성. "예제 설명 페이지", explain-exam, 예제 코드 설명/해설 페이지 제작 요청 시 사용.
+argument-hint: "<예제 디렉터리 경로> [화면(셸) 디렉터리 경로]"
 ---
 
 # explain-exam — 예제 설명 페이지 생성
 
-입력(예제 디렉터리): $ARGUMENTS
+입력: $ARGUMENTS
+- **1번째 인자 (필수)** = 설명할 예제 디렉터리 경로.
+- **2번째 인자 (선택)** = 화면(셸) 디렉터리 경로.
+  - **생략 시 자동 도출**: 예제를 감싸는 **가장 가까운 상위 `hands-on/` 루트** 아래의 `explain-exam/`.
+    - 예: `hands-on/09.langchain/claude` → `hands-on/explain-exam`
+    - 예: `start-here/hands-on/llm` → `start-here/hands-on/explain-exam`
+  - 이 프로젝트에는 hands-on 트리가 **여럿**(`hands-on/`, `start-here/hands-on/` …) 있고, 각 트리에 자체 `explain-exam/` 셸이 있음. 셸은 **예제와 같은 hands-on 트리** 아래에 있어야 함(launcher가 예제의 상위 hands-on 루트에서 셸을 찾으므로).
+  - 아래 문서에서 `<셸 디렉터리>`는 이 값(예제가 속한 hands-on 트리의 셸)을, `<셸 서브경로>`는 그 hands-on 루트 기준 셸 상대경로(기본 `explain-exam`)를 가리킴.
 
 파이썬을 전혀 모르는 교육생이 예제 코드를 이해하도록, 3분할 웹 페이지로 설명함.
 좌측(처리 흐름 + 파일별 함수) · 중앙(소스 코드) · 우측(요약→동작원리→줄별 풀이→용어) 구조.
 
 ## 핵심 원칙
-- 화면(셸)은 `hands-on/explain-exam/`에 이미 있음. **수정하지 않음**.
+- 화면(셸)은 `<셸 디렉터리>`(기본 `hands-on/explain-exam/`)에 이미 있음. **수정하지 않음**.
 - 예제마다 **`data.js` 하나만** 새로 작성하여 페이지를 구성함.
 - 교육생은 코드를 "읽기만" 함. 설치·서버·파이썬 실행 없이 브라우저로 봄.
 
 ## 산출물
 - `<예제 디렉터리>/explain/data.js` — 예제별 콘텐츠 (핵심 생성물)
-- `<예제 디렉터리>/explain/index.html` — 더블클릭 launcher (모든 예제 **동일 파일**, 아래 "launcher 템플릿"을 그대로 복사)
-- 공용 셸(`hands-on/explain-exam/index.html`, `assets/`, `verify-data.js`)은 건드리지 않음
+- `<예제 디렉터리>/explain/index.html` — 더블클릭 launcher (같은 셸을 쓰는 예제끼리는 **동일 파일**; `<셸 서브경로>`만 다름. 아래 "launcher 템플릿"을 복사하며 셸 서브경로를 채움)
+- 공용 셸(`<셸 디렉터리>/index.html`, `assets/`, `verify-data.js`)은 건드리지 않음
 
 ## 처리 절차
 
 ### 1. 입력 확인
-- `$ARGUMENTS`가 비면, 설명할 예제(메인 `.py`)가 있는 디렉터리를 사용자에게 물음.
+- `$ARGUMENTS`의 **1번째 인자**(예제 디렉터리)가 비면, 설명할 예제(메인 `.py`)가 있는 디렉터리를 사용자에게 물음.
+- **2번째 인자**(화면 셸 디렉터리)가 있으면 그 값을 `<셸 디렉터리>`로 사용함. 없으면 예제 경로에서 **가장 가까운 상위 `hands-on/` 루트**를 찾아 `<그 루트>/explain-exam`으로 자동 도출함.
+  - `<셸 디렉터리>`에 셸 파일(`index.html`, `assets/`, `verify-data.js`)이 실제로 있는지 확인함. 없으면 사용자에게 알림(그 트리에 셸이 아직 없을 수 있음).
+  - `<셸 서브경로>` = `<셸 디렉터리>`의, **예제의 상위 hands-on 루트 기준** 상대경로(기본 `explain-exam`, 예: `start-here/hands-on/explain-exam`는 루트 `start-here/hands-on/` 기준 `explain-exam`).
+  - `<셸 디렉터리>`가 예제의 상위 hands-on 루트 아래가 아니면 launcher가 셸을 못 찾으므로 중단하고 사용자에게 알림.
 - 메인 예제 파일(보통 `streamlit run` 대상 또는 `if __name__ == "__main__"` 있는 파일)을 식별함.
 
 ### 2. 예제 분석 (다중 파일 필수)
@@ -40,13 +51,15 @@ argument-hint: "<예제 디렉터리 경로>"
 - 줄별 풀이(`lines`)는 줄 번호가 아니라 **앵커(`at`: 코드 안의 부분 문자열)**로 작성함.
 
 ### 3-1. launcher 복사
-- `<예제 디렉터리>/explain/index.html` 에 아래 "launcher 템플릿"을 **그대로** 둠(모든 예제 동일, 수정 불필요).
-- 이 launcher는 같은 폴더의 `data.js` 를 공용 셸로 자동 연결함 → 교육생이 **이 index.html 만 더블클릭**하면 됨.
+- `<예제 디렉터리>/explain/index.html` 에 아래 "launcher 템플릿"을 복사하되, 템플릿 안 `SHELL_SUB` 값을 **`<셸 서브경로>`**(기본 `explain-exam`)로 채움.
+- 기본 셸을 쓰면 모든 예제가 동일 파일임(수정 불필요). 다른 셸을 쓰면 `SHELL_SUB`만 그 셸의 서브경로로 바뀜.
+- 이 launcher는 같은 폴더의 `data.js` 를 화면 셸로 자동 연결함 → 교육생이 **이 index.html 만 더블클릭**하면 됨.
 - 경로는 launcher가 `hands-on/` 기준으로 동적 계산하므로 `../` 개수를 직접 세지 않음(깊이 무관).
 
 ### 4. 검증 (게이트 — 필수)
 ```bash
-node hands-on/explain-exam/verify-data.js <예제 디렉터리>/explain/data.js
+node <셸 디렉터리>/verify-data.js <예제 디렉터리>/explain/data.js
+# 기본 셸 예: node hands-on/explain-exam/verify-data.js <예제 디렉터리>/explain/data.js
 ```
 - 결과가 **`VERIFY: PASS (오류 0건)`** 이어야 함. 실패 시 메시지대로 고치고 재실행.
 
@@ -54,12 +67,13 @@ node hands-on/explain-exam/verify-data.js <예제 디렉터리>/explain/data.js
 - 로컬 HTTP 또는 headless Chrome로 file:// 렌더를 확인함(아래 "테스트" 참고).
 
 ### 6. 실습 인덱스 추가
-- `hands-on/index.html` 의 적절한 위치에 `<예제 디렉터리>` 항목을 추가하여 교육생이 쉽게 찾도록 함.
+- **예제가 속한 hands-on 루트**의 `index.html`(예: `hands-on/index.html`, `start-here/hands-on/index.html`)의 적절한 위치에 `<예제 디렉터리>` 항목을 추가하여 교육생이 쉽게 찾도록 함.
+- 그 트리에 `index.html`이 없으면 이 단계는 건너뜀(없다고 실패로 보지 않음).
 
 ### 7. 사용자 안내
-- 가장 간단한 방법: **`<예제 디렉터리>/explain/index.html` 을 더블클릭** (launcher가 공용 셸로 자동 연결).
-- 또는 직접 열기: `hands-on/explain-exam/index.html?data=<예제 data.js 상대경로>`
-  - 예: `hands-on/explain-exam/index.html?data=../09.langchain/claude/explain/data.js`
+- 가장 간단한 방법: **`<예제 디렉터리>/explain/index.html` 을 더블클릭** (launcher가 화면 셸로 자동 연결).
+- 또는 직접 열기: `<셸 디렉터리>/index.html?data=<예제 data.js 상대경로>`
+  - 예(기본 셸): `hands-on/explain-exam/index.html?data=../09.langchain/claude/explain/data.js`
 
 ## data.js 스키마 (고정 계약 — 셸이 이 구조에만 의존)
 
@@ -99,7 +113,7 @@ window.EXPLAIN_DATA = {
   좌측 단계 바로가기·중앙 "코드:" 칩·함수 화면 상단 "처리 흐름 N단계" 배너로 렌더됨. 깨끗이 대응되는 함수가 없는
   단계는 `refs`를 **생략**함(억지 매칭 금지 = graceful degrade). 모범사례: `16.mas/patent-mas/mas-a/explain/data.js`.
 
-## launcher 템플릿 (`<예제>/explain/index.html` — 모든 예제 동일, 그대로 복사)
+## launcher 템플릿 (`<예제>/explain/index.html` — `SHELL_SUB`만 `<셸 서브경로>`로 채우고 나머지는 그대로 복사; 기본 셸이면 모든 예제 동일)
 
 ```html
 <!DOCTYPE html>
@@ -108,8 +122,8 @@ window.EXPLAIN_DATA = {
   <meta charset="utf-8" />
   <title>예제 설명 페이지로 이동…</title>
   <script>
-    // 같은 폴더의 data.js 를 공용 셸(hands-on/explain-exam)로 열어 줌.
-    // hands-on 아래 어느 깊이의 예제든 동작하도록 경로를 동적 계산함(상대경로 → file:// 안전).
+    // 같은 폴더의 data.js 를, 예제가 속한 hands-on 트리의 화면 셸(기본 explain-exam)로 열어 줌.
+    // 가장 가까운 상위 /hands-on/ 을 앵커로 삼아, 어느 hands-on 트리·깊이든 동작하도록 경로를 동적 계산함(상대경로 → file:// 안전).
     (function () {
       var here = location.href.split(/[?#]/)[0];
       var i = here.lastIndexOf("/hands-on/");
@@ -119,10 +133,13 @@ window.EXPLAIN_DATA = {
         });
         return;
       }
+      // 화면 셸의 (예제의 상위 hands-on 루트 기준) 상대경로. 기본 "explain-exam".
+      // 다른 셸을 쓰면 스킬이 이 값을 <셸 서브경로>로 바꿔 씀.
+      var SHELL_SUB = "explain-exam";
       var rel = here.slice(i + "/hands-on/".length);  // 예: 09.langchain/claude/explain/index.html
       var dir = rel.replace(/[^\/]*$/, "");           // 예: 09.langchain/claude/explain/
       var depth = (dir.match(/\//g) || []).length;    // 예: 3
-      var shell = "../".repeat(depth) + "explain-exam/index.html";
+      var shell = "../".repeat(depth) + SHELL_SUB + "/index.html";
       location.replace(shell + "?data=../" + dir + "data.js");
     })();
   </script>
@@ -153,7 +170,7 @@ window.EXPLAIN_DATA = {
 
 ## MUST NOT
 - 교육생에게 빌드·서버·파이썬 실행을 요구하지 않음.
-- 공용 셸(`explain-exam/index.html`, `assets/`)을 예제마다 복사·수정하지 않음.
+- 공용 셸(`<셸 디렉터리>/index.html`, `assets/`)을 예제마다 복사·수정하지 않음.
 - 예제 코드를 실행하거나 외부 API를 호출하지 않음(정적 설명 전용).
 - 영문 위주 설명 금지(한국어 기준, 기술 용어만 원어 병기).
 
@@ -171,16 +188,16 @@ window.EXPLAIN_DATA = {
   (동적 스크립트 로드가 끝나기 전 캡처되면 false blank가 나므로 budget 필수).
 
 ## 완료조건
-- `node hands-on/explain-exam/verify-data.js <data.js>` → `VERIFY: PASS`.
+- `node <셸 디렉터리>/verify-data.js <data.js>` → `VERIFY: PASS`.
 - 좌측에 처리 흐름 + 함수가 파일별로 표시(메인 + 의존 모듈 전부).
 - 함수 클릭 시 중앙 소스 + 우측 요약·동작원리·줄별 풀이·용어가 표시되고, 줄별 풀이의 줄 번호가 코드와 일치.
-- `explain-exam/index.html?data=<상대경로>`로 열면 빈 화면·한글 깨짐 없이 렌더됨.
-- `hands-on/index.html` 의 적절한 위치에 `<예제 디렉터리>` 항목이 추가 되어 있음.
+- `<셸 디렉터리>/index.html?data=<상대경로>`로 열면 빈 화면·한글 깨짐 없이 렌더됨.
+- 예제가 속한 hands-on 트리의 `index.html`이 있으면, 그 파일에 `<예제 디렉터리>` 항목이 추가되어 있음.
 
 ## 테스트 방법 (참고)
 로컬 HTTP:
 ```bash
-# explain-exam 디렉터리에서
+# <셸 디렉터리>에서 (기본: hands-on/explain-exam, 예: start-here/hands-on/explain-exam)
 python -m http.server 8777 --bind 127.0.0.1
 # 브라우저: http://127.0.0.1:8777/index.html?data=../<예제>/explain/data.js
 ```
@@ -188,6 +205,6 @@ headless Chrome로 file:// (Windows 예):
 ```powershell
 & "C:\Program Files\Google\Chrome\Application\chrome.exe" --headless=new --disable-gpu `
   --screenshot="$env:TEMP\explain.png" --window-size=1600,1000 --virtual-time-budget=6000 `
-  "file:///<레포 절대경로>/hands-on/explain-exam/index.html?data=../<예제>/explain/data.js"
+  "file:///<레포 절대경로>/<셸 디렉터리>/index.html?data=../<예제>/explain/data.js"
 # 생성된 explain.png 를 열어 3분할이 보이고 한글이 정상인지 확인
 ```

@@ -1,0 +1,13 @@
+# LangChain core
+langchain>=1.0
+langchain-core>=1.0
+# Groq model wrapper for LangChain
+langchain-groq>=0.2.0
+# LangGraph runtime (StateGraph, MemorySaver, add_messages)
+langgraph>=1.0
+# Streamlit web chat UI
+streamlit>=1.40.0
+# Environment variable loader
+python-dotenv>=1.0.0
+# HTTP requests library (travel tools: weather, places API)
+requests>=2.31.0
