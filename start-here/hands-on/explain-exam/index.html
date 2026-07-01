@@ -5,6 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>예제 설명 페이지</title>
   <link rel="stylesheet" href="assets/style.css?v=8" />
+  <style>
+    /* 데이터 없이 열었을 때 보여주는 예제 리스트 화면 전용 스타일 */
+    body.list-mode {
+      margin: 0; background: #f6f7f9; color: #1f2430;
+      font-family: system-ui, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      line-height: 1.55;
+    }
+    .list-wrap { max-width: 1000px; margin: 0 auto; padding: 36px 20px 64px; }
+    .list-wrap header h1 { font-size: 1.9rem; margin: 0 0 6px; }
+    .list-wrap header p { margin: 0; color: #6b7280; font-size: 1.08rem; }
+    .list-stats { margin: 16px 0 26px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .list-stat {
+      background: #fff; border: 1px solid #e5e8ec; border-radius: 10px;
+      padding: 8px 14px; font-size: 1.02rem; color: #6b7280;
+    }
+    .list-stat b { color: #1f2430; font-size: 1.22rem; margin-right: 4px; }
+    .list-chapter {
+      margin: 26px 0 12px; font-size: 1.16rem; font-weight: 700; color: #111827;
+      border-left: 4px solid #2563eb; padding-left: 10px;
+    }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+    .ex-card {
+      display: flex; flex-direction: column; gap: 8px;
+      background: #fff; border: 1px solid #e5e8ec; border-radius: 12px;
+      padding: 16px 18px; box-shadow: 0 1px 2px rgba(0,0,0,.03);
+      transition: box-shadow .15s, border-color .15s;
+    }
+    .ex-card:hover { box-shadow: 0 3px 12px rgba(0,0,0,.08); border-color: #cfe0ff; }
+    .ex-name { font-size: 1.16rem; font-weight: 700; color: #1f2430; }
+    .ex-file {
+      align-self: flex-start; background: #f1f3f5; color: #374151; border-radius: 6px;
+      padding: 2px 8px; font-size: 0.9rem;
+      font-family: "Cascadia Code", Consolas, monospace; word-break: break-all;
+    }
+    .ex-desc { color: #374151; font-size: 1.0rem; flex: 1; }
+    .ex-actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+    .ex-actions a {
+      text-decoration: none; font-weight: 600; font-size: 0.98rem;
+      padding: 7px 12px; border-radius: 8px; display: inline-block;
+    }
+    .ex-actions a.primary { color: #fff; background: #2563eb; border: 1px solid #2563eb; }
+    .ex-actions a.primary:hover { background: #1d4ed8; }
+    .ex-actions a.ghost { color: #2563eb; background: #eff4ff; border: 1px solid #cfe0ff; }
+    .ex-actions a.ghost:hover { background: #e0eaff; }
+    .ex-actions a.viz { color: #fff; background: #0ea5a3; border: 1px solid #0ea5a3; }
+    .ex-actions a.viz:hover { background: #0c8f8d; }
+    .list-empty {
+      background: #fff; border: 1px dashed #cbd2da; border-radius: 12px;
+      padding: 28px; text-align: center; color: #6b7280;
+    }
+    .list-footer { margin-top: 30px; color: #6b7280; font-size: 0.96rem; }
+    .list-footer code { background: #eceff3; padding: 1px 6px; border-radius: 5px; }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -38,132 +91,203 @@
   </footer>
 
   <!--
-    이 셸(index.html + assets/)은 모든 예제가 공유함. 예제별 콘텐츠는 data.js 하나뿐임.
-    여는 방법: index.html?data=<예제 data.js 까지의 상대경로>
-      예) index.html?data=../09.langchain/claude/explain/data.js
+    이 셸(index.html + assets/)은 여러 예제가 공유함.
+      · 주소에 ?data=<예제 data.js 상대경로> 가 있으면 그 예제 설명 화면을 렌더링함.
+      · 없으면 examples.js(레지스트리)를 읽어 "예제 리스트"를 보여줌.
+    예) index.html?data=../llm/explain/data.js
     app.js 가 위 경로를 동적 <script> 로 주입해 불러옴 (file:// 에서도 안전, fetch 미사용).
   -->
-  <script src="assets/app.js?v=8" charset="utf-8"></script>
+  <script src="examples.js?v=1" charset="utf-8"></script>
   <script>
   (function () {
-    var LS_COLS      = 'explain_panel_cols';
-    var LS_NAV_W     = 'explain_nav_width';
-    var LS_COLLAPSED = 'explain_nav_collapsed';
-    var COLLAPSED_RL = 22; // 접힌 상태의 resizer-left 너비
-
-    var layout    = document.querySelector('.layout');
-    var rLeft     = document.getElementById('resizer-left');
-    var rRight    = document.getElementById('resizer-right');
-    var navToggle = document.getElementById('nav-toggle');
-    if (!layout || !rLeft || !rRight) return;
-
-    var isCollapsed = localStorage.getItem(LS_COLLAPSED) === '1';
-
-    // ── 저장된 패널 크기 복원 ──────────────────────────────────────
-    var saved = localStorage.getItem(LS_COLS);
-    if (saved) layout.style.gridTemplateColumns = saved;
-
-    // ── 현재 열 너비 읽기 ──────────────────────────────────────────
-    function getCols() {
-      var s = window.getComputedStyle(layout).gridTemplateColumns.split(' ');
-      return { nav: parseFloat(s[0]), rl: parseFloat(s[1]),
-               cen: parseFloat(s[2]), rr: parseFloat(s[3]), det: parseFloat(s[4]) };
+    // ── ?data= 또는 #data= 유무 판정 (app.js getDataPath()와 동일 규약) ──
+    function hasDataParam() {
+      try { if (new URLSearchParams(location.search).get("data")) return true; }
+      catch (e) { /* 구형 브라우저 대비 */ }
+      return (location.hash || "").indexOf("#data=") === 0;
     }
 
-    // ── 접기/펼치기 적용 (해제된 nav 공간을 cen/det에 비례 배분) ──
-    function applyCollapse() {
-      var c     = getCols();
-      var total = c.cen + c.det;
-      var ratio = total > 0 ? c.cen / total : 0.6;
+    if (hasDataParam()) {
+      loadShell();      // 예제 지정됨 → 공용 설명 화면(셸)
+    } else {
+      renderList();     // 예제 미지정 → 예제 리스트
+    }
 
-      if (isCollapsed) {
-        // nav가 사라지면서 생긴 공간 → cen + det 에 비례 배분
-        var freed = c.nav + (c.rl - COLLAPSED_RL); // rl: 5→22 이므로 -17
-        var newCen = Math.max(160, Math.round(c.cen + freed * ratio));
-        var newDet = Math.max(160, Math.round(c.det + freed * (1 - ratio)));
-        layout.style.gridTemplateColumns =
-          '0px ' + COLLAPSED_RL + 'px ' + newCen + 'px 5px ' + newDet + 'px';
-        layout.classList.add('nav-collapsed');
-        if (navToggle) { navToggle.textContent = '▶'; navToggle.title = '패널 펼치기'; }
+    // ── 예제 설명 화면: 공용 셸(app.js) 로드 + 패널 리사이즈 초기화 ──
+    function loadShell() {
+      var s = document.createElement("script");
+      s.src = "assets/app.js?v=8";
+      s.charset = "utf-8";
+      s.onload = initResizers;
+      document.body.appendChild(s);
+    }
+
+    // ── 예제 리스트 렌더링(examples.js의 window.EXAMPLE_INDEX 기반) ──
+    function esc(v) {
+      return String(v == null ? "" : v)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderList() {
+      var items = Array.isArray(window.EXAMPLE_INDEX) ? window.EXAMPLE_INDEX : [];
+
+      // chapter 별로 묶기(입력 순서 유지)
+      var order = [], groups = {};
+      items.forEach(function (it) {
+        var ch = it.chapter || "기타";
+        if (!groups[ch]) { groups[ch] = []; order.push(ch); }
+        groups[ch].push(it);
+      });
+
+      var html = '<div class="list-wrap">'
+        + '<header><h1>start-here · hands-on 예제 설명 페이지</h1>'
+        + '<p>실습 예제별 "코드 설명 페이지(explain)" 목록입니다. 파이썬을 몰라도 코드 흐름을 쉽게 따라갈 수 있습니다.</p></header>'
+        + '<div class="list-stats"><span class="list-stat"><b>' + items.length + '</b>개 예제</span>'
+        + '<span class="list-stat"><b>' + order.length + '</b>개 그룹</span></div>';
+
+      if (items.length === 0) {
+        html += '<div class="list-empty">아직 등록된 예제가 없습니다. '
+          + '<code>examples.js</code>의 <code>EXAMPLE_INDEX</code>에 항목을 추가하세요.</div>';
       } else {
-        // cen + det 에서 nav 공간 돌려받기
-        var navW      = parseFloat(localStorage.getItem(LS_NAV_W)) || 280;
-        var freedBack = navW + 5 - COLLAPSED_RL; // rl: 22→5 이므로 navW - 17
-        var newCen = Math.max(160, Math.round(c.cen - freedBack * ratio));
-        var newDet = Math.max(160, Math.round(c.det - freedBack * (1 - ratio)));
-        layout.style.gridTemplateColumns =
-          navW + 'px 5px ' + newCen + 'px 5px ' + newDet + 'px';
-        layout.classList.remove('nav-collapsed');
-        if (navToggle) { navToggle.textContent = '◀'; navToggle.title = '패널 접기'; }
-        localStorage.setItem(LS_COLS, layout.style.gridTemplateColumns);
+        order.forEach(function (ch) {
+          html += '<div class="list-chapter">' + esc(ch) + '</div><div class="card-grid">';
+          groups[ch].forEach(function (it) {
+            html += '<div class="ex-card">'
+              + '<div class="ex-name">' + esc(it.name) + '</div>'
+              + (it.file ? '<div class="ex-file">' + esc(it.file) + '</div>' : '')
+              + '<div class="ex-desc">' + esc(it.desc) + '</div>'
+              + '<div class="ex-actions">'
+              + '<a class="primary" href="' + esc(it.link) + '">📖 설명 보기</a>'
+              + (it.web ? '<a class="viz" href="' + esc(it.web) + '" target="_blank" rel="noopener">📊 가시화 설명</a>' : '')
+              + (it.readme ? '<a class="ghost" href="' + esc(it.readme) + '" target="_blank" rel="noopener">📄 README</a>' : '')
+              + '</div></div>';
+          });
+          html += '</div>';
+        });
       }
-      localStorage.setItem(LS_COLLAPSED, isCollapsed ? '1' : '0');
+
+      html += '<div class="list-footer">각 링크는 예제 폴더의 <code>explain/index.html</code>(launcher)로 연결되며, '
+        + '공용 셸 <code>explain-exam/</code>이 <code>data.js</code>를 읽어 렌더링합니다.</div></div>';
+
+      document.body.className = "list-mode";
+      document.body.innerHTML = html;
+      document.title = "start-here · hands-on 예제 설명 페이지 목록";
     }
 
-    if (isCollapsed) applyCollapse();
+    // ── 패널 좌우 크기 조절 / 접기·펼치기 (예제 설명 화면에서만 사용) ──
+    function initResizers() {
+      var LS_COLS      = 'explain_panel_cols';
+      var LS_NAV_W     = 'explain_nav_width';
+      var LS_COLLAPSED = 'explain_nav_collapsed';
+      var COLLAPSED_RL = 22; // 접힌 상태의 resizer-left 너비
 
-    // ── 토글 버튼 클릭 ─────────────────────────────────────────────
-    if (navToggle) {
-      navToggle.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (!isCollapsed) {
-          localStorage.setItem(LS_NAV_W, getCols().nav); // 현재 nav 너비 저장
+      var layout    = document.querySelector('.layout');
+      var rLeft     = document.getElementById('resizer-left');
+      var rRight    = document.getElementById('resizer-right');
+      var navToggle = document.getElementById('nav-toggle');
+      if (!layout || !rLeft || !rRight) return;
+
+      var isCollapsed = localStorage.getItem(LS_COLLAPSED) === '1';
+
+      var saved = localStorage.getItem(LS_COLS);
+      if (saved) layout.style.gridTemplateColumns = saved;
+
+      function getCols() {
+        var s = window.getComputedStyle(layout).gridTemplateColumns.split(' ');
+        return { nav: parseFloat(s[0]), rl: parseFloat(s[1]),
+                 cen: parseFloat(s[2]), rr: parseFloat(s[3]), det: parseFloat(s[4]) };
+      }
+
+      function applyCollapse() {
+        var c     = getCols();
+        var total = c.cen + c.det;
+        var ratio = total > 0 ? c.cen / total : 0.6;
+
+        if (isCollapsed) {
+          var freed = c.nav + (c.rl - COLLAPSED_RL);
+          var newCen = Math.max(160, Math.round(c.cen + freed * ratio));
+          var newDet = Math.max(160, Math.round(c.det + freed * (1 - ratio)));
+          layout.style.gridTemplateColumns =
+            '0px ' + COLLAPSED_RL + 'px ' + newCen + 'px 5px ' + newDet + 'px';
+          layout.classList.add('nav-collapsed');
+          if (navToggle) { navToggle.textContent = '▶'; navToggle.title = '패널 펼치기'; }
+        } else {
+          var navW      = parseFloat(localStorage.getItem(LS_NAV_W)) || 280;
+          var freedBack = navW + 5 - COLLAPSED_RL;
+          var newCen = Math.max(160, Math.round(c.cen - freedBack * ratio));
+          var newDet = Math.max(160, Math.round(c.det - freedBack * (1 - ratio)));
+          layout.style.gridTemplateColumns =
+            navW + 'px 5px ' + newCen + 'px 5px ' + newDet + 'px';
+          layout.classList.remove('nav-collapsed');
+          if (navToggle) { navToggle.textContent = '◀'; navToggle.title = '패널 접기'; }
+          localStorage.setItem(LS_COLS, layout.style.gridTemplateColumns);
         }
-        isCollapsed = !isCollapsed;
-        applyCollapse();
-        // 펼칠 때 전체 레이아웃 col 저장
-        if (!isCollapsed) localStorage.setItem(LS_COLS, layout.style.gridTemplateColumns);
-      });
-    }
+        localStorage.setItem(LS_COLLAPSED, isCollapsed ? '1' : '0');
+      }
 
-    // ── 드래그 리사이즈 ───────────────────────────────────────────
-    function initResize(resizer, which) {
-      resizer.addEventListener('mousedown', function (e) {
-        if (e.target === navToggle) return;          // 토글 버튼 클릭은 제외
-        if (isCollapsed && which === 'left') return; // 접힌 상태에서 좌측 드래그 비활성
-        e.preventDefault();
-        var startX     = e.clientX;
-        var startNavW  = document.getElementById('nav').offsetWidth;
-        var startCentW = document.getElementById('center').offsetWidth;
-        var startDetW  = document.getElementById('detail').offsetWidth;
-        resizer.classList.add('dragging');
-        document.body.style.cursor     = 'col-resize';
-        document.body.style.userSelect = 'none';
+      if (isCollapsed) applyCollapse();
 
-        function onMove(e) {
-          var dx = e.clientX - startX;
-          var navW, centW, detW;
-          if (which === 'left') {
-            navW  = Math.max(120, startNavW  + dx);
-            centW = Math.max(160, startCentW - (navW - startNavW));
-            detW  = startDetW;
-          } else {
-            navW  = startNavW;
-            centW = Math.max(160, startCentW + dx);
-            detW  = Math.max(160, startDetW  - (centW - startCentW));
+      if (navToggle) {
+        navToggle.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (!isCollapsed) {
+            localStorage.setItem(LS_NAV_W, getCols().nav);
           }
-          layout.style.gridTemplateColumns = navW + 'px 5px ' + centW + 'px 5px ' + detW + 'px';
-        }
+          isCollapsed = !isCollapsed;
+          applyCollapse();
+          if (!isCollapsed) localStorage.setItem(LS_COLS, layout.style.gridTemplateColumns);
+        });
+      }
 
-        function onUp() {
-          resizer.classList.remove('dragging');
-          document.body.style.cursor     = '';
-          document.body.style.userSelect = '';
-          var cols = layout.style.gridTemplateColumns;
-          localStorage.setItem(LS_COLS, cols);
-          if (which === 'left')
-            localStorage.setItem(LS_NAV_W, document.getElementById('nav').offsetWidth);
-          document.removeEventListener('mousemove', onMove);
-          document.removeEventListener('mouseup',   onUp);
-        }
+      function initResize(resizer, which) {
+        resizer.addEventListener('mousedown', function (e) {
+          if (e.target === navToggle) return;
+          if (isCollapsed && which === 'left') return;
+          e.preventDefault();
+          var startX     = e.clientX;
+          var startNavW  = document.getElementById('nav').offsetWidth;
+          var startCentW = document.getElementById('center').offsetWidth;
+          var startDetW  = document.getElementById('detail').offsetWidth;
+          resizer.classList.add('dragging');
+          document.body.style.cursor     = 'col-resize';
+          document.body.style.userSelect = 'none';
 
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup',   onUp);
-      });
+          function onMove(e) {
+            var dx = e.clientX - startX;
+            var navW, centW, detW;
+            if (which === 'left') {
+              navW  = Math.max(120, startNavW  + dx);
+              centW = Math.max(160, startCentW - (navW - startNavW));
+              detW  = startDetW;
+            } else {
+              navW  = startNavW;
+              centW = Math.max(160, startCentW + dx);
+              detW  = Math.max(160, startDetW  - (centW - startCentW));
+            }
+            layout.style.gridTemplateColumns = navW + 'px 5px ' + centW + 'px 5px ' + detW + 'px';
+          }
+
+          function onUp() {
+            resizer.classList.remove('dragging');
+            document.body.style.cursor     = '';
+            document.body.style.userSelect = '';
+            var cols = layout.style.gridTemplateColumns;
+            localStorage.setItem(LS_COLS, cols);
+            if (which === 'left')
+              localStorage.setItem(LS_NAV_W, document.getElementById('nav').offsetWidth);
+            document.removeEventListener('mousemove', onMove);
+            document.removeEventListener('mouseup',   onUp);
+          }
+
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup',   onUp);
+        });
+      }
+
+      initResize(rLeft,  'left');
+      initResize(rRight, 'right');
     }
-
-    initResize(rLeft,  'left');
-    initResize(rRight, 'right');
   })();
   </script>
 </body>

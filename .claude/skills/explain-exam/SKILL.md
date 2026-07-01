@@ -67,8 +67,12 @@ node <셸 디렉터리>/verify-data.js <예제 디렉터리>/explain/data.js
 - 로컬 HTTP 또는 headless Chrome로 file:// 렌더를 확인함(아래 "테스트" 참고).
 
 ### 6. 실습 인덱스 추가
-- **예제가 속한 hands-on 루트**의 `index.html`(예: `hands-on/index.html`, `start-here/hands-on/index.html`)의 적절한 위치에 `<예제 디렉터리>` 항목을 추가하여 교육생이 쉽게 찾도록 함.
-- 그 트리에 `index.html`이 없으면 이 단계는 건너뜀(없다고 실패로 보지 않음).
+- 예제가 속한 hands-on 트리의 **목록**에 이 예제를 등록해 교육생이 쉽게 찾게 함. 트리마다 목록 방식이 다르므로 아래 순서로 판단:
+  1. `<셸 디렉터리>/examples.js`(레지스트리, `window.EXAMPLE_INDEX` 배열)가 있으면 **거기에 항목 1개를 append**함
+     (`{chapter, name, file, desc, link:"../<예제>/explain/index.html", readme}`). 이러면 셸 `index.html`을 data 없이 열 때 리스트에 자동 표시됨. (예: `start-here/hands-on/explain-exam/examples.js`)
+     - `<예제 디렉터리>/web/index.html`(가시화 페이지)이 **있으면** 항목에 `web:"../<예제>/web/index.html"`도 넣음 → 카드에 "가시화 설명" 버튼이 표시됨. 없으면 생략.
+  2. 레지스트리가 없고 트리 루트에 `index.html`(예제 목록 페이지, 예: `hands-on/index.html`)이 있으면 적절한 위치에 `<예제 디렉터리>` 항목을 추가함.
+  3. 둘 다 없으면 이 단계는 건너뜀(없다고 실패로 보지 않음).
 
 ### 7. 사용자 안내
 - 가장 간단한 방법: **`<예제 디렉터리>/explain/index.html` 을 더블클릭** (launcher가 화면 셸로 자동 연결).

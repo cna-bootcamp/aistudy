@@ -27,7 +27,7 @@ from pathlib import Path
 # launcher가 URL에서 `/hands-on/` 구간을 찾으므로, 서버 루트는 hands-on/의 상위로 둠
 HANDS_ON_DIR = Path(__file__).resolve().parent
 ROOT = HANDS_ON_DIR.parent
-DEFAULT_PORT = 8123
+DEFAULT_PORT = 8124  # hands-on/explain.py(8123)와 겹치지 않게 다른 포트 사용
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -74,12 +74,19 @@ def parse_args(argv):
 def find_entry_path():
     """진입 URL로 쓸, ROOT 기준 상대경로를 정함.
 
-    `hands-on/index.html`(예제 목록)이 있으면 그것을, 없으면 발견된 첫 번째
-    `*/explain/index.html`(설명 페이지)을 씀. 둘 다 없으면 hands-on/ 자체를 엶.
+    우선순위:
+      1) `hands-on/index.html`(예제 목록 페이지)이 있으면 그것
+      2) 공용 셸 `explain-exam/index.html` — data 파라미터 없이 열면 예제 리스트를 보여줌
+      3) 발견된 첫 번째 `*/explain/index.html`(개별 설명 페이지)
+      4) 위 모두 없으면 hands-on/ 디렉터리 자체
     """
     index_html = HANDS_ON_DIR / "index.html"
     if index_html.exists():
         return index_html.relative_to(ROOT).as_posix()
+
+    shell_index = HANDS_ON_DIR / "explain-exam" / "index.html"
+    if shell_index.exists():
+        return shell_index.relative_to(ROOT).as_posix()
 
     explain_pages = sorted(HANDS_ON_DIR.glob("*/explain/index.html"))
     if explain_pages:
