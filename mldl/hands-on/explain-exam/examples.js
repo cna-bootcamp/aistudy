@@ -15,6 +15,14 @@
 window.EXAMPLE_INDEX = [
   {
     chapter: "언어모델 종합실습",
+    name: "mini-transformer",
+    file: "demo.py · mini_transformer.py",
+    desc: "미니 트랜스포머(인코더-디코더) 워밍업 — '하늘에 먹구름이 보이면?' 질문→답으로 어텐션·순차 생성(마스킹)·크로스 어텐션을 눈으로 확인",
+    link: "../mini-transformer/explain/index.html",
+    readme: "https://github.com/cna-bootcamp/aistudy/tree/main/mldl/hands-on/mini-transformer",
+  },
+  {
+    chapter: "언어모델 종합실습",
     name: "llm",
     file: "attention_demo.py · train.py · translate.py",
     desc: "밑바닥부터 만드는 미니 Transformer 언어모델 — Self-Attention → 모델 조립 → 학습 → 번역(Cross-Attention)",
