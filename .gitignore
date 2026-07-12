@@ -71,3 +71,4 @@ vectordb/
 *.parquet
 vdb_*.json
 data/output/
+start-here/hands-on/voc-translate/transformer_translate_colab_answers.ipynb
