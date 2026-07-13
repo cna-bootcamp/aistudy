@@ -1,0 +1,167 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "multiturn-chatbot",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/02.multiturn/chatbot/travel_planner.py", "--server.port", "8501", "--server.headless", "true"],
+      "port": 8501
+    },
+    {
+      "name": "fc-claude",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/08.function-call/claude/travel_planner.py", "--server.port", "8502", "--server.headless", "true"],
+      "port": 8502
+    },
+    {
+      "name": "fc-claude-streaming",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/08.function-call/claude/streaming/travel_planner.py", "--server.port", "8503", "--server.headless", "true"],
+      "port": 8503
+    },
+    {
+      "name": "fc-gemini",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/08.function-call/gemini/travel_planner.py", "--server.port", "8504", "--server.headless", "true"],
+      "port": 8504
+    },
+    {
+      "name": "fc-gemini-streaming",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/08.function-call/gemini/streaming/travel_planner.py", "--server.port", "8505", "--server.headless", "true"],
+      "port": 8505
+    },
+    {
+      "name": "fc-openai",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/08.function-call/openai/travel_planner.py", "--server.port", "8506", "--server.headless", "true"],
+      "port": 8506
+    },
+    {
+      "name": "fc-openai-streaming",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/08.function-call/openai/streaming/travel_planner.py", "--server.port", "8507", "--server.headless", "true"],
+      "port": 8507
+    },
+    {
+      "name": "langchain-basic",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/09.langchain/travel_planner.py", "--server.port", "8508", "--server.headless", "true"],
+      "port": 8508
+    },
+    {
+      "name": "langchain-claude",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/09.langchain/claude/travel_planner.py", "--server.port", "8509", "--server.headless", "true"],
+      "port": 8509
+    },
+    {
+      "name": "langchain-claude-streaming",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/09.langchain/claude/streaming/travel_planner.py", "--server.port", "8510", "--server.headless", "true"],
+      "port": 8510
+    },
+    {
+      "name": "langchain-gemini",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/09.langchain/gemini/travel_planner.py", "--server.port", "8511", "--server.headless", "true"],
+      "port": 8511
+    },
+    {
+      "name": "langchain-gemini-streaming",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/09.langchain/gemini/streaming/travel_planner.py", "--server.port", "8512", "--server.headless", "true"],
+      "port": 8512
+    },
+    {
+      "name": "langchain-groq",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/09.langchain/groq/travel_planner.py", "--server.port", "8513", "--server.headless", "true"],
+      "port": 8513
+    },
+    {
+      "name": "langchain-openai",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/09.langchain/openai/travel_planner.py", "--server.port", "8514", "--server.headless", "true"],
+      "port": 8514
+    },
+    {
+      "name": "langchain-openai-streaming",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/09.langchain/openai/streaming/travel_planner.py", "--server.port", "8515", "--server.headless", "true"],
+      "port": 8515
+    },
+    {
+      "name": "agentic-rag-chat",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/13.local-llm/agentic-rag-chat/retrieve/app.py", "--server.port", "8516", "--server.headless", "true"],
+      "port": 8516
+    },
+    {
+      "name": "graphrag-lightrag",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/14.graphrag/lightrag/retrieve/app.py", "--server.port", "8517", "--server.headless", "true"],
+      "port": 8517
+    },
+    {
+      "name": "graphrag-ms",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/14.graphrag/ms-graphrag/retrieve/app.py", "--server.port", "8518", "--server.headless", "true"],
+      "port": 8518
+    },
+    {
+      "name": "graphrag-neo4j",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/14.graphrag/neo4j/retrieve/app.py", "--server.port", "8519", "--server.headless", "true"],
+      "port": 8519
+    },
+    {
+      "name": "aistudy-chat",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/16.mas/aistudy-chat/app.py", "--server.port", "8520", "--server.headless", "true"],
+      "port": 8520
+    },
+    {
+      "name": "patent-mas-orchestrator",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "hands-on/16.mas/patent-mas/orchestrator/app.py", "--server.port", "8521", "--server.headless", "true"],
+      "port": 8521
+    },
+    {
+      "name": "mcp-graphrag",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["hands-on/15.mcp/graphrag/server.py"],
+      "port": 8000
+    },
+    {
+      "name": "mcp-patent-mas-a",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["hands-on/16.mas/patent-mas/mas-a/server.py"],
+      "port": 8010
+    },
+    {
+      "name": "llm-viz",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "9090", "--bind", "127.0.0.1", "--directory", "mldl/hands-on/llm/web"],
+      "port": 9090
+    },
+    {
+      "name": "glossary",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8090", "--bind", "127.0.0.1", "--directory", "agentic-ai/textbook/glossary"],
+      "port": 8090
+    },
+    {
+      "name": "explain-exam-viewer",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8777", "--bind", "127.0.0.1", "--directory", "hands-on/explain-exam"],
+      "port": 8777
+    },
+    {
+      "name": "explain-exam-mldl",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8778", "--bind", "127.0.0.1", "--directory", "mldl/hands-on/explain-exam"],
+      "port": 8778
+    }
+  ]
+}
