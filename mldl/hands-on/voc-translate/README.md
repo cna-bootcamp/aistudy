@@ -22,6 +22,23 @@
 각 항목은 **개념 비유 → (빈칸 채우기) → 즉시 결과 확인**으로 구성되며, 마지막 **7. 캡스톤**에서 완성한
 부품을 조립해 실제로 학습·번역합니다.
 
+## 🌧️ 먼저 워밍업하기 (선택, ~20분)
+
+본 실습이 부담스럽다면, **"하늘에 먹구름이 많아지면 뭐가 생각나?"** 한 문장으로 트랜스포머의
+핵심 직관(**어텐션·순차 생성**)을 먼저 익혀 보세요.
+
+1. **자세한 설명 먼저 읽기**: [`example-detailed.ipynb`](https://colab.research.google.com/github/unicorn-campus/mini-transformer/blob/main/example-detailed.ipynb) 를 열어 개념 설명을 천천히 읽습니다.
+
+   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/unicorn-campus/mini-transformer/blob/main/example-detailed.ipynb)
+
+2. **직접 타이핑하며 익히기**: [`example.ipynb`](https://colab.research.google.com/github/unicorn-campus/mini-transformer/blob/main/example.ipynb) 를 열어 코드를 **직접 타이핑**하며 자습합니다.
+
+   [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/unicorn-campus/mini-transformer/blob/main/example.ipynb)
+
+- 답 "비"를 만들려면 질문의 "먹구름"에 **주목**해야 함 → 그게 바로 **어텐션**
+- CPU로 수 초, 추가 설치 없이 셀만 눌러 진행 (같은 구조를 아래 본 과제에서 번역으로 확장)
+- 저장소: [`unicorn-campus/mini-transformer`](https://github.com/unicorn-campus/mini-transformer)
+
 ## 🚀 Colab 환경 설정
 
 이 실습은 **구글 Colab(Colaboratory)** 에서 진행합니다. Colab은 구글이 무료로 제공하는 "웹 브라우저에서
@@ -166,3 +183,5 @@ voc-translate/
 
 - 원본 로컬 실행 버전: `start-here/hands-on/llm` (스크립트 + 웹 시각화)
 - 트랜스포머 개념·수식: [혼자서 공부하는 MLDL — 어텐션 메커니즘과 트랜스포머](https://github.com/cna-bootcamp/aistudy/blob/main/start-here/혼자서공부하는%20MLDL.md)
+
+<!-- 마지막 업데이트: 2026-07-13 (테스트용 더미 변경) -->
