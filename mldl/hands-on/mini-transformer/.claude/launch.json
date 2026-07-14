@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "explain-docs",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8000", "--directory", "explain"],
+      "port": 8000
+    }
+  ]
+}
