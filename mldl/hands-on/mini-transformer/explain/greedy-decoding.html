@@ -204,6 +204,9 @@
         steps.<span class="fn">append</span>((tv.<span class="fn">decode</span>(gen), tv.itos[nxt]))
         gen.<span class="fn">append</span>(nxt)                                <span class="cmt"># ⑥ 답 뒤에 이어 붙임</span>
         <span class="kw">if</span> nxt == tv.eos_id: <span class="kw">break</span>                <span class="cmt"># ⑦ 끝나면 멈춤</span>
+    tgt = torch.<span class="fn">tensor</span>([gen]); tgt_mask = <span class="fn">make_causal_mask</span>(tgt.<span class="fn">size</span>(<span class="num2">1</span>), tgt.device)
+    model.<span class="fn">decode_step</span>(tgt, enc, tgt_mask, src_mask)     <span class="cmt"># ⑧ 완성된 답으로 한 번 더(어텐션 확보용)</span>
+    cross = model.decoder.layers[-<span class="num2">1</span>].cross_attn.last_attn_weights[<span class="num2">0</span>].<span class="fn">mean</span>(<span class="num2">0</span>)
     <span class="kw">return</span> steps, tv.<span class="fn">decode</span>(gen), cross</code></pre>
 
   <table>
@@ -214,6 +217,7 @@
     <tr><td>④</td><td><span class="inline">model.decode_step(...)</span></td><td>지금까지의 답 전체를 다시 디코더에 통과</td></tr>
     <tr><td>⑤</td><td><span class="inline">argmax()</span></td><td>다음 단어 후보 중 최고점 1개만 선택</td></tr>
     <tr><td>⑥⑦</td><td><span class="inline">gen.append / break</span></td><td>답에 이어 붙이고, &lt;eos&gt;면 종료</td></tr>
+    <tr><td>⑧</td><td><span class="inline">model.decode_step(...)</span> 한 번 더</td><td>완성된 답으로 다시 통과시켜 크로스어텐션 확보(6번에서 설명)</td></tr>
   </table>
 
   <div class="callout"><span class="emoji">♻️</span><b>질문(enc)은 재사용, 답(gen)은 매번 재계산.</b> 질문 인코딩은 루프 밖에서 1번만 계산해 재사용하지만,
