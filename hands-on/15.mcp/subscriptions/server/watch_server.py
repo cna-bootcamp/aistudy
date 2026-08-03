@@ -15,11 +15,20 @@ STDIO 전송이므로 stdout 출력 금지. 로그는 stderr로만 남김.
 
 from __future__ import annotations
 
+import asyncio
 import sys
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 
+from mcp import MCPDeprecationWarning
 from mcp.server.mcpserver import Context, MCPServer
+
+# Logging 기능(ctx.info/ctx.log)은 2026-07-28에서 폐기 예정(SEP-2577)이라
+# 호출할 때마다 MCPDeprecationWarning이 발생함.
+# 이 예제는 "로그 알림이 어느 스트림으로 가는가"를 보여주기 위해 의도적으로 사용하므로
+# 출력이 지저분해지지 않도록 경고만 끔. 신규 구현은 stderr 또는 OpenTelemetry를 쓸 것.
+warnings.simplefilter("ignore", MCPDeprecationWarning)
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 NOTES_FILE = DATA_DIR / "notes.txt"
@@ -107,6 +116,30 @@ async def remove_greeting_tool(name: str, ctx: Context) -> str:
     await ctx.notify_tools_changed()
     _log(f"[watch] 도구 제거 + tools/list_changed 발송: {tool_name}")
     return f"도구를 제거했습니다: {tool_name}"
+
+
+# ---------------------------------------------------------------------------
+# 요청 스코프 알림(진행률·로그)을 발생시키는 도구
+# ---------------------------------------------------------------------------
+# 스펙: notifications/progress 와 notifications/message 는 '구독 스트림'이 아니라
+#       **그 알림이 관계된 요청의 응답 스트림**으로만 전달됨.
+#       subscriptions/listen 스트림에는 절대 실리지 않음.
+@mcp.tool()
+async def long_task(steps: int = 4, delay: float = 0.3, ctx: Context = None) -> str:  # type: ignore[assignment]
+    """steps단계로 진행되는 작업. 단계마다 진행률과 로그를 보고함.
+
+    - ctx.report_progress() → notifications/progress
+      클라이언트가 progressToken을 넣어 옵트인한 경우에만 전달됨.
+    - ctx.info() → notifications/message
+      요청 _meta에 logLevel이 있는 경우에만 전달됨(스펙: 없으면 서버가 보내면 안 됨).
+    둘 다 이 tools/call 요청의 응답 스트림으로만 흐름.
+    """
+    for i in range(1, steps + 1):
+        await asyncio.sleep(delay)
+        await ctx.report_progress(i, steps, f"{i}/{steps} 단계 완료")
+        await ctx.info({"message": "단계 처리", "step": i, "of": steps})
+        _log(f"[watch] long_task {i}/{steps} (progress + log 발송)")
+    return f"작업 완료: {steps}단계"
 
 
 if __name__ == "__main__":
