@@ -1,187 +1,181 @@
-# MCP 기본 예제 (Simple) — 계산기 & 날씨 서버
+# 실습 2. 간단한 MCP 구현 (MCP Python SDK v2)
 
-FastMCP + STDIO 전송으로 MCP 3대 핵심 기능(Tools, Resources, Prompts)과 외부 API 연동을 학습하는 예제임.  
-계산기 서버, 날씨 조회 서버, 그리고 계산기 서버에 연결하는 클라이언트로 구성됨.
+MCP의 3대 핵심 기능(Tools / Resources / Prompts)과 외부 API 연동을 한 번에 익히는 예제임.
+**MCP 2026-07-28 스펙 / `mcp` 2.x (`MCPServer`, `Client`) 기준**으로 작성되었음.
+
+교재: `agentic-ai/textbook/15.MCP.md` 3.2절
 
 | 구성 | 파일 | 핵심 학습 포인트 |
 |------|------|------------------|
 | 계산기 서버 | `server/calc_server.py` | Tools + Resources + Prompts 3대 기능 |
-| 날씨 서버 | `server/weather_server.py` | 외부 API(Open-Meteo) 연동, 비동기 도구 |
-| 클라이언트 | `client/client.py` | ClientSession으로 서버 연결·도구 호출 |
+| 날씨 서버 | `server/weather_server.py` | 외부 API(wttr.in) 연동, 비동기 도구, per-request `_meta` |
+| 클라이언트 | `client/client.py` | `Client`로 서버 연결·도구 호출 (initialize 없음) |
+| 날씨 클라이언트 | `client/weather_client.py` | 외부 API 도구 호출 및 에러 처리 확인 |
 
 ---
 
-## 디렉토리 구조
+## 1. 아키텍처
 
 ```
-simple/
+┌──────────────────────────────┐        STDIO (stdin/stdout)        ┌────────────────────────┐
+│  client/client.py            │  ────────────────────────────────► │ server/calc_server.py  │
+│  (mcp.Client)                │  ◄──────────────────────────────── │ (mcp.MCPServer)        │
+│                              │      개행 구분 JSON-RPC 2.0        │  Tools/Resources/      │
+│  - server/discover           │                                    │  Prompts               │
+│  - tools/list, tools/call    │                                    └────────────────────────┘
+│  - resources/list, read      │
+│  - prompts/list, get         │        STDIO                       ┌────────────────────────┐
+│                              │  ────────────────────────────────► │ server/weather_server  │
+│  client/weather_client.py    │  ◄──────────────────────────────── │ (wttr.in 연동)         │
+└──────────────────────────────┘                                    └───────────┬────────────┘
+                                                                                │ HTTPS
+                                                                                ▼
+                                                                          https://wttr.in
+```
+
+**중요**: 클라이언트가 서버를 **자식 프로세스로 직접 실행**하므로 서버를 따로 띄울 필요가 없음.
+
+---
+
+## 2. 디렉터리 구조
+
+```
+hands-on/15.mcp/simple/
 ├── server/
-│   ├── calc_server.py      # 계산기 MCP 서버 (Tools, Resources, Prompts)
-│   └── weather_server.py   # 날씨 조회 MCP 서버 (Open-Meteo 연동)
-├── client/
-│   ├── client.py           # MCP 클라이언트 (계산기 서버 연결 테스트)
-│   ├── requirements.txt     # 의존성 (mcp[cli], httpx)
-│   └── README.md            # 본 문서
-└── venv/                    # 가상환경 (설치 후 생성됨)
+│   ├── calc_server.py       # 계산기 서버: Tools + Resources + Prompts
+│   └── weather_server.py    # 날씨 서버: 외부 API(wttr.in) 연동 Tools
+└── client/
+    ├── client.py            # 계산기 서버 연결 테스트
+    ├── weather_client.py    # 날씨 서버 연결 테스트
+    ├── requirements.txt
+    ├── README.md            # (이 문서)
+    └── venv/                # 가상환경 (설치 후 생성됨)
 ```
 
 ---
 
-## 소스 코드 설명
+## 3. 소스 코드 설명
 
-### server/calc_server.py — 계산기 서버
+### 3.1 `server/calc_server.py`
 
-MCP 3대 핵심 기능을 모두 포함하는 기본 서버임. `FastMCP("Calculator")` 인스턴스에 데코레이터로 기능을 등록함.
+| 구분 | 이름 | 설명 |
+|------|------|------|
+| Tool | `add`, `subtract`, `multiply`, `divide` | 사칙연산. 실행 결과를 `history`에 누적 |
+| Resource | `calc://history` | 누적된 계산 이력 |
+| Resource | `calc://info` | 서버 버전·지원 연산 |
+| Prompt | `math_prompt(problem)` | 수학 문제 풀이 유도 프롬프트 생성 |
 
-| 기능 | 등록 항목 | 설명 |
-|------|----------|------|
-| Tools | `add`, `subtract`, `multiply`, `divide` | 사칙연산. 호출마다 결과를 `history`에 누적 |
-| Resources | `calc://history`, `calc://info` | 계산 이력, 서버 메타 정보 (읽기 전용) |
-| Prompts | `math_prompt` | 수학 문제 풀이 프롬프트 템플릿 |
+```python
+from mcp.server.mcpserver import MCPServer
 
-- `@mcp.tool()`: 타입 힌트(`a: float, b: float`)와 docstring을 JSON Schema로 자동 변환함.  
-- `divide`: 0으로 나누면 `ValueError`를 발생시키며, MCP는 이를 결과의 `isError=True`로 전달함.  
-- `@mcp.resource("calc://history")`: URI로 접근하는 읽기 전용 데이터로 등록함.  
-- `@mcp.prompt()`: 인자를 받아 '완성된 프롬프트 텍스트'를 반환함 (LLM 실행 결과가 아님).  
+mcp = MCPServer("Calculator", instructions="...")
 
-### server/weather_server.py — 날씨 서버
+@mcp.tool()
+def add(a: float, b: float) -> float:
+    """두 수를 더함."""
+    ...
 
-외부 API **Open-Meteo**(무료, API 키 불필요)와 연동하는 비동기 서버임.  
-도시 이름을 직접 받지 못하므로 **2단계**로 조회함.
-
+if __name__ == "__main__":
+    mcp.run(transport="stdio")     # v2는 전송 방식을 run()에서 지정
 ```
-도시 이름 ──(Geocoding API)──► 위경도 ──(Forecast API)──► 날씨 결과
+
+- 타입 힌트(`a: float`)가 `inputSchema`로, docstring이 `description`으로 자동 변환됨
+- `divide(1, 0)`은 `ValueError`를 던짐 → 클라이언트는 `result.is_error == True`로 수신
+
+### 3.2 `server/weather_server.py`
+
+| Tool | 설명 |
+|------|------|
+| `get_weather(city)` | wttr.in에서 현재 날씨 조회 |
+| `get_forecast(city, days)` | 일별 예보 조회 (1~3일) |
+
+- 외부 API: `https://wttr.in/{도시}?format=j1` (무료, **API 키 불필요**)
+- HTTP 클라이언트는 v2 SDK 의존성인 **`httpx2`** 사용 (v1의 `httpx` + `httpx-sse` 대체)
+- `ctx: Context`를 파라미터로 주입받아 **요청마다 실려 오는** `ctx.protocol_version`을 로그에 남김
+  → stateless 프로토콜의 per-request 메타데이터를 눈으로 확인하는 지점
+- **로그는 반드시 stderr로.** STDIO에서 stdout은 JSON-RPC 채널임.
+  `ctx.info()`(Logging 기능)는 2026-07-28에서 폐기 예정(SEP-2577)이라 경고가 발생하므로 사용하지 않음
+
+### 3.3 `client/client.py`
+
+```python
+from mcp import Client, StdioServerParameters, stdio_client
+
+params = StdioServerParameters(command=sys.executable, args=[str(SERVER_SCRIPT)])
+
+async with Client(stdio_client(params)) as client:
+    tools = await client.list_tools()
+    result = await client.call_tool("add", {"a": 3, "b": 5})
+    print(result.structured_content)     # {'result': 8.0}
 ```
 
-| 기능 | 등록 항목 | 설명 |
-|------|----------|------|
-| Tools | `get_weather` | 현재 날씨 (온도/체감/습도/풍속/상태) |
-| Tools | `get_forecast` | 일별 예보 (1~7일, 최고/최저/상태) |
+> **주의**: `Client("문자열")`은 **Streamable HTTP URL**로 해석됨.
+> STDIO 서버에 붙일 때는 위처럼 `stdio_client(params)` 전송 객체를 넘겨야 함.
 
-주요 함수와 처리 흐름:
-
-- `_geocode(client, city)`: Geocoding API로 도시명을 위경도로 변환함. 결과 없으면 `None` 반환.  
-- `_describe(code)`: Open-Meteo가 반환하는 WMO 숫자 코드(`weather_code`)를 한국어 설명으로 변환함.  
-- `get_weather(city)`: `_geocode` → Forecast API(`current=...`, `timezone=auto`) 호출 → 결과 포맷팅.  
-- `get_forecast(city, days)`: `_geocode` → Forecast API(`daily=...`, `forecast_days`) 호출 → 날짜별 포맷팅.  
-
-호출 API 엔드포인트:
-
-| 단계 | URL |
-|------|-----|
-| Geocoding | `https://geocoding-api.open-meteo.com/v1/search` |
-| Forecast | `https://api.open-meteo.com/v1/forecast` |
-
-### client/client.py — MCP 클라이언트
-
-계산기 서버에 STDIO로 연결하여 Tools/Resources/Prompts를 차례로 호출하는 예제임.
-
-- `SERVER_SCRIPT`: `Path(__file__)` 기준 절대경로로 `../server/calc_server.py`를 가리킴.  
-  실행 위치(CWD)와 무관하게 서버를 찾기 위함임.  
-- `StdioServerParameters(command=sys.executable, args=[...])`: 클라이언트를 실행 중인 **동일 venv 파이썬**으로  
-  서버를 자식 프로세스로 띄움. 별도 파이썬 경로 지정이 불필요함.  
-- `_text(...)`: 응답 content 리스트에서 텍스트만 추출하는 헬퍼.  
-
-실행 흐름:
-
-1. `session.initialize()` — 프로토콜 협상 (필수 첫 호출)  
-2. `list_tools()` / `list_resources()` / `list_prompts()` — 목록 조회  
-3. `call_tool("add"/"divide", ...)` — 도구 호출  
-4. `read_resource("calc://history")` — 누적 이력 읽기  
-5. `get_prompt("math_prompt", ...)` — 완성된 프롬프트 텍스트 조회  
+`client.server_info` / `client.protocol_version` / `client.instructions`는
+내부적으로 수행된 `server/discover` 결과에서 채워짐.
 
 ---
 
-## STDIO 동작 원리
+## 4. v1 → v2 변경 대응표
 
-MCP 서버는 STDIO(표준 입출력) 방식으로 통신함.  
-**서버를 별도로 실행할 필요 없이**, 클라이언트가 서버를 자식 프로세스로 자동 실행하고 연결함.
+| 항목 | v1 (`mcp` 1.x) | v2 (`mcp` 2.x) |
+|------|----------------|----------------|
+| 서버 클래스 | `from mcp.server.fastmcp import FastMCP` | `from mcp.server.mcpserver import MCPServer` |
+| 전송 지정 | 생성자 인자 | `mcp.run(transport="stdio")` |
+| Context | `mcp.get_context()` | 핸들러 파라미터 `ctx: Context` |
+| 클라이언트 | `stdio_client()` + `ClientSession()` 3계층 | `Client(stdio_client(params))` |
+| 초기화 | `await session.initialize()` | **불필요** (stateless) |
+| 결과 필드 | `result.isError` | `result.is_error` |
+| HTTP | `httpx` | `httpx2` |
 
-```
-python client/client.py 실행
-   │
-   ├── 1. server/calc_server.py를 자식 프로세스로 자동 실행
-   ├── 2. stdin/stdout 파이프로 서버와 연결
-   ├── 3. JSON-RPC 메시지 교환 (도구 호출, 리소스 읽기 등)
-   └── 4. 종료 시 서버도 자동 종료
-```
-
-> **주의**: 서버를 직접 실행(`python server/calc_server.py`)하면 stdin에서 JSON-RPC 메시지를 대기함.  
-> 키보드 입력은 유효한 JSON-RPC가 아니므로 파싱 에러가 발생함. 테스트는 클라이언트나 MCP Inspector로 수행할 것.  
-> STDIO에서는 stdout이 통신 채널이므로 서버 코드에 `print()`를 넣으면 통신이 깨짐 (로그는 stderr로만).
+> `mcp` 2.x에는 `mcp.server.fastmcp` 모듈 자체가 **없음**(`ModuleNotFoundError`).
 
 ---
 
-## 가상환경 설정
+## 5. 가상환경 설정 및 실행
 
-가상환경은 `simple/` 디렉토리 기준으로 1개만 생성함 (서버·클라이언트 공용).  
-의존성 목록은 `client/requirements.txt`에 정의됨.
-
-### Windows / PowerShell
-
-```powershell
-cd hands-on\15.mcp\simple
-python -m venv venv
-venv\Scripts\Activate.ps1
-pip install --upgrade pip setuptools
-pip install -r client\requirements.txt
-```
-
-### Windows / Git Bash
+### Windows (Git Bash)
 
 ```bash
-cd hands-on/15.mcp/simple
+cd hands-on/15.mcp/simple/client
 python -m venv venv
 source venv/Scripts/activate
-pip install --upgrade pip setuptools
-pip install -r client/requirements.txt
+pip install -r requirements.txt
 ```
 
-### macOS / Linux
+### Linux / macOS
 
 ```bash
-cd hands-on/15.mcp/simple
+cd hands-on/15.mcp/simple/client
 python -m venv venv
 source venv/bin/activate
-pip install --upgrade pip setuptools
-pip install -r client/requirements.txt
+pip install -r requirements.txt
 ```
+
+### 실행
+
+```bash
+python client.py
+```
+
+```bash
+python weather_client.py
+```
+
+> `weather_client.py`는 인터넷 연결이 필요함 (wttr.in 호출).
 
 ---
 
-## 실행 방법
-
-### 1) 클라이언트 실행 (계산기 서버 자동 연결)
-
-```bash
-# simple/ 디렉토리에서 (가상환경 활성화 상태)
-python client/client.py
-```
-
-> **Windows에서 한글이 깨질 경우**: 콘솔 기본 코드페이지(cp949) 때문임. UTF-8을 강제하면 정상 출력됨.  
-> - PowerShell: `$env:PYTHONIOENCODING="utf-8"; python client\client.py`  
-> - Git Bash: `PYTHONIOENCODING=utf-8 python client/client.py`  
-
-### 2) MCP Inspector로 서버 테스트 (브라우저 UI)
-
-```bash
-# 계산기 서버
-mcp dev server/calc_server.py
-
-# 날씨 서버
-mcp dev server/weather_server.py
-```
-
-> **MCP Inspector**: 브라우저에서 도구·리소스·프롬프트를 시각적으로 테스트하는 개발 도구. `mcp dev` 실행 시 자동 구동됨.
-
----
-
-## 실행 결과 예시
-
-### 계산기 클라이언트 (`python client/client.py`)
+## 6. 실행 결과 (실제 출력)
 
 ```
-서버 연결 완료
+서버 연결 완료 (initialize 없이 바로 사용 — stateless)
+
+=== 서버 정보 (server/discover) ===
+  이름/버전 : name='Calculator' title=None version='' description=None website_url=None icons=None
+  프로토콜  : 2026-07-28
+  지시문    : 사칙연산과 계산 이력 조회를 제공하는 학습용 서버
 
 === 사용 가능한 도구 ===
   - add: 두 수를 더함.
@@ -190,32 +184,73 @@ mcp dev server/weather_server.py
   - divide: 두 수를 나눔. 0으로 나누면 ValueError 발생.
 
 === 도구 호출: add(3, 5) ===
-  결과: 8.0
+  content          : 8.0
+  structured_content: {'result': 8.0}
 
-=== 도구 호출: divide(10, 3) ===
-  결과: 3.3333333333333335
+=== 도구 호출(에러): divide(1, 0) ===
+  is_error: True
+  메시지  : Error executing tool divide: 0으로 나눌 수 없음.
 
 === 리소스 읽기: calc://history ===
   1. 3.0 + 5.0 = 8.0
   2. 10.0 ÷ 3.0 = 3.3333333333333335
 ```
 
-### 날씨 서버 (`mcp dev server/weather_server.py` 또는 클라이언트로 `get_weather` 호출)
-
 ```
-도시: 서울특별시 (대한민국)
-시각: 2026-06-01T16:15
-날씨: 부분적으로 흐림
-온도: 26.2°C
-체감: 26.7°C
-습도: 47%
-풍속: 5.7km/h
+=== get_weather('Seoul') ===
+  is_error: False
+Chongdong, South Korea 현재 날씨
+- 상태: Clear
+- 기온: 30°C (체감 37°C)
+- 습도: 74%
+- 풍속: 4 km/h (NW)
+- 관측 시각(UTC): 02:13 PM
+
+=== get_forecast('Busan', days=5)  → 검증 실패 기대 ===
+  is_error: True
+  메시지  : Error executing tool get_forecast: days는 1에서 3 사이여야 함 ...
 ```
 
 ---
 
-## (참고) Claude Code / Claude Desktop 연동
+## 7. Claude Code 연동
 
-날씨 서버를 Claude Code/Desktop에 등록하는 방법은 교재  
-[agentic-ai/textbook/15.MCP.md](../../../../agentic-ai/textbook/15.MCP.md) 의 `3.2.2 / 3.2.3` 절을 참조할 것.  
-등록 시 `command`는 위 venv 파이썬 절대경로, `args`는 `server/weather_server.py` 절대경로를 지정함.
+```bash
+SERVER_PATH="hands-on/15.mcp/simple/server"
+
+if command -v cygpath &> /dev/null; then
+  USER_HOME=$(cygpath -m "$HOME")
+else
+  USER_HOME="$HOME"
+fi
+
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "mingw"* ]]; then
+  PYTHON_PATH="$USER_HOME/hands-on/15.mcp/simple/client/venv/Scripts/python.exe"
+else
+  PYTHON_PATH="$USER_HOME/hands-on/15.mcp/simple/client/venv/bin/python"
+fi
+SCRIPT_PATH="$USER_HOME/$SERVER_PATH/weather_server.py"
+
+claude mcp add-json weather \
+  "{\"type\":\"stdio\",\"command\":\"$PYTHON_PATH\",\"args\":[\"$SCRIPT_PATH\"]}" \
+  -s user
+```
+
+등록 후 Claude Code를 재시작하고 `/mcp`로 연결 상태를 확인함.
+
+```bash
+claude mcp list -s user
+```
+
+---
+
+## 8. 트러블슈팅
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` | v1 코드를 v2 SDK로 실행 | `MCPServer`로 변환 (4절 표 참조) |
+| `Client("server.py")`가 연결 실패 | 문자열은 HTTP URL로 해석됨 | `Client(stdio_client(params))` 사용 |
+| 서버가 응답 없이 멈춤 | 서버가 stdout에 `print()` 함 | 로그는 `stderr`로만 출력 |
+| `MCPDeprecationWarning: logging capability is deprecated` | `ctx.info()`/`ctx.log()` 사용 | stderr 로깅 또는 OpenTelemetry로 대체 |
+| wttr.in 타임아웃 | 외부 서비스 일시 장애 | 잠시 후 재시도 |
+| 한글이 깨져 보임 (Windows) | 콘솔 인코딩 | `set PYTHONIOENCODING=utf-8` 후 실행 |

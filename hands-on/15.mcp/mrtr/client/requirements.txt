@@ -1,0 +1,2 @@
+# 단일 가상환경에서 서버(server/)와 클라이언트(client/)를 모두 실행함
+mcp[cli]>=2.0.0   # MCP Python SDK v2 — MRTR(Resolve/Elicit) + RequestStateSecurity 포함

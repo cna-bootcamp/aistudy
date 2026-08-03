@@ -1,18 +1,25 @@
-"""계산기 MCP 서버 (FastMCP + STDIO 전송)
+"""계산기 MCP 서버 (MCP Python SDK v2 / MCPServer + STDIO 전송)
 
 MCP 3대 핵심 기능을 한 파일에서 모두 보여주는 예제임.
   - Tools     : 사칙연산 (add, subtract, multiply, divide) — LLM이 호출 판단
   - Resources : 계산 이력/서버 정보 조회 (calc://history, calc://info) — 읽기 전용 데이터
   - Prompts   : 수학 문제 풀이 프롬프트 템플릿 (math_prompt) — 사용자가 선택
 
+[v1 -> v2 변경점]
+  - from mcp.server.fastmcp import FastMCP   ->  from mcp.server.mcpserver import MCPServer
+  - FastMCP("Calculator")                    ->  MCPServer("Calculator")
+  - mcp.run()                                ->  mcp.run(transport="stdio")
+  v2에서 mcp.server.fastmcp 모듈은 제거되었으므로 v1 코드는 임포트 단계에서 실패함.
+
 STDIO 전송에서는 stdout이 JSON-RPC 채널이므로 print() 등 stdout 출력 금지.
 디버깅 로그가 필요하면 반드시 stderr로만 출력해야 함.
 """
-from mcp.server.fastmcp import FastMCP
 
-# FastMCP: 타입 힌트 + docstring만으로 JSON Schema를 자동 생성하는 MCP 서버 헬퍼.
-# 인자 "Calculator"는 클라이언트 초기화 시 교환되는 서버 이름임.
-mcp = FastMCP("Calculator")
+from mcp.server.mcpserver import MCPServer
+
+# MCPServer: 타입 힌트 + docstring만으로 JSON Schema를 자동 생성하는 MCP 서버 헬퍼.
+# 인자 "Calculator"는 server/discover 응답의 serverInfo.name으로 노출되는 서버 이름임.
+mcp = MCPServer("Calculator", instructions="사칙연산과 계산 이력 조회를 제공하는 학습용 서버")
 
 # 계산 이력 저장용 모듈 전역 리스트. 도구 실행마다 한 줄씩 누적되어 Resource로 노출됨.
 history: list[str] = []
@@ -52,7 +59,7 @@ def multiply(a: float, b: float) -> float:
 def divide(a: float, b: float) -> float:
     """두 수를 나눔. 0으로 나누면 ValueError 발생."""
     # 0 나눗셈은 ZeroDivisionError 대신 명시적 ValueError로 처리.
-    # MCP는 도구에서 발생한 예외를 결과의 isError=True로 클라이언트에 전달함.
+    # v2에서 MCPError가 아닌 일반 예외는 결과의 is_error=True로 클라이언트에 전달됨.
     if b == 0:
         raise ValueError("0으로 나눌 수 없음.")
     result = a / b
@@ -78,7 +85,7 @@ def get_history() -> str:
 @mcp.resource("calc://info")
 def get_info() -> str:
     """계산기 서버의 버전·지원 연산 등 메타 정보를 반환함."""
-    return "Calculator MCP Server v1.0\n지원 연산: 덧셈, 뺄셈, 곱셈, 나눗셈"
+    return "Calculator MCP Server v2.0 (MCP 2026-07-28)\n지원 연산: 덧셈, 뺄셈, 곱셈, 나눗셈"
 
 
 # ---------------------------------------------------------------------------
@@ -99,5 +106,6 @@ def math_prompt(problem: str) -> str:
 
 # 이 파일을 직접 실행할 때만 서버를 구동함 (import 시에는 실행되지 않음).
 if __name__ == "__main__":
-    # transport 미지정 시 기본값이 STDIO임. stdin/stdout으로 JSON-RPC 통신을 수행함.
-    mcp.run()
+    # v2에서는 전송 방식을 run()의 인자로 지정함 (v1은 생성자 인자였음).
+    # stdin/stdout으로 개행 구분 JSON-RPC 메시지를 주고받음.
+    mcp.run(transport="stdio")

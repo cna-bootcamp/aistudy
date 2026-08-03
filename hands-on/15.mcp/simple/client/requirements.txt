@@ -1,3 +1,5 @@
 # 단일 가상환경에서 서버(server/)와 클라이언트(client/)를 모두 실행함
-mcp[cli]>=1.0.0   # MCP Python SDK + CLI (FastMCP, ClientSession, mcp dev 포함)
-httpx>=0.27.0     # weather_server.py의 Open-Meteo API 비동기 호출용
+mcp[cli]>=2.0.0   # MCP Python SDK v2 (MCPServer, Client, mcp dev) — 2026-07-28 스펙
+# httpx2는 mcp 2.x의 의존성으로 함께 설치되므로 별도 명시가 필수는 아니지만,
+# weather_server.py가 직접 import 하므로 의도를 드러내기 위해 명시함.
+httpx2>=2.5.0
