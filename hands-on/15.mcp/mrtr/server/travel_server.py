@@ -42,8 +42,16 @@ from pydantic import BaseModel, Field
 
 
 def _log(message: str) -> None:
-    """STDIO에서 stdout은 JSON-RPC 채널이므로 로그는 stderr로만 출력함."""
+    """STDIO에서 stdout은 JSON-RPC 채널이므로 로그는 stderr로만 출력함.
+
+    Windows에서 stderr가 파이프로 리다이렉트되면 콘솔 chcp 설정과 무관하게
+    시스템 ANSI 코드페이지(cp949 등)로 인코딩되어 한글 로그가 깨짐 -> UTF-8 고정.
+    """
     print(message, file=sys.stderr, flush=True)
+
+
+if sys.platform == "win32":
+    sys.stderr.reconfigure(encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
