@@ -21,7 +21,7 @@ Vue 3(Composition API)·Vite 기반 SPA 구축과 Google 검색 수준의 미니
 - 백엔드 API 계약(정본): `prompts/backend.md` — 요청 스키마·SSE 이벤트·최종 Structured Output 스키마  
   백엔드 미기동 시 동일 스키마로 mock 사용(스키마 임의 변경 금지)
 - UX 기준: `AGENTS.md`의 서비스 기획자·프론트엔드 persona (Google-like 단순함, 핵심 요약 → 코드 → 출처 순)
-- 개발 가이드: `references/dev-guide.md` §3.9, `references/prompt-guide.md` 8섹션 표준
+- 개발 프롬프트 가이드: `hands-on/16.mas/references/dev-guide.md` §3.9, `references/prompt-guide.md` 8섹션 표준
 - 관련 교재(선택): `~/workspace/aistudy/agentic-ai/textbook/*.md` — 도메인 용어·예시 질문 확보용, 앞단 아젠다만 참조
 - 환경변수: `.env`의 `VITE_API_BASE_URL` (백엔드 검색 API base URL)
 

@@ -17,7 +17,7 @@ Pinecone/Milvus 기반 대규모 코드 임베딩 운영과 임베딩 품질·�
 [입력]
 - 인덱싱 대상 코드: `~/workspace/aistudy/hands-on/*` (Agentic AI 예제 코드, 하위 디렉토리 재귀 수집)
 - 관련 교재(선택): `~/workspace/aistudy/agentic-ai/textbook/*.md` — 코드 설명 보강용, 앞단 아젠다만 참조
-- 개발 가이드: `references/dev-guide.md` §3.1·§3.2·§3.4·§3.9
+- 개발 프롬프트 가이드: `hands-on/16.mas/references/dev-guide.md` §3.1·§3.2·§3.4·§3.9
 - API Key: `.env` 파일 참조 (OpenAI)
 
 [처리]

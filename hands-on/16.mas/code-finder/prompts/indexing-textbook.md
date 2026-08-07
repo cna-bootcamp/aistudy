@@ -21,7 +21,7 @@ Agentic AI 학습 교재(마크다운)를 개념(엔티티)·관계(엣지)·원
 - 개념 용어집: `~/workspace/aistudy/agentic-ai/textbook/glossary/glossary.json`  
   (약 957개 도메인 용어. 엔티티 타입 후보·정규화 사전으로 활용)
 - 프롬프트 작성 가이드: `references/prompt-guide.md`
-- 개발가이드: `references/dev-guide.md`
+- 개발 프롬프트 가이드: `hands-on/16.mas/references/dev-guide.md`
 - 후속 소비처(참조): `prompts/testset-graphrag.md`  
   (본 인덱서의 엔티티 ID·관계 ID·청크 ID를 정답 기준으로 사용하므로 ID 체계를 안정적으로 유지)
 - 샘플 청크·엔티티 후보를 프롬프트에 직접 임베딩할 때는 아래 태그로 감쌀 것

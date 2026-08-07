@@ -23,7 +23,7 @@ FastAPI 비동기 스트리밍 API 설계에 능함. 웹·유튜브 수집 파�
 - 교재 GraphRAG 인덱스: `kg/store/` (indexing-textbook.md 산출, Neo4j 엔티티·관계·원문 청크 매핑)
 - 평가 테스트셋: `datasets/testset-rag.jsonl`, `datasets/testset-graphrag.jsonl` (§3.7 RAGAS·NDCG 입력)
 - 교재 아젠다(선택): `~/workspace/aistudy/agentic-ai/textbook/*.md` — 앞단 아젠다만 참조(도메인 용어 정합)
-- 개발 가이드: `references/dev-guide.md` §3.1 ~ §3.9 전체(프론트엔드 §3.9 항목 제외)
+- 개발 프롬프트 가이드: `hands-on/16.mas/references/dev-guide.md` §3.1 ~ §3.9 전체(프론트엔드 §3.9 항목 제외)
 - API Key: `.env` 참조 — OpenAI·Claude·Gemini·Groq·YouTube Data·Cohere. Neo4j 접속정보 미비 시 사용자 문의
 
 [처리]
